@@ -1,0 +1,207 @@
+# ---------------------------------------------------------------------------
+# questions.yaml — Rancher UI form for installing the Farmer Registry wrapper chart.
+#
+# Variable paths are prefixed with `openg2p-registry.` because all base-chart
+# values live under that subchart alias in this wrapper's values.yaml.
+#
+# Structure mirrors the base chart's own questions.yaml so operators get a
+# familiar layout; the only Farmer-Registry-specific differences are:
+#   - image defaults point at openg2p/openg2p-farmer-registry-*:develop
+#   - an informational note explains that Farmer Registry's default idTypes
+#     are farmer (12) and household (10).
+#
+# Advanced users should edit values.yaml directly — the Rancher form only
+# exposes the commonly-changed knobs.
+# ---------------------------------------------------------------------------
+
+categories:
+  - Social Protection
+  - OpenG2P
+
+labels:
+  io.cattle.field/appName: OpenG2P Farmer Registry
+
+questions:
+
+  # -------------------------------------------------------------------------
+  # General — hostnames, external dependencies, component toggles.
+  # -------------------------------------------------------------------------
+  - variable: openg2p-registry.global.registryHostname
+    description: |
+      Base hostname under which all Farmer Registry services are exposed.
+      Default (auto-computed): "<release-name>.<namespace>.openg2p.org".
+      Individual components derive their own hostnames from this:
+        - Staff Portal UI:  {registryHostname}
+        - Staff Portal API: staff-{registryHostname}
+        - Partner API:      partner-{registryHostname}
+        - ID Generator:     idgenerator-{release-name}.{namespace}.openg2p.org
+    type: string
+    label: Registry Hostname
+    group: General
+
+  - variable: openg2p-registry.global.postgresqlHost
+    description: PostgreSQL server host (cluster-internal service name)
+    type: string
+    label: PostgreSQL Server Host
+    group: General
+
+  - variable: openg2p-registry.global.keycloakBaseUrl
+    description: Keycloak Base URL used by all components for OIDC
+    type: string
+    label: Keycloak Base URL
+    group: General
+
+  - variable: openg2p-registry.keycloak-init.enabled
+    description: Run Keycloak Init Job to create realm and OIDC client
+    type: boolean
+    label: Keycloak Init
+    group: General
+
+  - variable: openg2p-registry.staffPortalApi.enabled
+    description: Install Staff Portal API
+    type: boolean
+    label: Staff Portal API
+    group: General
+
+  - variable: openg2p-registry.staffPortalUi.enabled
+    description: Install Staff Portal UI
+    type: boolean
+    label: Staff Portal UI
+    group: General
+
+  - variable: openg2p-registry.partnerApi.enabled
+    description: Install Partner API
+    type: boolean
+    label: Partner API
+    group: General
+
+  - variable: openg2p-registry.benePortalApi.enabled
+    description: Install Beneficiary Portal API (off by default)
+    type: boolean
+    label: Beneficiary Portal API
+    group: General
+
+  - variable: openg2p-registry.idgenerator.enabled
+    description: Install ID Generator service (produces foundational IDs for Farmer and Household)
+    type: boolean
+    label: ID Generator
+    group: General
+
+  # -------------------------------------------------------------------------
+  # Images — per-component tag overrides. Repositories are set to
+  # Farmer-Registry images in values.yaml; override tag here to pin to a
+  # released tag (e.g. 1.0.0) instead of tracking `develop`.
+  # -------------------------------------------------------------------------
+  - variable: openg2p-registry.staffPortalApi.image.repository
+    description: Docker image repository for Staff Portal API
+    type: string
+    label: Staff Portal API Image Repository
+    group: Images
+  - variable: openg2p-registry.staffPortalApi.image.tag
+    description: Docker image tag for Staff Portal API
+    type: string
+    label: Staff Portal API Image Tag
+    group: Images
+
+  - variable: openg2p-registry.staffPortalUi.image.repository
+    description: Docker image repository for Staff Portal UI
+    type: string
+    label: Staff Portal UI Image Repository
+    group: Images
+  - variable: openg2p-registry.staffPortalUi.image.tag
+    description: Docker image tag for Staff Portal UI
+    type: string
+    label: Staff Portal UI Image Tag
+    group: Images
+
+  - variable: openg2p-registry.partnerApi.image.repository
+    description: Docker image repository for Partner API
+    type: string
+    label: Partner API Image Repository
+    group: Images
+  - variable: openg2p-registry.partnerApi.image.tag
+    description: Docker image tag for Partner API
+    type: string
+    label: Partner API Image Tag
+    group: Images
+
+  - variable: openg2p-registry.celeryBeatProducer.image.repository
+    description: Docker image repository for Celery Beat Producer (shares image with Celery Worker)
+    type: string
+    label: Celery Beat Producer Image Repository
+    group: Images
+  - variable: openg2p-registry.celeryBeatProducer.image.tag
+    description: Docker image tag for Celery Beat Producer
+    type: string
+    label: Celery Beat Producer Image Tag
+    group: Images
+
+  - variable: openg2p-registry.celeryWorker.image.repository
+    description: Docker image repository for Celery Worker
+    type: string
+    label: Celery Worker Image Repository
+    group: Images
+  - variable: openg2p-registry.celeryWorker.image.tag
+    description: Docker image tag for Celery Worker
+    type: string
+    label: Celery Worker Image Tag
+    group: Images
+
+  # -------------------------------------------------------------------------
+  # Logging
+  # -------------------------------------------------------------------------
+  - variable: openg2p-registry.logging.enabled
+    description: Ship Farmer Registry pod logs (JSON) to the OpenSearch Output configured by commons-base
+    type: boolean
+    label: Enable Logging
+    group: Logging
+  - variable: openg2p-registry.logging.outputRef
+    description: Name of the namespace-scoped Fluent Output resource (created by commons-base) to route logs to
+    type: string
+    label: Fluent Output Name
+    group: Logging
+
+  # -------------------------------------------------------------------------
+  # DB Seed — configurations + optional sample data.
+  # -------------------------------------------------------------------------
+  - variable: openg2p-registry.dbSeed.enabled
+    description: Run DB seed Job after pods come up (loads register definitions, schemas, tabs, sections, attribute lookups, registry config)
+    type: boolean
+    label: Enable DB Seed
+    group: DB Seed
+
+  - variable: openg2p-registry.dbSeed.loadSampleData
+    description: Also insert demo households, farmers, lands, crops, livestock, and supporting-table demo rows. Use only for dev / test.
+    type: boolean
+    label: Load Sample Data
+    group: DB Seed
+
+  - variable: openg2p-registry.dbSeed.image.repository
+    description: Docker image repository for the DB seed container
+    type: string
+    label: DB Seed Image Repository
+    group: DB Seed
+  - variable: openg2p-registry.dbSeed.image.tag
+    description: Docker image tag for the DB seed container
+    type: string
+    label: DB Seed Image Tag
+    group: DB Seed
+
+  # -------------------------------------------------------------------------
+  # ID Generator — informational note only. The `idTypes` field is a map
+  # keyed by id-type name, which Rancher form widgets cannot meaningfully
+  # render as a tree of editable fields. Operators who need to change
+  # id-length/prefix should switch to "Edit YAML" and modify
+  # `openg2p-registry.idgenerator.idGenerator.appConfig.idTypes` directly.
+  # -------------------------------------------------------------------------
+  - variable: openg2p-registry.idgenerator.idGenerator.appConfig.idTypesNote
+    description: |
+      Farmer Registry default id types:
+        - farmer    (12 digits)  — issued for individual farmers
+        - household (10 digits)  — issued for household units
+      To add, remove, or change id-length/prefix, switch to 'Edit YAML' and
+      update `openg2p-registry.idgenerator.idGenerator.appConfig.idTypes`.
+    type: string
+    label: ID Types Configuration
+    group: ID Generator
+    default: "See description — edit YAML to configure"

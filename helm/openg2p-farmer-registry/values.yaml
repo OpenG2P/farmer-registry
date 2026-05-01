@@ -1,0 +1,104 @@
+# ---------------------------------------------------------------------------
+# openg2p-farmer-registry — values.yaml
+#
+# Only Farmer-Registry-specific overrides live here. Everything else
+# (hostnames, keycloak, postgres, ingress, resources, …) is inherited from
+# the base chart `openg2p-registry` (see Chart.yaml → dependencies).
+#
+# All wrapper overrides are nested under the base chart name `openg2p-registry`,
+# as required by Helm subchart value scoping. Values at the top level of this
+# file are wrapper-chart-local and do not reach the base.
+#
+# Domain / hostname handling: the base chart auto-computes all component
+# URLs from `global.registryHostname`, whose default template is
+#   '{{ .Release.Name }}.{{ .Release.Namespace }}.openg2p.org'
+# So with `helm install registry ./openg2p-farmer-registry -n my-farmer`,
+# services land at
+#   registry.my-farmer.openg2p.org           (Staff Portal UI)
+#   staff-registry.my-farmer.openg2p.org     (Staff Portal API)
+#   partner-registry.my-farmer.openg2p.org   (Partner API)
+#   idgenerator-registry.my-farmer.openg2p.org
+# To point at a different apex, override `openg2p-registry.global.registryHostname`.
+# ---------------------------------------------------------------------------
+
+openg2p-registry:
+
+  global:
+    # Tag this deployment as the Farmer-Registry variant (mainly informational
+    # in the base chart — its templates key off per-component hostnames, not
+    # this value).
+    registryVariant: 'farmer-registry'
+
+  # ==========================================================================
+  # Docker image overrides — one per Farmer Registry component.
+  # Image names match the images produced by this repo's docker workflows:
+  #   .github/workflows/docker-build-backend.yml
+  #   .github/workflows/docker-build-ui.yml
+  #   .github/workflows/docker-build-db-seed.yml
+  # The `develop` tag tracks the develop branch (branch-==-tag convention).
+  # ==========================================================================
+
+  staffPortalApi:
+    image:
+      repository: openg2p/openg2p-farmer-registry-staff-portal-api
+      tag: "develop"
+      pullPolicy: Always
+
+  partnerApi:
+    image:
+      repository: openg2p/openg2p-farmer-registry-partner-api
+      tag: "develop"
+      pullPolicy: Always
+
+  staffPortalUi:
+    image:
+      repository: openg2p/openg2p-farmer-registry-staff-portal-ui
+      tag: "develop"
+      pullPolicy: Always
+
+  # The base chart defines TWO Celery deployments (celeryBeatProducer +
+  # celeryWorker), not one. Our single `openg2p-farmer-registry-celery` image
+  # can run either mode — the base chart's values.yaml already sets the right
+  # CELERY_APP / CELERY_OPTS env vars per deployment. We just override the
+  # image on both.
+  celeryBeatProducer:
+    image:
+      repository: openg2p/openg2p-farmer-registry-celery
+      tag: "develop"
+      pullPolicy: Always
+
+  celeryWorker:
+    image:
+      repository: openg2p/openg2p-farmer-registry-celery
+      tag: "develop"
+      pullPolicy: Always
+
+  # DB-seeder: configurations + (optionally) sample_data. Job-style deployment.
+  # `loadSampleData` defaults true on the base chart — keep it as-is here so
+  # fresh installs come with demo rows; set to `false` for production.
+  dbSeed:
+    image:
+      repository: openg2p/openg2p-farmer-registry-db-seed
+      tag: "develop"
+      pullPolicy: Always
+
+  # ==========================================================================
+  # ID Generator — Farmer-Registry id_types.
+  #
+  # Base chart default:
+  #   idTypes:
+  #     farmer:    { idLength: 12 }
+  #     household: { idLength: 10 }
+  #
+  # The Farmer Registry uses both `farmer` and `household` as foundational
+  # id-types — exactly matching the base chart default. We declare the full
+  # map here for clarity / explicitness.
+  # ==========================================================================
+  idgenerator:
+    idGenerator:
+      appConfig:
+        idTypes:
+          farmer:
+            idLength: 12
+          household:
+            idLength: 10

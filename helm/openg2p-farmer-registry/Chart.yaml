@@ -1,0 +1,45 @@
+apiVersion: v2
+name: openg2p-farmer-registry
+description: |
+  OpenG2P Farmer Registry — thin wrapper chart on top of the OpenG2P Registry
+  Gen 2 base chart. Supplies Farmer-Registry-branded Docker images and
+  Farmer-Registry-specific ID-generator configuration; all infrastructure,
+  templates and defaults come from the base chart.
+type: application
+
+# Branch-name-equals-version convention: this file lives on the `develop`
+# branch of the farmer-registry repo, so the wrapper version carries the
+# `-develop` pre-release tag. Bump to a SemVer release (e.g. 1.0.0) when
+# cutting a tag branch.
+version: 0.0.0-develop
+appVersion: "develop"
+
+keywords:
+  - openg2p
+  - farmer-registry
+  - registry
+  - agriculture
+
+home: https://openg2p.org
+icon: https://openg2p.github.io/openg2p-helm/openg2p-logo.png
+sources:
+  - https://github.com/OpenG2P/farmer-registry
+maintainers:
+  - name: OpenG2P
+    email: info@openg2p.org
+
+# Depend on the published base chart. The `develop` tag of this wrapper
+# tracks the `-develop` pre-release of the base chart; on release, both
+# sides drop the `-develop` suffix in lockstep.
+dependencies:
+  - name: openg2p-registry
+    version: 0.0.0-develop
+    repository: https://openg2p.github.io/openg2p-helm
+
+# Rancher catalog branding
+annotations:
+  catalog.cattle.io/display-name: "OpenG2P Farmer Registry"
+  catalog.cattle.io/release-name: openg2p-farmer-registry
+  catalog.cattle.io/certified: partner
+  catalog.cattle.io/kube-version: ">=1.23.0-0"
+  openg2p.org/add-to-rancher: ""

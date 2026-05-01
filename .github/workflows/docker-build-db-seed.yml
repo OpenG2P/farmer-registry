@@ -1,0 +1,89 @@
+name: Build DB Seed Docker Image
+
+# The db-seed image only bundles SQL seed content — it does not bundle any
+# Python code. So it only needs to rebuild when the SQL actually changes
+# (configurations/ or sample_data/), when the seed Dockerfile/entrypoint
+# changes, or when this workflow itself changes.
+#
+# The image tag equals the current branch name (master/main → develop).
+on:
+  push:
+    branches:
+      - "**"
+    tags-ignore:
+      - '**'
+    paths:
+      - 'farmer-extension/src/**/configurations/**'
+      - 'farmer-extension/src/**/sample_data/**'
+      - 'docker/db-seed/**'
+      - '.github/workflows/docker-build-db-seed.yml'
+  workflow_dispatch:
+
+env:
+  NAMESPACE: ${{ secrets.docker_hub_organisation || 'openg2p' }}
+  REGISTRY: docker.io
+
+jobs:
+  build-db-seed:
+    name: Build ${{ matrix.extension_folder }} DB Seed
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - extension_folder: farmer-extension
+            service_name: openg2p-farmer-registry-db-seed
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract branch name
+        shell: bash
+        run: |
+          BRANCH_NAME=$(echo ${{ github.ref }} | sed -e 's,.*/\(.*\),\1,')
+          VERSION=$BRANCH_NAME
+          if [[ $BRANCH_NAME == master || $BRANCH_NAME == main ]]; then
+            VERSION=develop
+          fi
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "IMAGE_ID=${{ env.NAMESPACE }}/${{ matrix.service_name }}" >> $GITHUB_ENV
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/db-seed/Dockerfile
+          push: false
+          tags: ${{ env.IMAGE_ID }}:${{ env.VERSION }}
+          build-args: |
+            EXTENSION_FOLDER=${{ matrix.extension_folder }}
+            GIT_COMMIT=${{ github.sha }}
+            BUILD_TIME=${{ github.event.head_commit.timestamp }}
+          cache-from: type=gha,scope=${{ matrix.extension_folder }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.extension_folder }}
+
+      - name: Login to Docker Hub
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.docker_hub_actor }}
+          password: ${{ secrets.docker_hub_token }}
+
+      - name: Push Docker image
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/db-seed/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_ID }}:${{ env.VERSION }}
+          build-args: |
+            EXTENSION_FOLDER=${{ matrix.extension_folder }}
+            GIT_COMMIT=${{ github.sha }}
+            BUILD_TIME=${{ github.event.head_commit.timestamp }}
+          cache-from: type=gha,scope=${{ matrix.extension_folder }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.extension_folder }}

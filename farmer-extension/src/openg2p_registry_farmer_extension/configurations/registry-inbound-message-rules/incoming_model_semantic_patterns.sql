@@ -1,0 +1,1 @@
+-- No seed data for incoming_model_semantic_patterns

@@ -1,0 +1,91 @@
+import enum
+
+
+class DisabilityTypeEnum(str, enum.Enum):
+    VISION = "VISION"
+    HEARING = "HEARING"
+    MOBILITY = "MOBILITY"
+    COGNITION = "COGNITION"
+    SELF_CARE = "SELF_CARE"
+    COMMUNICATION = "COMMUNICATION"
+
+
+class DisabilitySeverityEnum(str, enum.Enum):
+    NO_DIFFICULTY = "NO_DIFFICULTY"
+    SOME_DIFFICULTY = "SOME_DIFFICULTY"
+    A_LOT_OF_DIFFICULTY = "A_LOT_OF_DIFFICULTY"
+    CANNOT_DO_AT_ALL = "CANNOT_DO_AT_ALL"
+
+
+class LanguageSpokenEnum(str, enum.Enum):
+    ENGLISH = "ENGLISH"
+    HINDI = "HINDI"
+    SPANISH = "SPANISH"
+    FRENCH = "FRENCH"
+
+
+class SourceOfIncomeEnum(str, enum.Enum):
+    CROP_PRODUCTION = "CROP_PRODUCTION"
+    LIVESTOCK_PRODUCTION = "LIVESTOCK_PRODUCTION"
+    GOVERNMENT_NGO_SUPPORT = "GOVERNMENT_NGO_SUPPORT"
+    OTHERS = "OTHERS"
+
+
+class LandOwnershipTypeEnum(str, enum.Enum):
+    OWNER = "OWNER"
+    TENANT = "TENANT"
+    CROP_SHARE = "CROP_SHARE"
+
+
+class LandSizeUnitEnum(str, enum.Enum):
+    HECTARE = "HECTARE"
+    ACRE = "ACRE"
+    SQUARE_METER = "SQUARE_METER"
+    SQUARE_KM = "SQUARE_KM"
+    SQUARE_FOOT = "SQUARE_FOOT"
+    SQUARE_YARD = "SQUARE_YARD"
+
+
+class CurrentLandUseEnum(str, enum.Enum):
+    AGRICULTURAL = "AGRICULTURAL"
+    RESIDENTIAL = "RESIDENTIAL"
+    GRAZING = "GRAZING"
+    FOREST = "FOREST"
+
+
+class FarmingTypeEnum(str, enum.Enum):
+    CROP = "CROP"
+    LIVESTOCK = "LIVESTOCK"
+    MIXED = "MIXED"
+    AQUACULTURE = "AQUACULTURE"
+    AGROFORESTRY = "AGROFORESTRY"
+
+
+class CropEndUseEnum(str, enum.Enum):
+    FOOD_HUMAN_CONSUMPTION = "FOOD_HUMAN_CONSUMPTION"
+    FEED_ANIMALS = "FEED_ANIMALS"
+    BIOFUELS_NONFOOD = "BIOFUELS_NONFOOD"
+    OTHER = "OTHER"
+
+
+class LivestockSystemEnum(str, enum.Enum):
+    NOMADIC_PASTORAL = "NOMADIC_PASTORAL"
+    SEMI_NOMADIC = "SEMI_NOMADIC"
+    SEDENTARY_PASTORAL = "SEDENTARY_PASTORAL"
+    MIXED = "MIXED"
+    INDUSTRIAL = "INDUSTRIAL"
+
+
+class FarmerClusterRoleEnum(str, enum.Enum):
+    LEAD = "LEAD"
+    DEPUTY = "DEPUTY"
+    SECRETARY = "SECRETARY"
+    ACCOUNTANT = "ACCOUNTANT"
+    MEMBER = "MEMBER"
+
+class EducationalLevelEnum(str, enum.Enum):
+    ILLITERATE = "ILLITERATE"
+    CAN_READ_AND_WRITE = "CAN_READ_AND_WRITE"
+    BASIC = "BASIC"
+    INTERMEDIARY = "INTERMEDIARY"
+    HIGHER_EDUCATION = "HIGHER_EDUCATION"
