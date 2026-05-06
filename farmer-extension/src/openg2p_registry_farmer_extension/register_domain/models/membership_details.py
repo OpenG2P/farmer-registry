@@ -1,5 +1,5 @@
 from openg2p_registry_core.models.g2p_intake_form import G2PIntakeForm
-from sqlalchemy import Boolean, String
+from sqlalchemy import Boolean, String, select
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_registry_core.models import G2PRegister, G2PRegisterHistory
 from ..services import G2PRegisterDomainServiceMembershipDetails
@@ -36,6 +36,15 @@ class G2PRegisterHistoryMembershipDetails(G2PRegisterHistory, G2PMembershipDetai
 # All Intake Form classes should have the prefix G2PIntakeForm
 class G2PIntakeFormMembershipDetails(G2PIntakeForm, G2PRegister, G2PMembershipDetails):
     __tablename__ = "g2p_intake_form_membership_details"
+
+    async def get_link_internal_record_id(self, session):
+        from .farmer import G2PIntakeFormFarmer
+        result = await session.execute(
+            select(G2PIntakeFormFarmer).where(G2PIntakeFormFarmer.submission_id == self.submission_id)
+        )
+        farmer = result.scalars().first()
+        if farmer:
+            self.link_internal_record_id = farmer.internal_record_id
 
     def get_search_text_fields(self) -> str:
         """Return membership details fields used to build search_text."""

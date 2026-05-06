@@ -1,5 +1,5 @@
 from openg2p_registry_core.models.g2p_intake_form import G2PIntakeForm
-from sqlalchemy import Boolean, Integer, String
+from sqlalchemy import Boolean, Integer, String, select
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_registry_core.models import (
     G2PRegister, G2PRegisterHistory, G2PGeo, G2PPerson,
@@ -43,6 +43,15 @@ class G2PRegisterHistoryFarmer(G2PRegisterHistory, G2PPersonHistory, G2PGeoHisto
 # All Intake Form classes should have the prefix G2PIntakeForm
 class G2PIntakeFormFarmer(G2PIntakeForm, G2PRegister, G2PPerson, G2PGeo, G2PFarmer):
     __tablename__ = "g2p_intake_form_farmers"
+
+    async def get_link_internal_record_id(self, session):
+        from .household import G2PIntakeFormHousehold
+        result = await session.execute(
+            select(G2PIntakeFormHousehold).where(G2PIntakeFormHousehold.submission_id == self.submission_id)
+        )
+        household = result.scalars().first()
+        if household:
+            self.link_internal_record_id = household.internal_record_id
 
     def get_record_name_fields(self) -> str:
         """Return farmer fields used to build record_name."""

@@ -1,5 +1,5 @@
 from openg2p_registry_core.models.g2p_intake_form import G2PIntakeForm
-from sqlalchemy import Integer, String, Text
+from sqlalchemy import Integer, String, Text, select
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_registry_core.models import (
     G2PRegister, G2PRegisterHistory, G2PGeo, G2PGeoShape,
@@ -40,6 +40,15 @@ class G2PRegisterHistoryLand(G2PRegisterHistory, G2PGeoHistory, G2PGeoShapeHisto
 # All Intake Form classes should have the prefix G2PIntakeForm
 class G2PIntakeFormLand(G2PIntakeForm, G2PRegister, G2PGeo, G2PGeoShape, G2PLand):
     __tablename__ = "g2p_intake_form_lands"
+
+    async def get_link_internal_record_id(self, session):
+        from .farmer import G2PIntakeFormFarmer
+        result = await session.execute(
+            select(G2PIntakeFormFarmer).where(G2PIntakeFormFarmer.submission_id == self.submission_id)
+        )
+        farmer = result.scalars().first()
+        if farmer:
+            self.link_internal_record_id = farmer.internal_record_id
 
     def get_search_text_fields(self) -> str:
         """Return land fields used to build search_text."""
