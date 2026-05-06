@@ -1,5 +1,5 @@
 from openg2p_registry_core.models.g2p_intake_form import G2PIntakeForm
-from sqlalchemy import Date, String
+from sqlalchemy import Date, String, select
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_registry_core.models import G2PRegister, G2PRegisterHistory
 from ..services import G2PRegisterDomainServiceCrop
@@ -34,6 +34,15 @@ class G2PRegisterHistoryCrop(G2PRegisterHistory, G2PCrop):
 # All Intake Form classes should have the prefix G2PIntakeForm
 class G2PIntakeFormCrop(G2PIntakeForm, G2PRegister, G2PCrop):
     __tablename__ = "g2p_intake_form_crops"
+
+    async def get_link_internal_record_id(self, session):
+        from .land import G2PIntakeFormLand
+        result = await session.execute(
+            select(G2PIntakeFormLand).where(G2PIntakeFormLand.submission_id == self.submission_id)
+        )
+        land = result.scalars().first()
+        if land:
+            self.link_internal_record_id = land.internal_record_id
 
     def get_search_text_fields(self) -> str:
         """Return crop fields used to build search_text."""
