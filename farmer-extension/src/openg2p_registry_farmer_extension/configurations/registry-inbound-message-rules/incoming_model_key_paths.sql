@@ -1,1 +1,2 @@
--- No seed data for incoming_model_key_paths
+INSERT INTO "public"."incoming_model_key_paths" ("key_path_id","data_model_id","key_path_for_message_id","key_path_for_sender","key_path_for_signature","key_path_for_signature_payload","is_list","key_path_for_list_elements")
+VALUES ('4a5d9a8e-ffef-466a-9d00-d8bd39b0337c','dbc08a31-10c6-4c48-9df3-ceb88fad8e20','$.body.header.message_id','$.body.header.sender_id','$.body.signature','$.body[''header'',''message'']','FALSE','');

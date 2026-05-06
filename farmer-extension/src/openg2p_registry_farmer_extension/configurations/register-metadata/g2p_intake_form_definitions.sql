@@ -1,0 +1,2 @@
+INSERT INTO "public"."g2p_intake_form_definitions" ("form_id","register_id","form_mnemonic","form_description","number_of_verifications","used_only_in_ingestion_pipeline") VALUES
+('a1a4d25a-1cd4-4356-abac-8782382649','a1a4d25a-1cd4-4356-abac-985a0b3c6bcd','Farmer Intake Mnemonic','Intake form for farmer',2,'TRUE');
