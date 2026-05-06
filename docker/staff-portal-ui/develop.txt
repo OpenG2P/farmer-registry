@@ -1,4 +1,4 @@
-#!openg2p/openg2p-farmer-registry-staff-portal-ui:g2p-4692
+#!openg2p/openg2p-farmer-registry-staff-portal-ui:develop
 
 # Contents — cloned fresh inside the Dockerfile via REPO_URL + GIT_BRANCH build args.
 git://develop//https://github.com/openg2p/openg2p-registry-gen2-staff-portal-ui
