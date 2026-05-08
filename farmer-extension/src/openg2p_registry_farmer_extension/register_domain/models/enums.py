@@ -1,7 +1,6 @@
-import enum
+from enum import StrEnum
 
-
-class DisabilityTypeEnum(str, enum.Enum):
+class DisabilityTypeEnum(StrEnum):
     VISION = "VISION"
     HEARING = "HEARING"
     MOBILITY = "MOBILITY"
@@ -10,34 +9,34 @@ class DisabilityTypeEnum(str, enum.Enum):
     COMMUNICATION = "COMMUNICATION"
 
 
-class DisabilitySeverityEnum(str, enum.Enum):
+class DisabilitySeverityEnum(StrEnum):
     NO_DIFFICULTY = "NO_DIFFICULTY"
     SOME_DIFFICULTY = "SOME_DIFFICULTY"
     A_LOT_OF_DIFFICULTY = "A_LOT_OF_DIFFICULTY"
     CANNOT_DO_AT_ALL = "CANNOT_DO_AT_ALL"
 
 
-class LanguageSpokenEnum(str, enum.Enum):
+class LanguageSpokenEnum(StrEnum):
     ENGLISH = "ENGLISH"
     HINDI = "HINDI"
     SPANISH = "SPANISH"
     FRENCH = "FRENCH"
 
 
-class SourceOfIncomeEnum(str, enum.Enum):
+class SourceOfIncomeEnum(StrEnum):
     CROP_PRODUCTION = "CROP_PRODUCTION"
     LIVESTOCK_PRODUCTION = "LIVESTOCK_PRODUCTION"
     GOVERNMENT_NGO_SUPPORT = "GOVERNMENT_NGO_SUPPORT"
     OTHERS = "OTHERS"
 
 
-class LandOwnershipTypeEnum(str, enum.Enum):
+class LandOwnershipTypeEnum(StrEnum):
     OWNER = "OWNER"
     TENANT = "TENANT"
     CROP_SHARE = "CROP_SHARE"
 
 
-class LandSizeUnitEnum(str, enum.Enum):
+class LandSizeUnitEnum(StrEnum):
     HECTARE = "HECTARE"
     ACRE = "ACRE"
     SQUARE_METER = "SQUARE_METER"
@@ -46,14 +45,14 @@ class LandSizeUnitEnum(str, enum.Enum):
     SQUARE_YARD = "SQUARE_YARD"
 
 
-class CurrentLandUseEnum(str, enum.Enum):
+class CurrentLandUseEnum(StrEnum):
     AGRICULTURAL = "AGRICULTURAL"
     RESIDENTIAL = "RESIDENTIAL"
     GRAZING = "GRAZING"
     FOREST = "FOREST"
 
 
-class FarmingTypeEnum(str, enum.Enum):
+class FarmingTypeEnum(StrEnum):
     CROP = "CROP"
     LIVESTOCK = "LIVESTOCK"
     MIXED = "MIXED"
@@ -61,14 +60,14 @@ class FarmingTypeEnum(str, enum.Enum):
     AGROFORESTRY = "AGROFORESTRY"
 
 
-class CropEndUseEnum(str, enum.Enum):
+class CropEndUseEnum(StrEnum):
     FOOD_HUMAN_CONSUMPTION = "FOOD_HUMAN_CONSUMPTION"
     FEED_ANIMALS = "FEED_ANIMALS"
     BIOFUELS_NONFOOD = "BIOFUELS_NONFOOD"
     OTHER = "OTHER"
 
 
-class LivestockSystemEnum(str, enum.Enum):
+class LivestockSystemEnum(StrEnum):
     NOMADIC_PASTORAL = "NOMADIC_PASTORAL"
     SEMI_NOMADIC = "SEMI_NOMADIC"
     SEDENTARY_PASTORAL = "SEDENTARY_PASTORAL"
@@ -76,14 +75,14 @@ class LivestockSystemEnum(str, enum.Enum):
     INDUSTRIAL = "INDUSTRIAL"
 
 
-class FarmerClusterRoleEnum(str, enum.Enum):
+class FarmerClusterRoleEnum(StrEnum):
     LEAD = "LEAD"
     DEPUTY = "DEPUTY"
     SECRETARY = "SECRETARY"
     ACCOUNTANT = "ACCOUNTANT"
     MEMBER = "MEMBER"
 
-class EducationalLevelEnum(str, enum.Enum):
+class EducationalLevelEnum(StrEnum):
     ILLITERATE = "ILLITERATE"
     CAN_READ_AND_WRITE = "CAN_READ_AND_WRITE"
     BASIC = "BASIC"
