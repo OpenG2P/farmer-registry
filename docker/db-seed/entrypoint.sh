@@ -17,7 +17,7 @@ PGPORT="${PGPORT:-5432}"
 LOAD_SAMPLE_DATA="${LOAD_SAMPLE_DATA:-false}"
 
 SEED_DIR="/seed"
-CONFIGURATIONS_DIR="${SEED_DIR}/configurations"
+CONFIGURATIONS_DIR="${SEED_DIR}/meta_data"
 SAMPLE_DATA_DIR="${SEED_DIR}/sample_data"
 
 run_sql_files() {
@@ -53,7 +53,7 @@ echo " Sample data : ${LOAD_SAMPLE_DATA}"
 echo "============================================="
 
 # 1. Always run configuration scripts (register definitions, schemas, tabs, sections, attributes, registry-config)
-run_sql_files "$CONFIGURATIONS_DIR" "configurations"
+run_sql_files "$CONFIGURATIONS_DIR" "meta_data"
 
 # 2. Optionally run sample data scripts
 if [ "$LOAD_SAMPLE_DATA" = "true" ]; then
