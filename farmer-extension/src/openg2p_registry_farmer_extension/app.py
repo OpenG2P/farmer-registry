@@ -13,15 +13,14 @@ from .register_domain.models import (
     G2PRegisterFarmer, G2PRegisterHistoryFarmer,
     G2PRegisterHousehold, G2PRegisterHistoryHousehold,
     G2PRegisterHouseholdMember, G2PRegisterHistoryHouseholdMember,
-    G2PRegisterPovertyScore, G2PRegisterHistoryPovertyScore,
     G2PRegisterCrop, G2PRegisterHistoryCrop,
     G2PRegisterLand, G2PRegisterHistoryLand,
     G2PRegisterFarmInputs, G2PRegisterHistoryFarmInputs,
     G2PRegisterLivestock, G2PRegisterHistoryLivestock,
     G2PRegisterMembershipDetails, G2PRegisterHistoryMembershipDetails,
     G2PIntakeFormHousehold, G2PIntakeFormFarmer, G2PIntakeFormHouseholdMember,
-    G2PIntakeFormPovertyScore, G2PIntakeFormCrop, G2PIntakeFormLand,
-    G2PIntakeFormFarmInputs, G2PIntakeFormLivestock, G2PIntakeFormMembershipDetails,
+    G2PIntakeFormCrop, G2PIntakeFormLand, G2PIntakeFormFarmInputs, 
+    G2PIntakeFormLivestock, G2PIntakeFormMembershipDetails,
 )
 from .register_domain.factory import G2PRegisterDomainFactory
 from .register_domain.services import G2PRegisterDomainServiceFarmer, G2PRegisterDomainServiceHousehold
@@ -50,10 +49,6 @@ class Initializer(BaseInitializer):
             await G2PRegisterHouseholdMember.create_migrate()
             await G2PRegisterHistoryHouseholdMember.create_migrate()
             await G2PIntakeFormHouseholdMember.create_migrate()
-
-            await G2PRegisterPovertyScore.create_migrate()
-            await G2PRegisterHistoryPovertyScore.create_migrate()
-            await G2PIntakeFormPovertyScore.create_migrate()
 
             await G2PRegisterFarmer.create_migrate()
             await G2PRegisterHistoryFarmer.create_migrate()
