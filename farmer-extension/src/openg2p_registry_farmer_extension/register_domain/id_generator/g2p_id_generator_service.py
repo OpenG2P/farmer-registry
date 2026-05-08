@@ -13,6 +13,6 @@ class G2PIdGeneratorService(BaseService, G2PIdGeneratorInterface):
         if mnemonic == "household":
             return IdAffix(prefix="HH-", suffix="")
         if mnemonic == "farmer":
-            return IdAffix(prefix="FAR-", suffix="")
+            return IdAffix(prefix="FR-", suffix="")
 
         return IdAffix(prefix="DEFAULT-", suffix="")
