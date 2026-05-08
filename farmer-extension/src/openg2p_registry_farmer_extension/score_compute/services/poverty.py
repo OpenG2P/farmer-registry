@@ -30,7 +30,7 @@ class G2PScoreComputeServicePoverty(G2PScoreComputeInterface):
 
     async def compute_score(
         self,
-        internal_record_id: str,
+        link_internal_record_id: str,
         contributing_attribute_values: dict,
         score_config: dict,
     ) -> float:
@@ -38,7 +38,7 @@ class G2PScoreComputeServicePoverty(G2PScoreComputeInterface):
         Compute poverty score based on configured household attributes.
         
         Args:
-            internal_record_id: UUID of the register record
+            link_internal_record_id: UUID of the subject register record
             contributing_attribute_values: Dictionary containing attribute values
                 that feed into this score computation
             score_config: Configuration dictionary containing weights and parameters
@@ -47,7 +47,7 @@ class G2PScoreComputeServicePoverty(G2PScoreComputeInterface):
             float: Computed poverty score (higher indicates more vulnerable)
         """
         _logger.info(
-            f"Computing poverty score for record {internal_record_id} "
+            f"Computing poverty score for record {link_internal_record_id} "
             f"with {len(contributing_attribute_values)} attributes"
         )
 
@@ -75,7 +75,7 @@ class G2PScoreComputeServicePoverty(G2PScoreComputeInterface):
             )
 
         _logger.info(
-            f"Computed poverty score: {round(score, 4)} for record {internal_record_id}"
+            f"Computed poverty score: {round(score, 4)} for record {link_internal_record_id}"
         )
 
         return round(score, 4)
