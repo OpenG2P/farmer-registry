@@ -1,1 +1,1 @@
-from .g2p_score_compute_service_pmt_score import G2PScoreComputeServicePmtScore
+from .poverty import G2PScoreComputeServicePoverty
