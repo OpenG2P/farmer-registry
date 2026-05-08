@@ -1,0 +1,377 @@
+{%- macro norm(value) -%}
+{{- (value or '') | string | trim | upper -}}
+{%- endmacro -%}
+
+{%- macro sex(value) -%}
+{%- set v = norm(value) -%}
+{%- if v in ['MALE', 'M'] -%}male
+{%- elif v in ['FEMALE', 'F'] -%}female
+{%- elif v in ['OTHERS', 'OTHER'] -%}others
+{%- elif v -%}{{ v | lower }}
+{%- else -%}unknown
+{%- endif -%}
+{%- endmacro -%}
+
+{%- macro measurement_unit(value) -%}
+{%- set v = norm(value) -%}
+{%- if v in ['H', 'HECTARE'] -%}Hectare
+{%- elif v in ['AC', 'ACRE'] -%}Acre
+{%- elif v in ['SQM', 'SQUARE_METER'] -%}Square meter
+{%- elif v in ['SQKM', 'SQUARE_KM', 'SQUARE_KILOMETER'] -%}Square kilometer
+{%- elif v in ['SQF', 'SQUARE_FOOT'] -%}Square foot
+{%- elif v in ['SQY', 'SQUARE_YARD'] -%}Square yard
+{%- elif v in ['DU', 'DUNAM'] -%}Dunam
+{%- else -%}{{ value or '' }}
+{%- endif -%}
+{%- endmacro -%}
+
+{%- macro land_tenure(value) -%}
+{%- set v = norm(value) -%}
+{%- if v == 'OWNER' -%}Owned
+{%- elif v == 'TENANT' -%}Leased (Rented from someone else)
+{%- elif v == 'CROP_SHARE' -%}Crop share
+{%- else -%}{{ value or '' }}
+{%- endif -%}
+{%- endmacro -%}
+
+{%- macro farm_type(value) -%}
+{%- set v = norm(value) -%}
+{%- if v in ['TYPE_1', 'TYPE 1', 'SMALL_SUBSISTENCE', 'SUBSISTENCE'] -%}Small subsistence-oriented farms
+{%- elif v in ['TYPE_2', 'TYPE 2', 'SEMI_SUBSISTENCE'] -%}Small semi-subsistence or part-commercial farms
+{%- elif v in ['TYPE_3', 'TYPE 3', 'SPECIALISED', 'SPECIALIZED'] -%}Small independent specialised farms
+{%- elif v in ['TYPE_4', 'TYPE 4'] -%}Small dependent specialised farms
+{%- elif v in ['TYPE_5', 'TYPE 5', 'COMMERCIAL'] -%}Large commercial farms
+{%- elif v in ['TYPE_6', 'TYPE 6', 'ESTATE'] -%}Commercial estates
+{%- else -%}{{ value or '' }}
+{%- endif -%}
+{%- endmacro -%}
+
+{%- macro crop_type(value) -%}
+{%- set v = norm(value) -%}
+{%- if v in ['1', 'CEREALS', 'CEREAL', 'WHEAT', 'RICE', 'MAIZE', 'CORN', 'SORGHUM', 'MILLET'] -%}Cereals
+{%- elif v in ['2', 'VEGETABLES', 'VEGETABLES_AND_MELONS', 'MELONS'] -%}Vegetables and melons
+{%- elif v in ['3', 'FRUIT', 'FRUITS', 'FRUIT_AND_NUTS', 'FRUITS_AND_NUTS', 'NUTS'] -%}Fruit and nuts
+{%- elif v in ['4', 'OILSEED', 'OILSEED_CROPS', 'OLEAGINOUS_FRUITS'] -%}Oilseed crops and oleaginous fruits
+{%- elif v in ['5', 'ROOT_TUBER', 'ROOT_TUBER_CROPS', 'TUBER', 'STARCH_ROOTS'] -%}Root/tuber crops with high starch or inulin content
+{%- elif v in ['6', 'STIMULANT', 'SPICE', 'AROMATIC', 'STIMULANT_SPICE_AROMATIC'] -%}Stimulant, spice and aromatic crops
+{%- elif v in ['7', 'LEGUMINOUS', 'LEGUMINOUS_CROPS', 'LEGUMES'] -%}Leguminous crops
+{%- elif v in ['8', 'SUGAR', 'SUGAR_CROPS'] -%}Sugar crops
+{%- elif v in ['9', 'OTHER', 'OTHER_CROPS'] -%}Other crops
+{%- else -%}{{ value or '' }}
+{%- endif -%}
+{%- endmacro -%}
+
+{%- macro crop_end_use(value) -%}
+{%- set v = norm(value) -%}
+{%- if v in ['1', 'FOOD_HUMAN_CONSUMPTION', 'FOOD_FOR_HUMAN_CONSUMPTION'] -%}Food for human consumption
+{%- elif v in ['2', 'FEED_ANIMALS', 'FEED_FOR_ANIMALS'] -%}Feed for animals
+{%- elif v in ['3', 'BIOFUELS_NONFOOD', 'BIOFUELS_OR_NON_FOOD_PRODUCTS', 'BIOFUELS_NON_FOOD'] -%}Biofuels or non-food products
+{%- elif v in ['4', 'OTHER', 'OTHER_USES'] -%}Other uses
+{%- else -%}{{ value or '' }}
+{%- endif -%}
+{%- endmacro -%}
+
+{%- macro animal_type(value) -%}
+{%- set v = norm(value) -%}
+{%- if v in ['1', 'BOVINE', 'BOVINE_ANIMALS', 'CATTLE', 'BUFFALO'] -%}Bovine animals
+{%- elif v in ['2', 'SHEEP', 'GOAT', 'GOATS', 'SHEEP_AND_GOATS'] -%}Sheep and goats
+{%- elif v in ['3', 'SWINE', 'PIG', 'PIGS', 'SWINE_PIGS'] -%}Swine/pigs
+{%- elif v in ['4', 'EQUINE', 'EQUINES', 'HORSE', 'HORSES'] -%}Equines
+{%- elif v in ['5', 'CAMEL', 'CAMELS', 'CAMELIDS'] -%}Camels and camelids
+{%- elif v in ['6', 'POULTRY', 'CHICKEN', 'DUCK'] -%}Poultry
+{%- elif v in ['8', 'INSECTS', 'WORMS', 'BEES', 'SILKWORMS'] -%}Insects and worms
+{%- elif v in ['7', 'OTHER', 'OTHER_ANIMALS'] -%}Other animals
+{%- else -%}{{ value or '' }}
+{%- endif -%}
+{%- endmacro -%}
+
+{%- macro livestock_system(value) -%}
+{%- set v = norm(value) -%}
+{%- if v == 'MIXED' -%}Mixed system
+{%- elif v == 'NOMADIC_PASTORAL' -%}Nomadic pastoral
+{%- elif v == 'SEMI_NOMADIC' -%}Semi-nomadic
+{%- elif v == 'SEDENTARY_PASTORAL' -%}Sedentary pastoral
+{%- elif v == 'INDUSTRIAL' -%}Industrial system
+{%- else -%}{{ value or '' }}
+{%- endif -%}
+{%- endmacro -%}
+
+{%- macro machinery_type(value) -%}
+{%- set v = norm(value) -%}
+{%- if v in ['10', 'MANUAL', 'MANUALLY_OPERATED'] -%}Manually operated machines
+{%- elif v in ['20', 'ANIMAL_POWERED'] -%}Animal-powered equipment
+{%- elif v in ['31', 'GENERAL_USE'] -%}Machines for general farm use
+{%- elif v in ['32', 'TRACTORS', 'VEHICLES'] -%}Tractors, bulldozers and other vehicles
+{%- elif v in ['33', 'CROP_MACHINERY'] -%}Crop machinery and equipment
+{%- elif v in ['34', 'LIVESTOCK_MACHINERY'] -%}Livestock machinery and equipment
+{%- elif v in ['35', 'AQUACULTURAL_MACHINERY'] -%}Aquacultural machinery and equipment
+{%- elif v in ['36', 'FORESTRY_MACHINERY'] -%}Forestry machinery and equipment
+{%- elif v in ['37', 'UAV_ROBOTS', 'DRONES'] -%}Unmanned aerial vehicle and robots
+{%- else -%}{{ value or '' }}
+{%- endif -%}
+{%- endmacro -%}
+
+{%- macro water_source(value) -%}
+{%- set v = norm(value) -%}
+{%- if v in ['RAINFED', 'RAIN_FED'] -%}Rainfed
+{%- elif v in ['SURFACE_WATER', 'SURFACE'] -%}Surface water
+{%- elif v in ['GROUNDWATER', 'GROUND_WATER', 'WELL'] -%}Groundwater
+{%- elif v in ['MIXED', 'MIXED_SURFACE_GROUNDWATER', 'IRRIGATION_GW_SURFACE'] -%}Mixed surface water and groundwater
+{%- elif v in ['WATER_HARVESTING'] -%}Water harvesting
+{%- else -%}{{ value or '' }}
+{%- endif -%}
+{%- endmacro -%}
+
+{%- macro support_activities(farm_input) -%}
+{%- set items = [] -%}
+{%- if farm_input.get('access_to_finance', false) or farm_input.get('improved_seed_use', false) or farm_input.get('pesticide_use', false) or farm_input.get('insecticide_use', false) -%}
+{%- set _ = items.append('Support activities for crop production') -%}
+{%- endif -%}
+{{- items | tojson -}}
+{%- endmacro -%}
+
+{%- set d = expanded -%}
+{%- set farmer_list = d.get('farmer') or [] -%}
+{%- set farmer = d if d.get('foundational_id') is not none or d.get('first_name') is not none or d.get('land') is not none or d.get('membership_details') is not none or d.get('disabled') is not none else (farmer_list[0] if farmer_list else {}) -%}
+{%- set household = farmer.get('household') or (d if d.get('household_member') is not none or d.get('score') is not none or d.get('size_of_group') is not none else {}) -%}
+{%- set household_members = household.get('household_member') or [] -%}
+{%- set score_records = household.get('score') or d.get('score') or farmer.get('score') or [] -%}
+{%- set selected_score = namespace(record={}) -%}
+{%- for score_record in score_records -%}
+{%- if not selected_score.record and score_record.get('score_type', '') | lower in ['poverty', 'poverty_score', 'pmt', 'pmt_score'] -%}
+{%- set selected_score.record = score_record -%}
+{%- endif -%}
+{%- endfor -%}
+{%- set first_score = selected_score.record or (score_records[0] if score_records else {}) -%}
+{%- set land_list = farmer.get('land') or [] -%}
+{%- set machinery_list = farmer.get('machinery') or [] -%}
+{
+  "farmer_personal_details": {
+    "member_identifier": [
+      {
+        "@type": "Identifier",
+        "identifier_type": "UIN",
+        "identifier_value": {{ (farmer.get('foundational_id') or farmer.get('functional_record_id') or '') | tojson }}
+      }
+    ],
+    "demographic_info": {
+      "identifier": [
+        {
+          "@type": "Identifier",
+          "identifier_type": "UIN",
+          "identifier_value": {{ (farmer.get('foundational_id') or farmer.get('functional_record_id') or '') | tojson }}
+        }
+      ],
+      "name": {
+        "@type": "Name",
+        "given_name": {{ (farmer.get('first_name') or '') | tojson }},
+        "second_name": {{ (farmer.get('middle_name') or '') | tojson }},
+        "surname": {{ (farmer.get('last_name') or '') | tojson }},
+        "prefix": {{ (farmer.get('prefix') or '') | tojson }},
+        "suffix": {{ (farmer.get('suffix') or '') | tojson }}
+      },
+      "sex": {{ sex(farmer.get('gender')) | tojson }},
+      "birth_date": {{ (farmer.get('birth_date') or '') | tojson }},
+      "phone_number": [
+        {%- if farmer.get('phone_number') or farmer.get('mobile_number') or farmer.get('has_personal_phone') -%}
+        {{ (farmer.get('phone_number') or farmer.get('mobile_number') or '') | tojson }}
+        {%- endif -%}
+      ],
+      "registration_date": {{ (farmer.get('registration_date') or farmer.get('created_at') or '') | tojson }},
+      "last_updated": {{ (farmer.get('last_approved_at') or '') | tojson }}
+    },
+    "self_id_disability": {{ 'true' if farmer.get('disabled', farmer.get('is_disabled', false)) else 'false' }},
+    "marital_status": {{ (farmer.get('marital_status') or '') | string | lower | tojson }},
+    "language_code": [
+      {%- if farmer.get('language_spoken') -%}
+      {{ farmer.get('language_spoken') | string | lower | tojson }}
+      {%- endif -%}
+    ],
+    "education_level": {{ (farmer.get('education_level') or '') | tojson }},
+    "registration_date": {{ (farmer.get('registration_date') or farmer.get('created_at') or '') | tojson }},
+    "last_updated": {{ (farmer.get('last_approved_at') or '') | tojson }}
+  },
+  "family_details": {
+    "group_identifier": [
+      {
+        "@type": "Identifier",
+        "identifier_type": "UIN",
+        "identifier_value": {{ (household.get('functional_record_id') or '') | tojson }}
+      }
+    ],
+    "group_type": "family",
+    "place": {
+      "name": {{ (household.get('address_line_2') or household.get('locality') or '') | tojson }},
+      "geo": {
+        "@type": "spdci:GeoLocation",
+        "latitude": {{ household.get('latitude') or 0 }},
+        "longitude": {{ household.get('longitude') or 0 }}
+      }
+    },
+    "poverty_score": {{ first_score.get('computed_score') if first_score.get('computed_score') is not none else 'null' }},
+    "poverty_score_type": {{ (first_score.get('score_type') or '') | tojson }},
+    "group_head_info": {
+      "member_identifier": [
+        {
+          "@type": "Identifier",
+          "identifier_type": "UIN",
+          "identifier_value": {{ (farmer.get('foundational_id') or farmer.get('functional_record_id') or '') | tojson }}
+        }
+      ],
+      "demographic_info": {
+        "identifier": [
+          {
+            "@type": "Identifier",
+            "identifier_type": "UIN",
+            "identifier_value": {{ (farmer.get('foundational_id') or farmer.get('functional_record_id') or '') | tojson }}
+          }
+        ],
+        "name": {
+          "@type": "Name",
+          "given_name": {{ (farmer.get('first_name') or '') | tojson }},
+          "second_name": {{ (farmer.get('middle_name') or '') | tojson }},
+          "surname": {{ (farmer.get('last_name') or '') | tojson }},
+          "prefix": {{ (farmer.get('prefix') or '') | tojson }},
+          "suffix": {{ (farmer.get('suffix') or '') | tojson }}
+        },
+        "sex": {{ sex(farmer.get('gender')) | tojson }},
+        "birth_date": {{ (farmer.get('birth_date') or '') | tojson }},
+        "registration_date": {{ (farmer.get('registration_date') or farmer.get('created_at') or '') | tojson }}
+      },
+      "self_id_disability": {{ 'true' if farmer.get('disabled', farmer.get('is_disabled', false)) else 'false' }},
+      "marital_status": {{ (farmer.get('marital_status') or '') | string | lower | tojson }},
+      "registration_date": {{ (farmer.get('registration_date') or farmer.get('created_at') or '') | tojson }},
+      "last_updated": {{ (farmer.get('last_approved_at') or '') | tojson }}
+    },
+    "group_size": {{ household.get('size_of_group', household_members | length) or 0 }},
+    "member_list": [
+      {%- for member in household_members %}
+      {
+        "member_identifier": [
+          {
+            "@type": "Identifier",
+            "identifier_type": "UIN",
+            "identifier_value": {{ (member.get('foundational_id') or member.get('functional_record_id') or '') | tojson }}
+          }
+        ],
+        "demographic_info": {
+          "identifier": [
+            {
+              "@type": "Identifier",
+              "identifier_type": "UIN",
+              "identifier_value": {{ (member.get('foundational_id') or member.get('functional_record_id') or '') | tojson }}
+            }
+          ],
+          "name": {
+            "@type": "Name",
+            "given_name": {{ (member.get('first_name') or '') | tojson }},
+            "second_name": {{ (member.get('middle_name') or '') | tojson }},
+            "surname": {{ (member.get('last_name') or '') | tojson }},
+            "prefix": {{ (member.get('prefix') or '') | tojson }},
+            "suffix": {{ (member.get('suffix') or '') | tojson }}
+          },
+          "sex": {{ sex(member.get('gender')) | tojson }},
+          "birth_date": {{ (member.get('birth_date') or '') | tojson }},
+          "registration_date": {{ (member.get('registration_date') or member.get('created_at') or '') | tojson }},
+          "last_updated": {{ (member.get('last_approved_at') or '') | tojson }}
+        },
+        "self_id_disability": {{ 'true' if member.get('is_disabled', member.get('disabled', false)) else 'false' }},
+        "marital_status": {{ (member.get('marital_status') or '') | string | lower | tojson }},
+        "registration_date": {{ (member.get('registration_date') or member.get('created_at') or '') | tojson }},
+        "last_updated": {{ (member.get('last_approved_at') or '') | tojson }}
+      }{% if not loop.last %},{% endif %}
+      {%- endfor %}
+    ],
+    "registration_date": {{ (household.get('registration_date') or household.get('created_at') or '') | tojson }},
+    "last_updated": {{ (household.get('last_approved_at') or '') | tojson }}
+  },
+  "farm_details": [
+    {%- for land in land_list %}
+    {%- set farm_inputs = land.get('farm_inputs') or [] -%}
+    {%- set first_farm_input = farm_inputs[0] if farm_inputs else {} -%}
+    {
+      "farm_type": {{ farm_type(land.get('farm_type') or land.get('farm_type_enum') or '') | tojson }},
+      "place": {
+        "name": {{ (land.get('address_line_2') or land.get('locality') or '') | tojson }},
+        "geo": {
+          "@type": "spdci:GeoLocation",
+          "latitude": {{ land.get('latitude') or 0 }},
+          "longitude": {{ land.get('longitude') or 0 }}
+        }
+      },
+      "land_tenure": {{ land_tenure(land.get('land_ownership_type')) | tojson }},
+      "land_size": {{ land.get('land_size') or 0 }},
+      "measurement": {{ measurement_unit(land.get('unit')) | tojson }},
+      "farming_activities": [
+        {
+          "crop_production": [
+            {%- for crop in land.get('crop') or [] %}
+            {%- set crop_type_value = crop.get('crop_type') or crop.get('commodity') or '' -%}
+            {%- set crop_end_uses = crop.get('end_use') if crop.get('end_use') is sequence and crop.get('end_use') is not string else ([crop.get('end_use')] if crop.get('end_use') else []) -%}
+            {%- set water_value = crop.get('irrigation_water') or first_farm_input.get('water_source') or '' -%}
+            {%- set fertilizer_values = crop.get('fertilizer_type') if crop.get('fertilizer_type') is sequence and crop.get('fertilizer_type') is not string else ([crop.get('fertilizer_type')] if crop.get('fertilizer_type') else (['Organic fertilizers'] if first_farm_input.get('fertilizer_use', false) else [])) -%}
+            {
+              "activity_group": {{ (crop.get('activity_group') or '') | tojson }},
+              "crop_type": {{ crop_type(crop_type_value) | tojson }},
+              "variety": {{ (crop.get('variety') or '') | tojson }},
+              "season": {{ (crop.get('season') or '') | string | lower | tojson }},
+              "end_use": [
+                {%- for end_use in crop_end_uses %}
+                {{ crop_end_use(end_use) | tojson }}{% if not loop.last %},{% endif %}
+                {%- endfor %}
+              ],
+              "irrigation": {{ 'true' if water_value and norm(water_value) not in ['RAINFED', 'RAIN_FED'] else 'false' }},
+              "irrigation_water": [
+                {%- if water_value %}
+                {{ water_source(water_value) | tojson }}
+                {%- endif %}
+              ],
+              "fertilizer_type": [
+                {%- for fertilizer in fertilizer_values %}
+                {{ fertilizer | tojson }}{% if not loop.last %},{% endif %}
+                {%- endfor %}
+              ],
+              "registration_date": {{ (crop.get('registration_date') or crop.get('created_at') or '') | tojson }},
+              "last_updated": {{ (crop.get('last_approved_at') or '') | tojson }}
+            }{% if not loop.last %},{% endif %}
+            {%- endfor %}
+          ],
+          "animal_production": [
+            {%- for livestock in land.get('livestock') or [] %}
+            {
+              "type": {{ animal_type(livestock.get('livestock_type')) | tojson }},
+              "count": {{ livestock.get('head_count', livestock.get('count', 0)) or 0 }},
+              "livestock_system": {{ livestock_system(livestock.get('livestock_system')) | tojson }},
+              "registration_date": {{ (livestock.get('registration_date') or livestock.get('created_at') or '') | tojson }},
+              "last_updated": {{ (livestock.get('last_approved_at') or '') | tojson }}
+            }{% if not loop.last %},{% endif %}
+            {%- endfor %}
+          ],
+          "mixed_farming": {{ 'true' if ((land.get('crop') or []) | length > 0 and (land.get('livestock') or []) | length > 0) else 'false' }},
+          "agri_support_activities": {{ support_activities(first_farm_input) }},
+          "aqua_support_activities": [],
+          "aqua_culture": [],
+          "agroforestry": [],
+          "registration_date": {{ (land.get('registration_date') or land.get('created_at') or '') | tojson }},
+          "last_updated": {{ (land.get('last_approved_at') or '') | tojson }}
+        }
+      ],
+      "registration_date": {{ (land.get('registration_date') or land.get('created_at') or '') | tojson }},
+      "last_updated": {{ (land.get('last_approved_at') or '') | tojson }}
+    }{% if not loop.last %},{% endif %}
+    {%- endfor %}
+  ],
+  "machineries_details": [
+    {%- for machinery in machinery_list %}
+    {
+      "type": {{ machinery_type(machinery.get('machinery_type', machinery.get('type', ''))) | tojson }},
+      "count": {{ machinery.get('count', 0) or 0 }},
+      "equipement_source": {{ (machinery.get('equipment_source') or machinery.get('equipement_source') or '') | tojson }},
+      "registration_date": {{ (machinery.get('registration_date') or machinery.get('created_at') or '') | tojson }},
+      "last_updated": {{ (machinery.get('last_approved_at') or '') | tojson }}
+    }{% if not loop.last %},{% endif %}
+    {%- endfor %}
+  ],
+  "registration_date": {{ (farmer.get('registration_date') or farmer.get('created_at') or '') | tojson }},
+  "last_updated": {{ (farmer.get('last_approved_at') or '') | tojson }}
+}
