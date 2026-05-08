@@ -1,4 +1,3 @@
-INSERT INTO "public"."outgoing_templates" ("template_id", "data_model_id", "register_id", "template_file_id", "created_at", "updated_at") VALUES
-('T1', 'DM1', '6428deca-575d-41f0-b022-a0d79f1495f4', 'openg2p_farmer_to_dci.json.j2', '2026-01-14 13:49:28.683234', '2026-01-14 13:49:28.683234');
+INSERT INTO "public"."outgoing_templates" ("template_id","data_model_id","register_id","template_file_id","created_at","updated_at") VALUES ('689c49df-8a12-407a-8e2a-933c85737a20','c331ba96-ac35-4014-9d13-4ef327f6b79b','a1a4d25a-1cd4-4356-abac-985a0b3c6bcd','833f5e6f7bc04f7188e8684ebd95f364','2026-05-07 04:31:27.828397',NULL);
 
--- add jinja template with key `openg2p_farmer_to_dci.json.j2` to the templates bucket
+-- Template file for template_file_id must be added to MinIO.
