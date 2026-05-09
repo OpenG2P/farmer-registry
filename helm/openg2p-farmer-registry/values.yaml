@@ -41,19 +41,19 @@ openg2p-registry:
   staffPortalApi:
     image:
       repository: openg2p/openg2p-farmer-registry-staff-portal-api
-      tag: "develop"
+      tag: "1.1.0"
       pullPolicy: Always
 
   partnerApi:
     image:
       repository: openg2p/openg2p-farmer-registry-partner-api
-      tag: "develop"
+      tag: "1.1.0"
       pullPolicy: Always
 
   staffPortalUi:
     image:
       repository: openg2p/openg2p-farmer-registry-staff-portal-ui
-      tag: "develop"
+      tag: "1.1.0"
       pullPolicy: Always
 
   # The base chart defines TWO Celery deployments (celeryBeatProducer +
@@ -64,13 +64,13 @@ openg2p-registry:
   celeryBeatProducer:
     image:
       repository: openg2p/openg2p-farmer-registry-celery
-      tag: "develop"
+      tag: "1.1.0"
       pullPolicy: Always
 
   celeryWorker:
     image:
       repository: openg2p/openg2p-farmer-registry-celery
-      tag: "develop"
+      tag: "1.1.0"
       pullPolicy: Always
 
   # DB-seeder: configurations + (optionally) sample_data. Job-style deployment.
@@ -79,7 +79,7 @@ openg2p-registry:
   dbSeed:
     image:
       repository: openg2p/openg2p-farmer-registry-db-seed
-      tag: "develop"
+      tag: "1.1.0"
       pullPolicy: Always
 
   # ==========================================================================
