@@ -1,4 +1,4 @@
-#!openg2p/openg2p-farmer-registry-celery:1.1.0
+#!openg2p/openg2p-farmer-registry-celery:1.1.0-dci
 
 # Dependencies
 git://v1.1.6//https://github.com/openg2p/openg2p-fastapi-common#subdirectory=openg2p-fastapi-common
