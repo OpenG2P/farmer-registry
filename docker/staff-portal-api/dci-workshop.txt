@@ -1,4 +1,4 @@
-#!openg2p/openg2p-farmer-registry-staff-portal-api:1.1.0-dci
+#!openg2p/openg2p-farmer-registry-staff-portal-api:dci-workshop
 
 # Farmer extension — built from this repo's working tree (copied into local_deps/ by parse_service.py).
 ./farmer-extension
