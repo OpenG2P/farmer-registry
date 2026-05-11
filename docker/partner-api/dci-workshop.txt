@@ -1,4 +1,4 @@
-#!openg2p/openg2p-farmer-registry-partner-api:1.1.0-dci
+#!openg2p/openg2p-farmer-registry-partner-api:dci-workshop
 
 # Dependencies libs
 git://v1.1.6//https://github.com/openg2p/openg2p-fastapi-common#subdirectory=openg2p-fastapi-common
