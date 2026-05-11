@@ -1,4 +1,4 @@
-#!openg2p/openg2p-farmer-registry-staff-portal-api:1.1.0
+#!openg2p/openg2p-farmer-registry-staff-portal-api:dci-workshop
 
 # Farmer extension — built from this repo's working tree (copied into local_deps/ by parse_service.py).
 ./farmer-extension
@@ -9,5 +9,5 @@ git://v1.1.6//https://github.com/openg2p/openg2p-fastapi-common#subdirectory=ope
 
 # Core
 git://v1.1.0//https://github.com/openg2p/openg2p-iam-service#subdirectory=iam-core
-git://v1.1.0//https://github.com/openg2p/openg2p-registry-gen2-core#subdirectory=openg2p-registry-core
+git://DCI-Workshop-May-2026//https://github.com/openg2p/openg2p-registry-gen2-core#subdirectory=openg2p-registry-core
 git://v1.1.0//https://github.com/openg2p/openg2p-registry-gen2-apis#subdirectory=openg2p-registry-staff-portal-api
