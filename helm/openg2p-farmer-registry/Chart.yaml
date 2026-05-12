@@ -34,9 +34,12 @@ dependencies:
     repository: https://openg2p.github.io/openg2p-helm
 
 # Rancher catalog branding
+# NOTE: `catalog.cattle.io/release-name` is intentionally omitted so the
+# Rancher UI lets the operator choose any release name on install. With
+# that annotation present, Rancher locks the name field to its value and
+# limits the chart to a single release per namespace.
 annotations:
   catalog.cattle.io/display-name: "OpenG2P Farmer Registry"
-  catalog.cattle.io/release-name: openg2p-farmer-registry
   catalog.cattle.io/certified: partner
   catalog.cattle.io/kube-version: ">=1.23.0-0"
   openg2p.org/add-to-rancher: ""
