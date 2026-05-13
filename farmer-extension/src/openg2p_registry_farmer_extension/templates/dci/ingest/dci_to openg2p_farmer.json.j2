@@ -1,0 +1,181 @@
+{% set d = expanded if expanded is defined else {} %}
+{% set farmer = d.get("famer_personal_details", {}) %}
+{% set farmer_demo = farmer.get("demographic_info", {}) %}
+{% set farmer_name = farmer_demo.get("name", {}) %}
+{% set farmer_identifier = farmer_demo.get("identifier", farmer.get("member_identifier", {})) %}
+{% set family = d.get("family_details", {}) %}
+{% set family_head = family.get("group_head_info", {}) %}
+{% set family_head_demo = family_head.get("demographic_info", {}) %}
+{% set family_head_name = family_head_demo.get("name", {}) %}
+{% set family_members = family.get("member_list", []) %}
+{% set farm_details = d.get("farm_details", []) %}
+{% set first_farm = farm_details[0] if farm_details else {} %}
+{% set first_place = first_farm.get("place", {}) %}
+{% set first_geo = first_place.get("geo", {}) %}
+{% set machineries = d.get("machineries_details", []) %}
+
+{% set gender_value = (farmer_demo.get("gender", "") or family_head_demo.get("gender", "")) | upper %}
+{% if gender_value == "MALE" %}
+  {% set gender_value = "MALE" %}
+{% elif gender_value == "FEMALE" %}
+  {% set gender_value = "FEMALE" %}
+{% elif gender_value in ["OTHER", "OTHERS"] %}
+  {% set gender_value = "OTHERS" %}
+{% else %}
+  {% set gender_value = "UNKNOWN" %}
+{% endif %}
+
+{% set marital_status = (family_head.get("marital_status", "") or "UNKNOWN") | upper %}
+{% if marital_status not in ["SINGLE", "MARRIED", "DIVORCED", "WIDOWED", "SEPARATED", "UNKNOWN"] %}
+  {% set marital_status = "UNKNOWN" %}
+{% endif %}
+
+{% set source_of_income = "OTHERS" %}
+{% if farm_details %}
+  {% set first_activity = (first_farm.get("farming_activities", []) | first) or {} %}
+  {% if first_activity.get("crop_production") %}
+    {% set source_of_income = "CROP_PRODUCTION" %}
+  {% elif first_activity.get("animal_production") %}
+    {% set source_of_income = "LIVESTOCK_PRODUCTION" %}
+  {% endif %}
+{% endif %}
+
+{
+  "farmer_personal_info": [
+    {
+      "record_name": "{{ (farmer_name.get('first_name', '') ~ ' ' ~ farmer_name.get('last_name', '')).strip() }}",
+      "foundational_id": "{{ farmer_identifier.get('identifier_value', '') }}",
+      "first_name": "{{ farmer_name.get('first_name', '') }}",
+      "middle_name": "{{ farmer_name.get('middle_name', '') }}",
+      "last_name": "{{ farmer_name.get('last_name', '') }}",
+      "given_name": "{{ farmer_name.get('first_name', '') }}",
+      "birth_date": "{{ (farmer_demo.get('date_of_birth', '') or '').split('T')[0] }}",
+      "gender": "{{ gender_value }}",
+      "marital_status": "{{ marital_status }}",
+      "registration_date": "{{ (family_head.get('registration_date', d.get('registration_date', '')) or '').split('T')[0] }}"
+    }
+  ],
+  "farmer_socio_&_health": [
+    {
+      "has_personal_phone": false,
+      "disabled": {{ "true" if family_head.get("is_disabled") else "false" }},
+      "source_of_income": "{{ source_of_income }}",
+      "national_id_masked": "{{ farmer_identifier.get('identifier_value', '') }}"
+    }
+  ],
+  "farmer_location": [
+    {
+      "locality": "{{ first_place.get('name', '') }}",
+      "latitude": "{{ first_geo.get('latitude', '') }}",
+      "longitude": "{{ first_geo.get('longitude', '') }}",
+      "registration_date": "{{ (d.get('registration_date', '') or '').split('T')[0] }}"
+    }
+  ],
+  "household_information": [
+    {
+      "household_head": "{{ (family_head_name.get('first_name', '') ~ ' ' ~ family_head_name.get('last_name', '')).strip() }}",
+      "size_of_group": {{ family.get("group_size", 0) | int }},
+      "number_of_children": {{ family_members | length }},
+      "number_of_female_members": 0,
+      "number_of_male_members": 0,
+      "other_land_owner": false
+    }
+  ],
+  "household_members": [
+{% for member in family_members %}
+    {% set member_demo = member.get("demographic_info", {}) %}
+    {% set member_name = member_demo.get("name", {}) %}
+    {% set member_identifier = member_demo.get("identifier", (member.get("member_identifier", []) | first) or {}) %}
+    {% set member_gender = (member_demo.get("gender", member_demo.get("sex", "")) or "UNKNOWN") | upper %}
+    {% if member_gender not in ["MALE", "FEMALE", "OTHERS", "UNKNOWN"] %}
+      {% set member_gender = "UNKNOWN" %}
+    {% endif %}
+    {
+      "record_name": "{{ ((member_name.get('first_name', member_name.get('given_name', ''))) ~ ' ' ~ (member_name.get('last_name', member_name.get('surname', '')))).strip() }}",
+      "foundational_id": "{{ member_identifier.get('identifier_value', '') }}",
+      "prefix": "{{ member_name.get('prefix', '') }}",
+      "first_name": "{{ member_name.get('first_name', member_name.get('given_name', '')) }}",
+      "middle_name": "{{ member_name.get('middle_name', '') }}",
+      "last_name": "{{ member_name.get('last_name', member_name.get('surname', '')) }}",
+      "suffix": "{{ member_name.get('suffix', '') }}",
+      "given_name": "{{ member_name.get('first_name', member_name.get('given_name', '')) }}",
+      "birth_date": "{{ (member_demo.get('date_of_birth', member_demo.get('birth_date', '')) or '').split('T')[0] }}",
+      "gender": "{{ member_gender }}",
+      "is_disabled": {{ "true" if member.get("is_disabled") else "false" }},
+      "registration_date": "{{ (member.get('registration_date', family.get('registration_date', '')) or '').split('T')[0] }}"
+    }{% if not loop.last %},{% endif %}
+{% endfor %}
+  ],
+  "household_poverty": [
+    {
+      "poverty_score": "{{ family.get('poverty_score', '') }}",
+      "poverty_score_type": "{{ family.get('poverty_score_type', '') }}"
+    }
+  ],
+  "farmer_land": [
+{% for farm in farm_details %}
+    {% set place = farm.get("place", {}) %}
+    {% set geo = place.get("geo", {}) %}
+    {% set first_activity = (farm.get("farming_activities", []) | first) or {} %}
+    {% set land_farming_type = "CROP" %}
+    {% if first_activity.get("mixed_farming") %}
+      {% set land_farming_type = "MIXED" %}
+    {% elif first_activity.get("animal_production") %}
+      {% set land_farming_type = "LIVESTOCK" %}
+    {% elif first_activity.get("aqua_culture") %}
+      {% set land_farming_type = "AQUACULTURE" %}
+    {% endif %}
+    {
+      "record_name": "{{ place.get('name', 'Farm') }}",
+      "land_ownership_type": "OWNER",
+      "land_size": "",
+      "unit": "HECTARE",
+      "current_land_use": "AGRICULTURAL",
+      "farming_type": "{{ land_farming_type }}",
+      "latitude": "{{ geo.get('latitude', '') }}",
+      "longitude": "{{ geo.get('longitude', '') }}"
+    }{% if not loop.last %},{% endif %}
+{% endfor %}
+  ],
+  "farmer_farm_input": [
+{% set farm_input_rows = namespace(first=true) %}
+{% for farm in farm_details %}
+  {% for activity in farm.get("farming_activities", []) %}
+    {% set crop_rows = activity.get("crop_production", []) %}
+    {% set has_fertilizer = crop_rows | selectattr("fertilizer_type") | list | length > 0 %}
+    {% if not farm_input_rows.first %},{% endif %}
+    {
+      "fertilizer_use": {{ "true" if has_fertilizer else "false" }},
+      "pesticide_use": false,
+      "insecticide_use": false,
+      "improved_seed_use": false,
+      "water_source": "{{ crop_rows[0].get('irrigation_water', [''])[0] if crop_rows and crop_rows[0].get('irrigation_water') else '' }}",
+      "access_to_machinery": {{ "true" if machineries else "false" }},
+      "access_to_finance": false
+    }
+    {% set farm_input_rows.first = false %}
+  {% endfor %}
+{% endfor %}
+  ],
+  "farmer_livestocks": [
+{% set livestock_rows = namespace(first=true) %}
+{% for farm in farm_details %}
+  {% for activity in farm.get("farming_activities", []) %}
+    {% for animal in activity.get("animal_production", []) %}
+      {% set livestock_system = (animal.get("livestock_system", "") or "") | upper | replace(" ", "_") | replace("-", "_") %}
+      {% if livestock_system not in ["NOMADIC_PASTORAL", "SEMI_NOMADIC", "SEDENTARY_PASTORAL", "MIXED", "INDUSTRIAL"] %}
+        {% set livestock_system = "MIXED" %}
+      {% endif %}
+      {% if not livestock_rows.first %},{% endif %}
+      {
+        "livestock_type": "{{ animal.get('type', '') }}",
+        "breed": "{{ animal.get('breed', '') }}",
+        "head_count": {{ animal.get("count", 0) | int }},
+        "livestock_system": "{{ livestock_system }}"
+      }
+      {% set livestock_rows.first = false %}
+    {% endfor %}
+  {% endfor %}
+{% endfor %}
+  ]
+}
