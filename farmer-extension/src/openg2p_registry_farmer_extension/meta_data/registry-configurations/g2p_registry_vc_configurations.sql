@@ -1,2 +1,1 @@
-INSERT INTO "public"."g2p_registry_vc_configurations" ("vc_config_id", "register_id", "vc_mnemonic", "descriptor_schema") VALUES
-('62e56eb2-d3b5-43d6-9ded-8ab19ba52c88', '6428deca-575d-41f0-b022-a0d79f1495f4', 'BIRTH_CERTIFICATE', '{"id": "birth-cert-sd-jwt", "format": {"vc+sd-jwt": {"sd-jwt_alg_values": ["EdDSA"]}}, "constraints": {"fields": [{"path": ["$.vct"], "filter": {"type": "string", "pattern": "VerifiableCredential"}}]}}');
+-- No seed data for g2p_registry_vc_configurations
