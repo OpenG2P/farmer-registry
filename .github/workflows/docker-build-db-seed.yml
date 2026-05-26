@@ -1,9 +1,8 @@
 name: Build DB Seed Docker Image
 
-# The db-seed image only bundles SQL seed content — it does not bundle any
-# Python code. So it only needs to rebuild when the SQL actually changes
-# (configurations/ or sample_data/), when the seed Dockerfile/entrypoint
-# changes, or when this workflow itself changes.
+# The db-seed image bundles SQL seed content and flat Jinja templates. Rebuild
+# when meta_data/, sample_data/, templates/, docker/db-seed/, or this workflow
+# changes.
 #
 # The image tag equals the current branch name (master/main → develop).
 on:
@@ -13,8 +12,9 @@ on:
     tags-ignore:
       - '**'
     paths:
-      - 'farmer-extension/src/**/configurations/**'
+      - 'farmer-extension/src/**/meta_data/**'
       - 'farmer-extension/src/**/sample_data/**'
+      - 'farmer-extension/src/**/templates/**'
       - 'docker/db-seed/**'
       - '.github/workflows/docker-build-db-seed.yml'
   workflow_dispatch:
