@@ -1,5 +1,5 @@
 apiVersion: v2
-name: openg2p-farmer-registry
+name: farmer-registry
 description: |
   OpenG2P Farmer Registry — thin wrapper chart on top of the OpenG2P Registry
   Gen 2 base chart. Supplies Farmer-Registry-branded Docker images and
