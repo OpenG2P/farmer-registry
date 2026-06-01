@@ -1,17 +1,21 @@
 import logging
 
-from openg2p_registry_core.schemas import ChangeRequestRequestPayload
 from openg2p_registry_core.services import G2PRegisterDomainService
+
+from .domain_validation_utils import as_float, validation_error
 
 _logger = logging.getLogger("g2p-register-domain-service")
 
 
 class G2PRegisterDomainServicePovertyScore(G2PRegisterDomainService):
-    async def validate_domain_attributes(
-        self, change_request_request_payload: ChangeRequestRequestPayload
-    ):
-        _logger.info("Validating poverty score domain attributes")
-        return
+    async def validate_domain_attributes(self, records: list[dict]):
+        for record in records:
+            self._validate_poverty_score(record)
+
+    def _validate_poverty_score(self, record: dict) -> None:
+        score = as_float(record.get("poverty_score"))
+        if score is not None and (score < 0 or score > 100):
+            validation_error("poverty_score must be between 0 and 100 when provided")
 
     def construct_search_text(self, payload: dict, extra: list[str] = None) -> str:
         _logger.info("Constructing search text for poverty score")

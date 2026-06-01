@@ -1,17 +1,28 @@
 import logging
+from datetime import date
 
-from openg2p_registry_core.schemas import ChangeRequestRequestPayload
 from openg2p_registry_core.services import G2PRegisterDomainService
+
+from .domain_validation_utils import as_float, as_int, validation_error
 
 _logger = logging.getLogger("g2p-register-domain-service")
 
 
 class G2PRegisterDomainServiceLand(G2PRegisterDomainService):
-    async def validate_domain_attributes(
-        self, change_request_request_payload: ChangeRequestRequestPayload
-    ):
-        _logger.info("Validating land domain attributes")
-        return
+    async def validate_domain_attributes(self, records: list[dict]):
+        for record in records:
+            self._validate_land_size(record)
+            self._validate_year_of_acquisition(record)
+
+    def _validate_land_size(self, record: dict) -> None:
+        land_size = as_float(record.get("land_size"))
+        if land_size is not None and land_size <= 0:
+            validation_error("land_size must be greater than zero when provided")
+
+    def _validate_year_of_acquisition(self, record: dict) -> None:
+        year = as_int(record.get("year_of_acquisition"))
+        if year is not None and year > date.today().year:
+            validation_error("year_of_acquisition must not be in the future")
 
     def construct_search_text(self, payload: dict, extra: list[str] = None) -> str:
         _logger.info("Constructing search text for land")
