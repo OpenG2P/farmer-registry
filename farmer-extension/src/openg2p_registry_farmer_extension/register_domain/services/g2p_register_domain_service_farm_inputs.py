@@ -1,16 +1,12 @@
 import logging
 
-from openg2p_registry_core.schemas import ChangeRequestRequestPayload
 from openg2p_registry_core.services import G2PRegisterDomainService
 
 _logger = logging.getLogger("g2p-register-domain-service")
 
 
 class G2PRegisterDomainServiceFarmInputs(G2PRegisterDomainService):
-    async def validate_domain_attributes(
-        self, change_request_request_payload: ChangeRequestRequestPayload
-    ):
-        _logger.info("Validating farm inputs domain attributes")
+    async def validate_domain_attributes(self, records: list[dict]):
         return
 
     def construct_search_text(self, payload: dict, extra: list[str] = None) -> str:

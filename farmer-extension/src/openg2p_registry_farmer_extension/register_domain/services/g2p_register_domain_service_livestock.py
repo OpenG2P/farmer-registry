@@ -1,17 +1,26 @@
 import logging
 
-from openg2p_registry_core.schemas import ChangeRequestRequestPayload
 from openg2p_registry_core.services import G2PRegisterDomainService
+
+from .domain_validation_utils import validation_error
 
 _logger = logging.getLogger("g2p-register-domain-service")
 
 
 class G2PRegisterDomainServiceLivestock(G2PRegisterDomainService):
-    async def validate_domain_attributes(
-        self, change_request_request_payload: ChangeRequestRequestPayload
-    ):
-        _logger.info("Validating livestock domain attributes")
-        return
+    async def validate_domain_attributes(self, records: list[dict]):
+        self._validate_no_duplicate_livestock_type(records)
+
+    def _validate_no_duplicate_livestock_type(self, records: list[dict]) -> None:
+        seen: set[str] = set()
+        for record in records:
+            value = record.get("livestock_type")
+            if value is None or str(value).strip() == "":
+                continue
+            normalized = str(value).strip()
+            if normalized in seen:
+                validation_error("Duplicate livestock_type entries are not allowed")
+            seen.add(normalized)
 
     def construct_search_text(self, payload: dict, extra: list[str] = None) -> str:
         _logger.info("Constructing search text for livestock")

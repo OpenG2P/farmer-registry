@@ -1,17 +1,30 @@
 import logging
 
-from openg2p_registry_core.schemas import ChangeRequestRequestPayload
 from openg2p_registry_core.services import G2PRegisterDomainService
+
+from .domain_validation_utils import as_int, validation_error
 
 _logger = logging.getLogger("g2p-register-domain-service")
 
 
 class G2PRegisterDomainServiceHousehold(G2PRegisterDomainService):
-    async def validate_domain_attributes(
-        self, change_request_request_payload: ChangeRequestRequestPayload
-    ):
-        _logger.info("Validating household domain attributes")
-        return
+    async def validate_domain_attributes(self, records: list[dict]):
+        for record in records:
+            self._validate_household_size(record)
+
+    def _validate_household_size(self, record: dict) -> None:
+        size_of_group = as_int(record.get("size_of_group"))
+        male = as_int(record.get("number_of_male_members"))
+        female = as_int(record.get("number_of_female_members"))
+        if size_of_group is not None and male is not None and female is not None:
+            if size_of_group != male + female:
+                validation_error(
+                    "size_of_group must equal number_of_male_members + number_of_female_members"
+                )
+
+        children = as_int(record.get("number_of_children"))
+        if size_of_group is not None and children is not None and children > size_of_group:
+            validation_error("number_of_children must not exceed size_of_group")
 
     def construct_search_text(self, payload: dict, extra: list[str] = None) -> str:
         _logger.info("Constructing search text for household")
