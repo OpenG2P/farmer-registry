@@ -188,6 +188,82 @@ questions:
     group: DB Seed
 
   # -------------------------------------------------------------------------
+  # AWE — passthrough to openg2p-registry subchart (templates/defaults in
+  # openg2p-registry-gen2-deployment). Requires base chart version that includes AWE.
+  # -------------------------------------------------------------------------
+  - variable: openg2p-registry.global.aweEnabled
+    description: Enable AWE on staff-portal-api and seed AWE DB from db-seed job
+    type: boolean
+    label: Enable AWE Integration
+    group: AWE
+
+  - variable: openg2p-registry.global.aweBaseUrl
+    description: Public AWE API base URL (host only, no /v1/awe path)
+    type: string
+    label: AWE Base URL
+    group: AWE
+
+  - variable: openg2p-registry.global.aweCallbackSecretId
+    description: callback_secret.id in AWE DB (default registry)
+    type: string
+    label: AWE Callback Secret ID
+    group: AWE
+
+  - variable: openg2p-registry.global.aweHttpTimeoutSeconds
+    description: Outbound AWE HTTP timeout in seconds
+    type: int
+    label: AWE HTTP Timeout (s)
+    group: AWE
+
+  - variable: openg2p-registry.global.aweWebhookTimestampToleranceSeconds
+    description: Inbound webhook signature clock skew tolerance in seconds
+    type: int
+    label: AWE Webhook Timestamp Tolerance (s)
+    group: AWE
+
+  - variable: openg2p-registry.global.aweApproverUserPassword
+    description: Initial Keycloak password for seeded approver users
+    type: string
+    label: AWE Approver User Password
+    group: AWE
+
+  - variable: openg2p-registry.global.aweReleaseName
+    description: Helm release name of openg2p-awe (db-seed health wait)
+    type: string
+    label: AWE Helm Release Name
+    group: AWE
+
+  - variable: openg2p-registry.global.aweDB
+    description: PostgreSQL database name for AWE
+    type: string
+    label: AWE Database Name
+    group: AWE
+
+  - variable: openg2p-registry.global.aweDBUser
+    description: PostgreSQL user for AWE database
+    type: string
+    label: AWE Database User
+    group: AWE
+
+  - variable: openg2p-registry.global.aweDBSecret
+    description: K8s secret holding AWE DB password
+    type: string
+    label: AWE Database Secret
+    group: AWE
+
+  - variable: openg2p-registry.global.aweDBUserPasswordKey
+    description: Key inside AWE DB secret for the user password
+    type: string
+    label: AWE Database Secret Key
+    group: AWE
+
+  - variable: openg2p-registry.keycloak-init.enabled
+    description: Run Keycloak init (creates approver users in staff realm)
+    type: boolean
+    label: Keycloak Init (AWE approvers)
+    group: AWE
+
+  # -------------------------------------------------------------------------
   # ID Generator — informational note only. The `idTypes` field is a map
   # keyed by id-type name, which Rancher form widgets cannot meaningfully
   # render as a tree of editable fields. Operators who need to change
