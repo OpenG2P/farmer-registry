@@ -1,0 +1,151 @@
+{{- if .Values.dbSeed.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-db-seed
+  labels:
+    app.kubernetes.io/name: db-seed
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: db-seed
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        # 1. Wait for PostgreSQL to be reachable
+        - name: wait-for-db
+          image: jbergknoff/postgresql-client:latest
+          imagePullPolicy: IfNotPresent
+          command: ['sh', '-c']
+          args:
+            - >-
+              until pg_isready
+              -h {{ .Values.global.postgresqlHost }}
+              -p {{ .Values.global.registryDBPort | default 5432 }}
+              -d {{ include "common.tplvalues.render" (dict "value" .Values.global.registryDB "context" $) }};
+              do echo "Waiting for DB..."; sleep 3;
+              done
+        # 2. Wait for all application pods to be ready (tables created by APIs on startup)
+        - name: wait-for-apps
+          image: busybox:1.36
+          imagePullPolicy: IfNotPresent
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "Waiting for application services to be ready..."
+              {{- if .Values.staffPortalApi.enabled }}
+              until wget -qO- --timeout=5 http://{{ .Release.Name }}-staff-portal-api:{{ .Values.staffPortalApi.service.port | default 80 }}/ping >/dev/null 2>&1; do
+                echo "  waiting for staff-portal-api..."; sleep 5
+              done
+              echo "  staff-portal-api is ready."
+              {{- end }}
+              {{- if .Values.partnerApi.enabled }}
+              until wget -qO- --timeout=5 http://{{ .Release.Name }}-partner-api:{{ .Values.partnerApi.service.port | default 80 }}/ping >/dev/null 2>&1; do
+                echo "  waiting for partner-api..."; sleep 5
+              done
+              echo "  partner-api is ready."
+              {{- end }}
+              {{- if .Values.benePortalApi.enabled }}
+              until wget -qO- --timeout=5 http://{{ .Release.Name }}-bene-portal-api:{{ .Values.benePortalApi.service.port | default 80 }}/ping >/dev/null 2>&1; do
+                echo "  waiting for bene-portal-api..."; sleep 5
+              done
+              echo "  bene-portal-api is ready."
+              {{- end }}
+              {{- if .Values.staffPortalUi.enabled }}
+              until wget -qO- --timeout=5 http://{{ .Release.Name }}-staff-portal-ui:{{ .Values.staffPortalUi.service.port | default 80 }}/ >/dev/null 2>&1; do
+                echo "  waiting for staff-portal-ui..."; sleep 5
+              done
+              echo "  staff-portal-ui is ready."
+              {{- end }}
+              {{- if .Values.celeryBeatProducer.enabled }}
+              # Celery Beat has no HTTP endpoint; wait a few seconds after APIs are up
+              echo "  celery-beat-producer has no HTTP endpoint; assuming ready after APIs."
+              {{- end }}
+              {{- if .Values.celeryWorker.enabled }}
+              # Celery Worker has no HTTP endpoint; wait a few seconds after APIs are up
+              echo "  celery-worker has no HTTP endpoint; assuming ready after APIs."
+              {{- end }}
+              echo "All application services are ready."
+              {{- if and .Values.global.aweEnabled (index .Values "openg2p-awe" "enabled") }}
+              until wget -qO- --timeout=5 http://{{ include "common.tplvalues.render" (dict "value" .Values.global.aweReleaseName "context" $) }}-awe:80/v1/awe/health >/dev/null 2>&1; do
+                echo "  waiting for awe API..."; sleep 5
+              done
+              echo "  awe API is ready."
+              {{- end }}
+      containers:
+        - name: db-seed
+          image: {{ include "common.tplvalues.render" (dict "value" .Values.dbSeed.image.repository "context" $) }}:{{ .Values.dbSeed.image.tag }}
+          imagePullPolicy: {{ .Values.dbSeed.image.pullPolicy }}
+          env:
+            - name: PGHOST
+              value: {{ .Values.global.postgresqlHost | quote }}
+            - name: PGPORT
+              value: {{ .Values.global.registryDBPort | default 5432 | quote }}
+            - name: PGDATABASE
+              value: {{ include "common.tplvalues.render" (dict "value" .Values.global.registryDB "context" $) | quote }}
+            - name: PGUSER
+              value: {{ include "common.tplvalues.render" (dict "value" .Values.global.registryDBUser "context" $) | quote }}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "common.tplvalues.render" (dict "value" .Values.global.registryDBSecret "context" $) | quote }}
+                  key: {{ include "common.tplvalues.render" (dict "value" .Values.global.registryDBUserPasswordKey "context" $) | quote }}
+            - name: LOAD_SAMPLE_DATA
+              value: {{ .Values.dbSeed.loadSampleData | quote }}
+            - name: LOAD_IMAGES
+              value: {{ .Values.dbSeed.loadImages | quote }}
+            - name: LOAD_TEMPLATES
+              value: {{ .Values.dbSeed.loadTemplates | quote }}
+            - name: IMAGE_BUCKET_NAME
+              value: {{ .Values.global.imageBucketName | quote }}
+            - name: AWE_DB_SEED_ENABLED
+              value: {{ .Values.global.aweEnabled | quote }}
+            - name: AWE_PGHOST
+              value: {{ .Values.global.postgresqlHost | quote }}
+            - name: AWE_PGPORT
+              value: {{ .Values.global.aweDBPort | default 5432 | quote }}
+            - name: AWE_PGDATABASE
+              value: {{ include "common.tplvalues.render" (dict "value" .Values.global.aweDB "context" $) | quote }}
+            - name: AWE_PGUSER
+              value: {{ include "common.tplvalues.render" (dict "value" .Values.global.aweDBUser "context" $) | quote }}
+            - name: AWE_PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "common.tplvalues.render" (dict "value" .Values.global.aweDBSecret "context" $) | quote }}
+                  key: {{ include "common.tplvalues.render" (dict "value" .Values.global.aweDBUserPasswordKey "context" $) | quote }}
+            {{- if .Values.global.aweEnabled }}
+            - name: AWE_CALLBACK_HMAC_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ tpl .Values.global.aweCallbackHmacSecretName $ | quote }}
+                  key: {{ .Values.global.aweCallbackHmacSecretKey | quote }}
+            {{- end }}
+            - name: MINIO_ENDPOINT
+              value: {{ tpl .Values.global.minioHost $ | quote }}
+            - name: MINIO_SECURE
+              value: {{ .Values.global.minioSecure | quote }}
+            - name: TEMPLATE_BUCKET_NAME
+              value: {{ tpl .Values.global.templateBucketName $ | quote }}
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "common.tplvalues.render" (dict "value" .Values.global.minioSecret "context" $) | quote }}
+                  key: {{ include "common.tplvalues.render" (dict "value" .Values.global.minioAccessKey "context" $) | quote }}
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "common.tplvalues.render" (dict "value" .Values.global.minioSecret "context" $) | quote }}
+                  key: {{ include "common.tplvalues.render" (dict "value" .Values.global.minioSecretKey "context" $) | quote }}
+          {{- if .Values.dbSeed.resources }}
+          resources: {{- include "common.tplvalues.render" (dict "value" .Values.dbSeed.resources "context" $) | nindent 12 }}
+          {{- end }}
+{{- end }}

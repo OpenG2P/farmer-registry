@@ -66,7 +66,6 @@ DEFAULT_SERVICES=(
   "staff-portal-api/develop.txt"
   "celery/develop.txt"
   "partner-api/develop.txt"
-  "staff-portal-ui/develop.txt"
 )
 
 # ---------------------------------------------------------------------------

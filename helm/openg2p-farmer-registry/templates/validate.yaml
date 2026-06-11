@@ -1,0 +1,8 @@
+{{- /*
+This template file produces no resources. It exists solely to trigger the
+release-name length validator at `helm install` / `helm upgrade` time so
+that long release names are rejected upfront with a clear message — instead
+of failing mid-install with a cryptic Kubernetes "label-value too long" error.
+See _validate.tpl for the validation logic.
+*/ -}}
+{{- include "openg2p-registry.validateReleaseName" . -}}

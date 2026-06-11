@@ -1,104 +1,1217 @@
-# ---------------------------------------------------------------------------
-# openg2p-farmer-registry — values.yaml
-#
-# Only Farmer-Registry-specific overrides live here. Everything else
-# (hostnames, keycloak, postgres, ingress, resources, …) is inherited from
-# the base chart `openg2p-registry` (see Chart.yaml → dependencies).
-#
-# All wrapper overrides are nested under the base chart name `openg2p-registry`,
-# as required by Helm subchart value scoping. Values at the top level of this
-# file are wrapper-chart-local and do not reach the base.
-#
-# Domain / hostname handling: the base chart auto-computes all component
-# URLs from `global.registryHostname`, whose default template is
-#   '{{ .Release.Name }}.{{ .Release.Namespace }}.openg2p.org'
-# So with `helm install registry ./openg2p-farmer-registry -n my-farmer`,
-# services land at
-#   registry.my-farmer.openg2p.org           (Staff Portal UI)
-#   staff-registry.my-farmer.openg2p.org     (Staff Portal API)
-#   partner-registry.my-farmer.openg2p.org   (Partner API)
-#   idgenerator-registry.my-farmer.openg2p.org
-# To point at a different apex, override `openg2p-registry.global.registryHostname`.
-# ---------------------------------------------------------------------------
+global:
+  registryVariant: 'farmer-registry'
+  registryHostname: '{{ .Release.Name }}.{{ .Release.Namespace }}.openg2p.org'
 
-openg2p-registry:
+  # Database
+  postgresqlHost: commons-postgresql
 
+  registryDB:  '{{ printf "%s" .Release.Name | replace "-" "_" }}'
+  registryDBPort: 5432
+  registryDBUser: '{{ printf "%s_user" .Release.Name | replace "-" "_" }}'
+  registryDBSecret: '{{ .Release.Name }}'
+  registryDBUserPasswordKey: '{{ .Release.Name }}-db-user'
+
+  # Master Data DB credentials — must match the values set by the
+  # openg2p-commons-services chart (release `commons-services`). Commons
+  # uses plain DB names (no release-name prefix) since only one Master
+  # Data instance is expected per environment.
+  masterDataDB: 'master_data'
+  masterDataDBPort: 5432
+  masterDataDBUser: 'master_data_user'
+  masterDataDBSecret: 'master-data'
+  masterDataDBUserPasswordKey: 'master-data-db-user'
+
+  # Redis
+  redisInstallationName: '{{ .Release.Name }}-redis-master'
+
+  # Minio
+  minioSecret: commons-minio
+  minioAccessKey: root-user
+  minioSecretKey: root-password
+  # External MinIO S3 API endpoint. Must be reachable from end-user browsers
+  # because the registry generates pre-signed S3 URLs that browsers follow
+  # directly. Commons-base's Istio VirtualService exposes the S3 API at
+  # `minio-api.<basedomain>` (apiHost in commons-base values.yaml). The
+  # default below is a placeholder using the namespace + openg2p.org —
+  # OPERATORS MUST override this in `questions.yaml` / Rancher UI / values
+  # file to match their actual base domain. NOTE: `minio.<basedomain>` is
+  # the *Console* UI — do NOT point S3 clients at it.
+  minioHost: 'minio-api.{{ .Release.Namespace }}.openg2p.org'
+  # MinIO buckets — per-release so two registry instances in the same
+  # namespace don't share object namespaces. The db-seed image auto-creates
+  # missing buckets on first run (see docker/db-seed/upload_templates.py).
+  defaultBucketName: '{{ .Release.Name }}-default'
+  templateBucketName: '{{ .Release.Name }}-template'
+  imageBucketName: "registrant-photos"
+  minioSecure: true
+
+  # Security & Authentication
+  keymanagerInstallationName: commons-services-keymanager
+  keycloakBaseUrl: 'https://keycloak.{{ .Release.Namespace }}.openg2p.org'
+  # Single shared `staff` realm per namespace — all registry releases (and
+  # other apps like AWE) authenticate against the same realm; each release
+  # gets its OWN client (clientId below) inside that shared realm.
+  keycloakRealm: 'staff'
+  keycloakIssuerUrl: '{{ tpl .Values.global.keycloakBaseUrl $ }}/realms/{{ tpl .Values.global.keycloakRealm $ }}'
+
+  registryKeymanagerAuthEnabled: false
+  # Per-release keymanager app id (uppercased Release.Name) so signature
+  # scopes don't collide across registry instances in the same environment.
+  registryKeymanagerAppId: '{{ .Release.Name | upper }}'
+  # OIDC client ID — per-release; MUST equal the clientId in keycloak-init.realms below.
+  authClientId: '{{ .Release.Name }}-staff-portal'
+  # K8s Secret name holding the client password (keycloak-init names the
+  # Secret after the clientId, so this must match authClientId above).
+  authClientSecret: '{{ .Release.Name }}-staff-portal'
+  # Key inside the secret containing the client password
+  authClientSecretKey: 'client_secret'
+
+  # IAM service internal URL
+  iamServiceUrl: 'http://commons-services-iam-staff-portal-api'
+
+  # Master Data API internal URL
+  masterDataApiUrl: 'http://commons-services-master-data-api'
+
+  # ID Generator
+  # Public hostname (used by browser/external callers via Istio VirtualService).
+  idGeneratorHostname: 'idgenerator-{{ .Release.Name }}.{{ .Release.Namespace }}.openg2p.org'
+  idGeneratorApiUrl: 'https://{{ tpl .Values.global.idGeneratorHostname $ }}/v1'
+  # Internal cluster URL — used by sibling pods (e.g. celery-worker) to reach
+  # the ID Generator without hopping through the ingress gateway. The K8s
+  # Service is named "<release>-id-generator" on port 80.
+  idGeneratorInternalUrl: 'http://{{ .Release.Name }}-id-generator/v1'
+
+  # OpenG2P Audit Manager integration
+  # Both `auditEnabled=true` AND `auditManagerUrl` must be set for emission
+  # to actually happen. Defaults below mean "audit feature wired but turned
+  # off" — safe to ship; per-environment overrides flip it on.
+  # Wired into both staff-portal-api and partner-api (chart 4.1.x). Each
+  # service consumes these globals via its own envVars block below.
+  # Older service images that lack AuditMiddleware simply ignore the env
+  # vars — no error.
+  auditEnabled: true
+  auditManagerUrl: 'http://commons-services-auditmanager:80'
+  # Set to false to skip auditing of rejected anonymous calls (401/403
+  # without a populated principal). Default true captures attempted
+  # unauthorized access for security review.
+  auditAnonymousFailures: true
+
+  # ---------------------------------------------------------------------------
+  # AWE (Approval Workflow Engine) — installed as part of the Registry platform
+  # via the openg2p-awe subchart. These globals OVERRIDE the awe chart's own
+  # defaults so AWE's resources do NOT collide with the registry's.
+  #
+  # IMPORTANT: AWE's chart defaults its DB name / secret to just `<release>`,
+  # which is IDENTICAL to registryDB / registryDBSecret above. Left unchanged,
+  # AWE's postgres-init would create a database and Secret with the same names
+  # as the registry's, clashing on install. We namespace everything with an
+  # `_awe` / `-awe` suffix so the two coexist under one release.
+  # ---------------------------------------------------------------------------
+  aweHostname: 'awe-{{ .Release.Name }}.{{ .Release.Namespace }}.openg2p.org'
+  aweDB: '{{ printf "%s_awe" .Release.Name | replace "-" "_" }}'
+  aweDBPort: 5432
+  aweDBUser: '{{ printf "%s_awe_user" .Release.Name | replace "-" "_" }}'
+  aweDBSecret: '{{ .Release.Name }}-awe'
+  aweDBUserPasswordKey: '{{ .Release.Name }}-awe-db-user'
+
+  # Staff-portal-api AWE client + db-seed AWE database seeding
+  aweEnabled: true
+  aweBaseUrl: 'https://{{ tpl .Values.global.aweHostname $ }}'
+  aweCallbackSecretId: 'registry'
+  aweHttpTimeoutSeconds: 30
+  aweWebhookTimestampToleranceSeconds: 300
+  aweCallbackHmacSecretName: '{{ .Release.Name }}-awe-callback-hmac'
+  aweCallbackHmacSecretKey: 'hmac-secret'
+  aweApproverUserPassword: 'Changeme123!'
+  # AWE subchart runs under the same Helm release (service: <release>-awe)
+  aweReleaseName: '{{ .Release.Name }}'
+
+# Logging — ships openg2p pod logs (as JSON) to the OpenSearch Output
+# installed by openg2p-commons-base via Fluent Operator.
+logging:
+  enabled: true
+  # Name of the namespace-scoped fluent Output resource (created by commons-base)
+  # to which registry pod logs will be routed.
+  outputRef: commons-opensearch
+  # Container names whose logs should be captured by the Flow. Must match the
+  # container names (i.e. component nameOverrides) in the deployments below.
+  containerNames:
+    - staff-portal-api
+    - staff-portal-ui
+    - partner-api
+    - bene-portal-api
+    - celery-beat-producer
+    - celery-worker
+
+# DB Seed — runs configuration and (optionally) sample data SQL scripts
+# after all application pods are ready. Uses a Docker image published
+# from openg2p-registry-gen2-extensions.
+dbSeed:
+  enabled: true
+  # Load sample/demo data into the registry (disabled by default)
+  loadSampleData: true
+  # Upload sample profile images (500 colored-initials avatars) to MinIO
+  # and update g2p_register_individuals.record_image_storage_id. Requires
+  # loadSampleData=true (individuals must exist first).
+  loadImages: true
+  # Upload flat Jinja templates from the db-seed image to MinIO after SQL seed
+  loadTemplates: true
+  image:
+    repository: openg2p/openg2p-farmer-registry-db-seed
+    tag: "develop"
+    pullPolicy: Always
+
+  # DB Seed runs as a one-shot Helm post-install/post-upgrade hook Job.
+  # It's just psql replaying SQL scripts — minimal footprint, but the
+  # configuration meta-data load can briefly spike memory parsing larger
+  # files (especially variant extensions with sample data). Limit raised
+  # to 256Mi to safely cover larger seed SQL bundles; request 64Mi reflects
+  # the tiny psql baseline.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+postgres-init:
+  enabled: true
+  postgresql:
+    host: '{{ .Values.global.postgresqlHost }}'
+    port: 5432
+    existingSecret: commons-postgresql
+    existingSecretPostgresPasswordKey: postgres-password
+  databases:
+    - name: '{{ tpl .Values.global.registryDB $ }}'
+      user: '{{ tpl .Values.global.registryDBUser $ }}'
+      secret: '{{ tpl .Values.global.registryDBSecret $ }}'
+      secretUserPasswordKey: '{{ tpl .Values.global.registryDBUserPasswordKey $ }}'
+      extensions:
+        - 'pg_trgm'
+    # Provision AWE webhook HMAC secret on the registry DB (idempotent).
+    - name: '{{ tpl .Values.global.registryDB $ }}'
+      user: '{{ tpl .Values.global.registryDBUser $ }}'
+      secret: '{{ tpl .Values.global.aweCallbackHmacSecretName $ }}'
+      secretUserPasswordKey: '{{ .Values.global.aweCallbackHmacSecretKey }}'
+
+partnerApi:
+  enabled: true
+  nameOverride: partner-api
+  hostname: 'partner-{{ tpl .Values.global.registryHostname $ }}'
+
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  updateStrategy:
+    type: RollingUpdate
+  serviceAccount:
+    create: false
+    name: ""
+  image:
+    repository: openg2p/openg2p-farmer-registry-partner-api
+    tag: "develop"
+    pullPolicy: Always
+  podSecurityContext:
+    enabled: false
+    fsGroup: 1001
+  containerSecurityContext:
+    enabled: false
+    runAsUser: 1001
+    runAsNonRoot: true
+
+  openapiRootPath: /
+
+  service:
+    type: ClusterIP
+    port: 80
+    externalTrafficPolicy: Cluster
+
+  istio:
+    enabled: true
+    virtualservice:
+      enabled: true
+      # Hostname inlined (not `tpl .Values.hostname $`) — the component templates
+      # rebind `.Values` to staffPortalApi/partnerApi sub-tree via deepCopy,
+      # which boxes string values as interface{} and breaks nested `tpl`.
+      # `.Values.global.*` is preserved un-boxed in the rebound context.
+      host: 'partner-{{ tpl .Values.global.registryHostname $ }}'
+      gateway: "internal"
+      destination: '{{ .Release.Name }}-partner-api'
+      destinationPort: '{{ .Values.service.port }}'
+      prefix: '{{ .Values.openapiRootPath }}/'
+      rewriteUri: "/"
+    gateway:
+      enabled: false
+      host: 'partner-{{ tpl .Values.global.registryHostname $ }}'
+      ingressController:
+        istio: ingressgateway
+      httpTlsRedirect: false
+      httpEnabled: true
+      httpsEnabled: false
+      tls:
+        mode: SIMPLE
+        credentialName: ""
+
+  envVars:
+    REGISTRY_PARTNER_API_DB_HOSTNAME: '{{ .Values.global.postgresqlHost }}'
+    REGISTRY_PARTNER_API_DB_DBNAME: '{{ tpl .Values.global.registryDB $ }}'
+    REGISTRY_PARTNER_API_DB_PORT: '{{ .Values.global.registryDBPort }}'
+    REGISTRY_PARTNER_API_DB_USERNAME: '{{ tpl .Values.global.registryDBUser $ }}'
+    REGISTRY_PARTNER_API_PORT: '{{ .Values.containerPort }}'
+
+    REGISTRY_PARTNER_API_OPENAPI_ROOT_PATH: '{{ .Values.openapiRootPath }}'
+
+    REGISTRY_PARTNER_API_MASTER_DATA_DB_DRIVER: 'postgresql+asyncpg'
+    REGISTRY_PARTNER_API_MASTER_DATA_DB_USERNAME: '{{ .Values.global.masterDataDBUser }}'
+    REGISTRY_PARTNER_API_MASTER_DATA_DB_HOSTNAME: '{{ .Values.global.postgresqlHost }}'
+    REGISTRY_PARTNER_API_MASTER_DATA_DB_PORT: '{{ .Values.global.registryDBPort }}'
+    REGISTRY_PARTNER_API_MASTER_DATA_DB_DBNAME: '{{ .Values.global.masterDataDB }}'
+
+    REGISTRY_PARTNER_API_KEYMANAGER_API_BASE_URL: "{{ .Values.global.keymanagerInstallationName }}/v1/keymanager"
+    REGISTRY_PARTNER_API_KEYMANAGER_API_TIMEOUT: 10
+    REGISTRY_PARTNER_API_KEYMANAGER_API_DOMAIN: "AUTH"
+    REGISTRY_PARTNER_API_KEYMANAGER_SSL_VERIFY: False
+    REGISTRY_PARTNER_API_KEYMANAGER_AUTH_ENABLED: '{{ .Values.global.registryKeymanagerAuthEnabled }}'
+    REGISTRY_PARTNER_API_KEYMANAGER_AUTH_URL: "{{ tpl .Values.global.keycloakIssuerUrl $ }}/protocol/openid-connect/token"
+    REGISTRY_PARTNER_API_KEYMANAGER_AUTH_CLIENT_ID: '{{ tpl .Values.global.authClientId $ }}'
+    REGISTRY_PARTNER_API_KEYMANAGER_SIGN_APP_ID: '{{ tpl .Values.global.registryKeymanagerAppId $ }}'
+    REGISTRY_PARTNER_API_KEYMANAGER_SIGN_REF_ID: ""
+
+    REGISTRY_PARTNER_API_MINIO_ENDPOINT: '{{ tpl .Values.global.minioHost $ }}'
+    REGISTRY_PARTNER_API_MINIO_SECURE: '{{ .Values.global.minioSecure }}'
+    REGISTRY_PARTNER_API_MINIO_BUCKET_NAME: '{{ tpl .Values.global.defaultBucketName $ }}'
+    REGISTRY_PARTNER_API_TEMPLATE_BUCKET_NAME: '{{ tpl .Values.global.templateBucketName $ }}'
+
+    # OpenG2P Audit Manager integration. No-op unless both AUDIT_ENABLED=true
+    # and AUDIT_MANAGER_URL are set (controlled via global.auditEnabled and
+    # global.auditManagerUrl). Safe to leave wired in older images that lack
+    # the AuditMiddleware — env vars are simply ignored there. Partner-api
+    # actor identity defaults to anonymous until controllers opt in to set
+    # request.state.audit_actor — see the Audit Manager docs (Integration
+    # with Registry → Audit Middleware — Partner API) for the enrichment
+    # pattern.
+    REGISTRY_PARTNER_API_AUDIT_ENABLED: '{{ .Values.global.auditEnabled }}'
+    REGISTRY_PARTNER_API_AUDIT_MANAGER_URL: '{{ .Values.global.auditManagerUrl }}'
+    REGISTRY_PARTNER_API_AUDIT_ANONYMOUS_FAILURES: '{{ .Values.global.auditAnonymousFailures }}'
+  envVarsFrom:
+    REGISTRY_PARTNER_API_DB_PASSWORD:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.registryDBSecret $ }}'
+        key: '{{ tpl .Values.global.registryDBUserPasswordKey $ }}'
+    REGISTRY_PARTNER_API_MASTER_DATA_DB_PASSWORD:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.masterDataDBSecret $ }}'
+        key: '{{ tpl .Values.global.masterDataDBUserPasswordKey $ }}'
+    REGISTRY_PARTNER_API_MINIO_ACCESS_KEY:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.minioSecret $ }}'
+        key: '{{ tpl .Values.global.minioAccessKey $ }}'
+    REGISTRY_PARTNER_API_MINIO_SECRET_KEY:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.minioSecret $ }}'
+        key: '{{ tpl .Values.global.minioSecretKey $ }}'
+    REGISTRY_PARTNER_API_OAUTH_CLIENT_SECRET:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.authClientSecret $ }}'
+        key: '{{ tpl .Values.global.authClientSecretKey $ }}'
+    REGISTRY_PARTNER_API_KEYMANAGER_AUTH_CLIENT_SECRET:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.authClientSecret $ }}'
+        key: '{{ tpl .Values.global.authClientSecretKey $ }}'
+  startupProbe:
+    enabled: true
+    httpGet:
+      path: /ping
+      port: http
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+    successThreshold: 1
+  livenessProbe:
+    enabled: true
+    httpGet:
+      path: /ping
+      port: http
+    initialDelaySeconds: 20
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /ping
+      port: http
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+
+  postgresCheckerInit:
+    enabled: true
+    image:
+      repository: jbergknoff/postgresql-client
+      tag: latest
+      pullPolicy: IfNotPresent
+    command:
+    - 'sh'
+    args:
+    - '-c'
+    - 'until pg_isready -U ${REGISTRY_PARTNER_API_DB_USERNAME} -h ${REGISTRY_PARTNER_API_DB_HOSTNAME} -p ${REGISTRY_PARTNER_API_DB_PORT:-5432} -d ${REGISTRY_PARTNER_API_DB_DBNAME:-registrydb}; do sleep 3; done'
+    containerSecurityContext:
+      enabled: false
+
+  containerPort: 8000
+
+  # Partner API is a FastAPI process that handles partner ingestion calls.
+  # Memory profile is steady-state low (~150-200Mi idle), with significant
+  # spikes during bulk ingest of partner records (large multipart payloads,
+  # deserialised into Python objects, then chunked and queued via Celery).
+  # Limit raised to 1Gi to absorb peak ingest bursts (lesser value was causing
+  # OOM); request 256Mi gives the scheduler a realistic footprint to plan around.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+
+benePortalApi:
+  enabled: false
+  nameOverride: bene-portal-api
+  hostname: 'bene-{{ tpl .Values.global.registryHostname $ }}'
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  updateStrategy:
+    type: RollingUpdate
+  serviceAccount:
+    create: false
+    name: ""
+  image:
+    repository: openg2p/openg2p-registry-bene-portal-api
+    tag: "1.0"
+    pullPolicy: Always
+  podSecurityContext:
+    enabled: false
+    fsGroup: 1001
+  containerSecurityContext:
+    enabled: false
+    runAsUser: 1001
+    runAsNonRoot: true
+
+  openapiRootPath: /
+
+  service:
+    type: ClusterIP
+    port: 80
+    externalTrafficPolicy: Cluster
+
+  istio:
+    enabled: true
+    virtualservice:
+      enabled: true
+      host: ""
+      gateway: "internal"
+      destination: '{{ .Release.Name }}-bene-portal-api'
+      destinationPort: '{{ .Values.service.port }}'
+      prefix: '{{ .Values.openapiRootPath }}/'
+      rewriteUri: "/"
+    gateway:
+      enabled: false
+      host: ""
+      ingressController:
+        istio: ingressgateway
+      httpTlsRedirect: false
+      httpEnabled: true
+      httpsEnabled: false
+      tls:
+        mode: SIMPLE
+        credentialName: ""
+
+  envVars:
+    REGISTRY_BENE_PORTAL_API_DB_HOSTNAME: '{{ .Values.global.postgresqlHost }}'
+    REGISTRY_BENE_PORTAL_API_DB_DBNAME: '{{ tpl .Values.global.registryDB $ }}'
+    REGISTRY_BENE_PORTAL_API_DB_PORT: '{{ .Values.global.registryDBPort }}'
+    REGISTRY_BENE_PORTAL_API_DB_USERNAME: '{{ tpl .Values.global.registryDBUser $ }}'
+
+    REGISTRY_BENE_PORTAL_API_OPENAPI_ROOT_PATH: '{{ .Values.openapiRootPath }}'
+
+    REGISTRY_BENE_PORTAL_API_MINIO_ENDPOINT: '{{ tpl .Values.global.minioHost $ }}'
+    REGISTRY_BENE_PORTAL_API_MINIO_SECURE: '{{ .Values.global.minioSecure }}'
+    # TODO: bene-portal-api is disabled by default for NSR, so this hardcoded
+    # bucket isn't biting today — but it (a) doesn't follow the per-release
+    # bucket naming the other components use (global.defaultBucketName /
+    # global.templateBucketName) and (b) uses the plural "templates" while
+    # the rest of the chart standardised on singular "template". When/if
+    # bene-portal is enabled, switch to:
+    #   '{{ tpl .Values.global.templateBucketName $ }}'
+    # so two registry instances in the same namespace don't share buckets.
+    REGISTRY_BENE_PORTAL_API_MINIO_BUCKET_NAME: "templates"
+  envVarsFrom:
+    REGISTRY_BENE_PORTAL_API_DB_PASSWORD:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.registryDBSecret $ }}'
+        key: '{{ tpl .Values.global.registryDBUserPasswordKey $ }}'
+    REGISTRY_BENE_PORTAL_API_MINIO_ACCESS_KEY:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.minioSecret $ }}'
+        key: '{{ tpl .Values.global.minioAccessKey $ }}'
+    REGISTRY_BENE_PORTAL_API_MINIO_SECRET_KEY:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.minioSecret $ }}'
+        key: '{{ tpl .Values.global.minioSecretKey $ }}'
+
+  startupProbe:
+    enabled: true
+    httpGet:
+      path: /ping
+      port: http
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+    successThreshold: 1
+  livenessProbe:
+    enabled: true
+    httpGet:
+      path: /ping
+      port: http
+    initialDelaySeconds: 20
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /ping
+      port: http
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+
+  postgresCheckerInit:
+    enabled: true
+    image:
+      repository: jbergknoff/postgresql-client
+      tag: latest
+      pullPolicy: IfNotPresent
+    command:
+    - 'sh'
+    args:
+    - '-c'
+    - 'until pg_isready -U ${REGISTRY_BENE_PORTAL_API_DB_USERNAME} -h ${REGISTRY_BENE_PORTAL_API_DB_HOSTNAME} -p ${REGISTRY_BENE_PORTAL_API_DB_PORT:-5432} -d ${REGISTRY_BENE_PORTAL_API_DB_DBNAME:-registrydb}; do sleep 3; done'
+    containerSecurityContext:
+      enabled: false
+
+  containerPort: 8000
+
+  # Beneficiary Portal API is a FastAPI process serving the beneficiary
+  # self-service portal. Workload profile mirrors Partner API: low
+  # baseline, per-request bursts. Same envelope as Partner API (256Mi
+  # requested / 768Mi limit) for predictability across the three API pods.
+  # Disabled by default (enabled: false above) — sizing assumes it will
+  # be turned on in production deployments that surface a beneficiary UI.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+
+staffPortalApi:
+  enabled: true
+  nameOverride: staff-portal-api
+  hostname: 'staff-{{ tpl .Values.global.registryHostname $ }}'
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  updateStrategy:
+    type: RollingUpdate
+  serviceAccount:
+    create: false
+    name: ""
+  image:
+    repository: openg2p/openg2p-farmer-registry-staff-portal-api
+    tag: "develop"
+    pullPolicy: Always
+  podSecurityContext:
+    enabled: false
+    fsGroup: 1001
+  containerSecurityContext:
+    enabled: false
+    runAsUser: 1001
+    runAsNonRoot: true
+
+  openapiRootPath: /
+
+  service:
+    type: ClusterIP
+    port: 80
+    externalTrafficPolicy: Cluster
+
+  istio:
+    enabled: true
+    virtualservice:
+      enabled: true
+      # Hostname inlined — see comment under partnerApi.istio for rationale.
+      host: 'staff-{{ tpl .Values.global.registryHostname $ }}'
+      gateway: "internal"
+      destination: '{{ .Release.Name }}-staff-portal-api'
+      destinationPort: '{{ .Values.service.port }}'
+      prefix: '{{ .Values.openapiRootPath }}/'
+      rewriteUri: "/"
+    gateway:
+      enabled: false
+      host: 'staff-{{ tpl .Values.global.registryHostname $ }}'
+      ingressController:
+        istio: ingressgateway
+      httpTlsRedirect: false
+      httpEnabled: true
+      httpsEnabled: false
+      tls:
+        mode: SIMPLE
+        credentialName: ""
+
+  envVars:
+    REGISTRY_STAFF_PORTAL_API_DB_HOSTNAME: '{{ .Values.global.postgresqlHost }}'
+    REGISTRY_STAFF_PORTAL_API_DB_DBNAME: '{{ tpl .Values.global.registryDB $ }}'
+    REGISTRY_STAFF_PORTAL_API_DB_PORT: '{{ .Values.global.registryDBPort }}'
+    REGISTRY_STAFF_PORTAL_API_DB_USERNAME: '{{ tpl .Values.global.registryDBUser $ }}'
+
+    REGISTRY_STAFF_PORTAL_API_MASTER_DATA_DB_DRIVER: 'postgresql+asyncpg'
+    REGISTRY_STAFF_PORTAL_API_MASTER_DATA_DB_USERNAME: '{{ .Values.global.masterDataDBUser }}'
+    REGISTRY_STAFF_PORTAL_API_MASTER_DATA_DB_HOSTNAME: '{{ .Values.global.postgresqlHost }}'
+    REGISTRY_STAFF_PORTAL_API_MASTER_DATA_DB_PORT: '{{ .Values.global.registryDBPort }}'
+    REGISTRY_STAFF_PORTAL_API_MASTER_DATA_DB_DBNAME: '{{ .Values.global.masterDataDB }}'
+
+    REGISTRY_STAFF_PORTAL_API_OPENAPI_ROOT_PATH: '{{ .Values.openapiRootPath }}'
+
+    REGISTRY_STAFF_PORTAL_API_AUTH_PROVIDER_API_URL: '{{ .Values.global.iamServiceUrl }}'
+    REGISTRY_STAFF_PORTAL_API_KEYCLOAK_CLIENT_ID: '{{ tpl .Values.global.authClientId $ }}'
+    REGISTRY_STAFF_PORTAL_API_MINIO_ENDPOINT: '{{ tpl .Values.global.minioHost $ }}'
+    REGISTRY_STAFF_PORTAL_API_MINIO_SECURE: '{{ .Values.global.minioSecure }}'
+    REGISTRY_STAFF_PORTAL_API_MINIO_BUCKET_NAME: '{{ tpl .Values.global.defaultBucketName $ }}'
+    REGISTRY_STAFF_PORTAL_API_TEMPLATE_BUCKET_NAME: '{{ tpl .Values.global.templateBucketName $ }}'
+
+    # OpenG2P Audit Manager integration. No-op unless both AUDIT_ENABLED=true
+    # and AUDIT_MANAGER_URL are set (controlled via global.auditEnabled and
+    # global.auditManagerUrl). Safe to leave wired in older images that lack
+    # the AuditMiddleware — env vars are simply ignored there.
+    REGISTRY_STAFF_PORTAL_API_AUDIT_ENABLED: '{{ .Values.global.auditEnabled }}'
+    REGISTRY_STAFF_PORTAL_API_AUDIT_MANAGER_URL: '{{ .Values.global.auditManagerUrl }}'
+    REGISTRY_STAFF_PORTAL_API_AUDIT_ANONYMOUS_FAILURES: '{{ .Values.global.auditAnonymousFailures }}'
+
+    REGISTRY_STAFF_PORTAL_API_AWE_ENABLED: '{{ .Values.global.aweEnabled }}'
+    REGISTRY_STAFF_PORTAL_API_AWE_BASE_URL: '{{ tpl .Values.global.aweBaseUrl $ }}'
+    REGISTRY_STAFF_PORTAL_API_AWE_HTTP_TIMEOUT_SECONDS: '{{ .Values.global.aweHttpTimeoutSeconds }}'
+    REGISTRY_STAFF_PORTAL_API_AWE_DEFAULT_CALLBACK_URL: 'https://staff-{{ tpl .Values.global.registryHostname $ }}/awe/webhooks/decision'
+    REGISTRY_STAFF_PORTAL_API_AWE_CALLBACK_SECRET_ID: '{{ .Values.global.aweCallbackSecretId }}'
+    REGISTRY_STAFF_PORTAL_API_AWE_WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS: '{{ .Values.global.aweWebhookTimestampToleranceSeconds }}'
+
+  envVarsFrom:
+    REGISTRY_STAFF_PORTAL_API_DB_PASSWORD:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.registryDBSecret $ }}'
+        key: '{{ tpl .Values.global.registryDBUserPasswordKey $ }}'
+    REGISTRY_STAFF_PORTAL_API_MASTER_DATA_DB_PASSWORD:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.masterDataDBSecret $ }}'
+        key: '{{ tpl .Values.global.masterDataDBUserPasswordKey $ }}'
+    REGISTRY_STAFF_PORTAL_API_MINIO_ACCESS_KEY:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.minioSecret $ }}'
+        key: '{{ tpl .Values.global.minioAccessKey $ }}'
+    REGISTRY_STAFF_PORTAL_API_MINIO_SECRET_KEY:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.minioSecret $ }}'
+        key: '{{ tpl .Values.global.minioSecretKey $ }}'
+    REGISTRY_STAFF_PORTAL_API_AWE_CALLBACK_HMAC_SECRET:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.aweCallbackHmacSecretName $ }}'
+        key: '{{ .Values.global.aweCallbackHmacSecretKey }}'
+
+  startupProbe:
+    enabled: true
+    httpGet:
+      path: /ping
+      port: http
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+    successThreshold: 1
+  livenessProbe:
+    enabled: true
+    httpGet:
+      path: /ping
+      port: http
+    initialDelaySeconds: 20
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /ping
+      port: http
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+
+  postgresCheckerInit:
+    enabled: true
+    image:
+      repository: jbergknoff/postgresql-client
+      tag: latest
+      pullPolicy: IfNotPresent
+    command:
+    - 'sh'
+    args:
+    - '-c'
+    - 'until pg_isready -U ${REGISTRY_STAFF_PORTAL_API_DB_USERNAME} -h ${REGISTRY_STAFF_PORTAL_API_DB_HOSTNAME} -p ${REGISTRY_STAFF_PORTAL_API_DB_PORT:-5432} -d ${REGISTRY_STAFF_PORTAL_API_DB_DBNAME:-registrydb}; do sleep 3; done'
+    containerSecurityContext:
+      enabled: false
+
+  containerPort: 8000
+
+  # Staff Portal API is the primary read-write FastAPI for registry staff
+  # operations — handles registrant CRUD, lookup, search, intake validation,
+  # and MinIO pre-signed URL generation. Heavier than Partner API because
+  # search/listing endpoints can return larger result sets and the entire
+  # page of results is materialised as Python objects (typically 3-4x the
+  # JSON size). Limit raised to 1Gi to absorb large listing spikes safely;
+  # request 256Mi reflects steady-state baseline.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+
+staffPortalUi:
+  enabled: true
+  nameOverride: staff-portal-ui
+  hostname: '{{ tpl .Values.global.registryHostname $ }}'
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  updateStrategy:
+    type: RollingUpdate
+  serviceAccount:
+    create: false
+    name: ""
+  image:
+    repository: openg2p/openg2p-registry-staff-portal-ui
+    tag: "develop"
+    pullPolicy: Always
+  podSecurityContext:
+    enabled: false
+    fsGroup: 1001
+  containerSecurityContext:
+    enabled: false
+    runAsUser: 1001
+    runAsNonRoot: true
+
+  service:
+    type: ClusterIP
+    port: 80
+    externalTrafficPolicy: Cluster
+
+  containerPort: 3000
+
+  # Staff Portal UI is a Next.js SSR app. Node + SSR rendering keeps RSS
+  # around 200-300Mi steady-state but Node's V8 heap can balloon on cold
+  # start (JIT warmup), large page pre-render, or many concurrent SSR
+  # requests. 512Mi proved tight under load — raised limit to 1Gi which
+  # matches typical Next.js production sizing. CPU is mostly idle between
+  # user actions — 50m request is enough; bursts handled by un-capped limit.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+
+  istio:
+    enabled: true
+    virtualservice:
+      enabled: true
+      host: '{{ tpl .Values.global.registryHostname $ }}'
+      gateway: "internal"
+      destination: '{{ .Release.Name }}-staff-portal-ui'
+      destinationPort: '{{ .Values.service.port }}'
+      prefix: '/'
+      rewriteUri: "/"
+    gateway:
+      enabled: false
+      host: '{{ tpl .Values.global.registryHostname $ }}'
+      ingressController:
+        istio: ingressgateway
+      httpTlsRedirect: false
+      httpEnabled: true
+      httpsEnabled: false
+      tls:
+        mode: SIMPLE
+        credentialName: ""
+
+  # Configuration parameters
+  partnerIngestUrl: 'https://partner-{{ tpl .Values.global.registryHostname $ }}/partner/ingest_data?data_model=dcivc'
+  vpPresentationId: "7f3c2a91-bb84-4d1f-9a6e-41c8e5a0d9f2"
+  vpPurpose: "Digital identity verification for registry onboarding"
+
+  envVars:
+    # Per-release identifiers so two registry installs in the same namespace
+    # don't share UI/audit identity. APPLICATION_MNEMONIC must equal the
+    # Keycloak clientId verbatim (global.authClientId).
+    APP_MNEMONIC: '{{ .Release.Name }}-ui'
+    APP_URL: 'https://{{ tpl .Values.global.registryHostname $ }}'
+    APPLICATION_MNEMONIC: '{{ tpl .Values.global.authClientId $ }}'
+    # Server-side calls from the Next.js Staff Portal UI pod to the Staff
+    # Portal API stay inside the cluster — sibling K8s Service is named
+    # "<release>-staff-portal-api" on port 80. Browser-side calls from the
+    # client should use a separate NEXT_PUBLIC_* var pointing to the public
+    # https://staff-<host> hostname (add when needed).
+    BACKEND_API_URL: 'http://{{ .Release.Name }}-staff-portal-api'
+    COOKIE_DOMAIN: '.{{ .Release.Namespace }}.openg2p.org'
+    IAM_URL: '{{ .Values.global.iamServiceUrl }}'
+    KEYCLOAK_LOGOUT_URL: '{{ tpl .Values.global.keycloakIssuerUrl $ }}/protocol/openid-connect/logout'
+    LOGIN_PROVIDER_ID: '1'
+    MASTERDATA_BACKEND_API_URL: '{{ .Values.global.masterDataApiUrl }}'
+    NODE_ENV: production
+    PAGE_SIZE: '10'
+    PARTNER_IMPORT_EXPORT_ENABLE: 'true'
+    PARTNER_INGEST_URL: '{{ tpl .Values.partnerIngestUrl $ }}'
+    REDIRECT_URL: 'https://{{ tpl .Values.global.registryHostname $ }}'
+    VERIFY_SERVICE_URL: 'https://{{ tpl .Values.global.registryHostname $ }}/v1/verify'
+    VP_CLIENT_ID: 'did:web:{{ tpl .Values.global.registryHostname $ }}:v1:verify'
+    VP_PRESENTATION_ID: '{{ .Values.vpPresentationId }}'
+    VP_PURPOSE: '{{ .Values.vpPurpose }}'
+
+  envVarsFrom: {}
+
+  startupProbe:
+    enabled: true
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
+    successThreshold: 1
+  livenessProbe:
+    enabled: true
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 20
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 0
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+
+celeryBeatProducer:
+  enabled: true
+  nameOverride: celery-beat-producer
+  replicaCount: 1
+  image:
+    repository: openg2p/openg2p-farmer-registry-celery
+    tag: "develop"
+    pullPolicy: Always
+
+  # Celery Beat Producer is NOT just a scheduler in this chart — it also
+  # does batch enqueueing (REGISTRY_CELERY_BEAT_BATCH_SIZE=2000,
+  # NO_OF_TASKS_TO_PROCESS=4 above). Each tick pulls up to 2000 records,
+  # holds them in memory while creating up to 4 parallel task envelopes,
+  # and dispatches to Redis. Python record objects + SQLAlchemy session +
+  # Celery imports easily exceed 256Mi under load — observed OOM at that
+  # limit. 768Mi gives ~3x headroom over a fully-loaded tick. Lower the
+  # BATCH_SIZE or NO_OF_TASKS_TO_PROCESS knobs if you need to shrink this.
+  resources:
+    requests:
+      cpu: 20m
+      memory: 256Mi
+
+  envVars:
+    REGISTRY_CELERY_BEAT_DB_HOSTNAME: '{{ .Values.global.postgresqlHost }}'
+    REGISTRY_CELERY_BEAT_DB_DBNAME: '{{ tpl .Values.global.registryDB $ }}'
+    REGISTRY_CELERY_BEAT_DB_PORT: '{{ .Values.global.registryDBPort }}'
+    REGISTRY_CELERY_BEAT_DB_USERNAME: '{{ tpl .Values.global.registryDBUser $ }}'
+
+    REGISTRY_CELERY_BEAT_CELERY_BROKER_URL: redis://{{ tpl .Values.global.redisInstallationName $ }}:6379/0
+    REGISTRY_CELERY_BEAT_CELERY_BACKEND_URL: redis://{{ tpl .Values.global.redisInstallationName $ }}:6379/0
+
+    REGISTRY_CELERY_BEAT_WORKER_QUEUE: registry_worker_queue
+    REGISTRY_CELERY_BEAT_BATCH_SIZE: 2000
+    REGISTRY_CELERY_BEAT_NO_OF_TASKS_TO_PROCESS: 4
+
+    REGISTRY_CELERY_BEAT_DATA_TRANSFORMATION_BEAT_PRODUCER_FREQUENCY: 20
+    REGISTRY_CELERY_BEAT_INGEST_DATA_BEAT_PRODUCER_FREQUENCY: 20
+    REGISTRY_CELERY_BEAT_INGEST_DATA_CLASSIFICATION_BEAT_PRODUCER_FREQUENCY: 20
+    REGISTRY_CELERY_BEAT_OUTGEST_DATA_PUBLISH_BEAT_PRODUCER_FREQUENCY: 20
+    REGISTRY_CELERY_BEAT_OUTGEST_TOPIC_REGISTER_BEAT_PRODUCER_FREQUENCY: 20
+    REGISTRY_CELERY_BEAT_DEDUPLICATION_BEAT_PRODUCER_FREQUENCY: 30
+    CELERY_APP: "openg2p_registry_celery_beat_producers.main.celery_app"
+    CELERY_OPTS: "worker --beat --loglevel=info --schedule=/tmp/celery-beat-schedule.db"
+
+  envVarsFrom:
+    REGISTRY_CELERY_BEAT_DB_PASSWORD:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.registryDBSecret $ }}'
+        key: '{{ tpl .Values.global.registryDBUserPasswordKey $ }}'
+
+  postgresCheckerInit:
+    enabled: true
+    image:
+      repository: jbergknoff/postgresql-client
+      tag: latest
+      pullPolicy: IfNotPresent
+    command:
+    - 'sh'
+    args:
+    - '-c'
+    - >-
+      until pg_isready
+      -U ${REGISTRY_CELERY_BEAT_DB_USERNAME}
+      -h ${REGISTRY_CELERY_BEAT_DB_HOSTNAME}
+      -p ${REGISTRY_CELERY_BEAT_DB_PORT:-5432}
+      -d ${REGISTRY_CELERY_BEAT_DB_DBNAME:-registrydb};
+      do sleep 3;
+      done
+    containerSecurityContext:
+      enabled: false
+
+  serviceAccount:
+    create: false
+    name: ""
+
+celeryWorker:
+  enabled: true
+  nameOverride: celery-worker
+  replicaCount: 1
+  image:
+    repository: openg2p/openg2p-farmer-registry-celery
+    tag: "develop"
+    pullPolicy: Always
+
+  # Celery Worker is the largest variable-load component in the chart. It
+  # processes async tasks (bulk partner ingest, data transformation,
+  # classification) — RSS can sit at ~200Mi idle but spike well past 1Gi
+  # when crunching large CSV ingests or running classification on big
+  # batches. Limit at 1.5Gi gives headroom for the worst observed peak
+  # plus the same per-tick batch shape as the beat producer; request
+  # 768Mi reserves enough that the scheduler doesn't over-pack workers
+  # onto a node. CPU request 100m (10% core) reflects active processing
+  # baseline; bursts allowed up to node capacity. If workloads grow,
+  # prefer horizontal scaling (replicaCount) before raising per-pod limits.
+  resources:
+    requests:
+      cpu: 100m
+      memory: 768Mi
+
+  envVars:
+    REGISTRY_CELERY_WORKERS_DB_HOSTNAME: '{{ .Values.global.postgresqlHost }}'
+    REGISTRY_CELERY_WORKERS_DB_DBNAME: '{{ tpl .Values.global.registryDB $ }}'
+    REGISTRY_CELERY_WORKERS_DB_PORT: 5432
+    REGISTRY_CELERY_WORKERS_DB_USERNAME: '{{ tpl .Values.global.registryDBUser $ }}'
+
+    REGISTRY_CELERY_WORKERS_MASTER_DATA_DB_DRIVER: 'postgresql+asyncpg'
+    REGISTRY_CELERY_WORKERS_MASTER_DATA_DB_USERNAME: '{{ .Values.global.masterDataDBUser }}'
+    REGISTRY_CELERY_WORKERS_MASTER_DATA_DB_HOSTNAME: '{{ .Values.global.postgresqlHost }}'
+    REGISTRY_CELERY_WORKERS_MASTER_DATA_DB_PORT: '{{ .Values.global.registryDBPort }}'
+    REGISTRY_CELERY_WORKERS_MASTER_DATA_DB_DBNAME: '{{ .Values.global.masterDataDB }}'
+
+    REGISTRY_CELERY_WORKERS_CELERY_BROKER_URL: "redis://{{ tpl .Values.global.redisInstallationName $ }}:6379/0"
+    REGISTRY_CELERY_WORKERS_CELERY_BACKEND_URL: "redis://{{ tpl .Values.global.redisInstallationName $ }}:6379/0"
+    REGISTRY_CELERY_WORKERS_WORKER_QUEUE: "registry_worker_queue"
+
+    REGISTRY_CELERY_WORKERS_BATCH_SIZE: 2000
+    REGISTRY_CELERY_WORKERS_WORKER_MAX_ATTEMPTS: 5
+
+    REGISTRY_CELERY_WORKERS_MINIO_ENDPOINT: '{{ tpl .Values.global.minioHost $ }}'
+    REGISTRY_CELERY_WORKERS_MINIO_SECURE: '{{ .Values.global.minioSecure }}'
+    REGISTRY_CELERY_WORKERS_MINIO_BUCKET_NAME: '{{ tpl .Values.global.defaultBucketName $ }}'
+    REGISTRY_CELERY_WORKERS_TEMPLATE_BUCKET_NAME: '{{ tpl .Values.global.templateBucketName $ }}'
+    REGISTRY_CELERY_WORKERS_FUNCTIONAL_ID_GENERATION_URL: '{{ tpl .Values.global.idGeneratorInternalUrl $ }}'
+    REGISTRY_CELERY_WORKERS_ID_GENERATION_ALLOCATION_PATH: '/idgenerator/{id_type}/id'
+    CELERY_APP: "openg2p_registry_celery_workers.main.celery_app"
+    CELERY_OPTS: "worker -Q registry_worker_queue --loglevel=info"
+
+  envVarsFrom:
+    REGISTRY_CELERY_WORKERS_MINIO_ACCESS_KEY:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.minioSecret $ }}'
+        key: '{{ tpl .Values.global.minioAccessKey $ }}'
+    REGISTRY_CELERY_WORKERS_MINIO_SECRET_KEY:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.minioSecret $ }}'
+        key: '{{ tpl .Values.global.minioSecretKey $ }}'
+    REGISTRY_CELERY_WORKERS_DB_PASSWORD:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.registryDBSecret $ }}'
+        key: '{{ tpl .Values.global.registryDBUserPasswordKey $ }}'
+    REGISTRY_CELERY_WORKERS_MASTER_DATA_DB_PASSWORD:
+      secretKeyRef:
+        name: '{{ tpl .Values.global.masterDataDBSecret $ }}'
+        key: '{{ tpl .Values.global.masterDataDBUserPasswordKey $ }}'
+
+  postgresCheckerInit:
+    enabled: true
+    image:
+      repository: jbergknoff/postgresql-client
+      tag: latest
+      pullPolicy: IfNotPresent
+    command:
+    - 'sh'
+    args:
+    - '-c'
+    - >-
+      until pg_isready
+      -U ${REGISTRY_CELERY_WORKERS_DB_USERNAME}
+      -h ${REGISTRY_CELERY_WORKERS_DB_HOSTNAME}
+      -p ${REGISTRY_CELERY_WORKERS_DB_PORT:-5432}
+      -d ${REGISTRY_CELERY_WORKERS_DB_DBNAME:-registrydb};
+      do sleep 3;
+      done
+    containerSecurityContext:
+      enabled: false
+
+  podSecurityContext:
+    enabled: false
+    fsGroup: 1001
+  containerSecurityContext:
+    enabled: false
+    runAsUser: 1001
+    runAsNonRoot: true
+  serviceAccount:
+    create: false
+    name: ""
+
+redis:
+  enabled: true
+  architecture: standalone
+  master:
+    persistence:
+      enabled: false
+  auth:
+    enabled: false
+
+keycloak-init:
+  enabled: true
+  keycloak:
+    # Internal URL to reach Keycloak within the namespace
+    url: 'http://commons-keycloak:80'
+    user: 'admin'
+    password: ''
+    # Points to the Keycloak chart's auto-created admin secret (<commons-release-name>-keycloak)
+    existingSecret: 'commons-keycloak'
+    existingSecretKey: 'admin-password'
+  suffix: '{{ .Release.Namespace }}'
+  realms:
+    staff:
+      clients:
+        # Per-release client inside the shared `staff` realm. clientId is
+        # templated so two registry installs in the same namespace each get
+        # their own OIDC client (and their own client_secret Secret named
+        # after the clientId — see global.authClientSecret above).
+        - clientId: '{{ .Release.Name }}-staff-portal'
+          name: Registry Staff Portal
+          # Host-scoped redirect URIs — restricted to the Staff Portal UI's
+          # public hostname. Covers all paths under it (root, OIDC callback,
+          # post-login landing). NEVER use a bare "*" — it allows token
+          # redirects to arbitrary hosts and is a known OIDC vulnerability.
+          redirectUris:
+            - 'https://{{ tpl .Values.global.registryHostname $ }}/*'
+          clientRoles:
+            # --- Operations roles ---
+            - "Intake Officer"
+            - "Intake Validator"
+            - "Data Editor"
+            - "Data Validator"
+            - "Data Supervisor"
+            - "Integration Manager"
+            - "Operations Administrator"
+            # --- Configuration roles ---
+            - "Schema Designer"
+            - "Integration Specialist"
+            - "Reference Data Specialist"
+            - "Technical Administrator"
+      users:
+        # IMPORTANT: It is assumed that admin has already been created as part
+        # of commons layer
+        - username: admin
+          clientRoleMappings:
+            # Key must equal the per-release clientId above. keycloak-init
+            # renders this whole block through `tpl`, so the Go-template
+            # expression in the YAML key is resolved at install time.
+            '{{ .Release.Name }}-staff-portal':
+              - "Operations Administrator"
+              - "Technical Administrator"
+        - username: alex.carter
+          email: alex.carter@email.com
+          password: '{{ .Values.global.aweApproverUserPassword }}'
+          enabled: true
+          clientRoleMappings:
+            '{{ .Release.Name }}-staff-portal':
+              - "Operations Administrator"
+              - "Technical Administrator"
+        - username: maya.reed
+          email: maya.reed@email.com
+          password: '{{ .Values.global.aweApproverUserPassword }}'
+          enabled: true
+          clientRoleMappings:
+            '{{ .Release.Name }}-staff-portal':
+              - "Operations Administrator"
+              - "Technical Administrator"
+        - username: nina.patel
+          email: nina.patel@email.com
+          password: '{{ .Values.global.aweApproverUserPassword }}'
+          enabled: true
+          clientRoleMappings:
+            '{{ .Release.Name }}-staff-portal':
+              - "Operations Administrator"
+              - "Technical Administrator"
+        - username: omar.sheikh
+          email: omar.sheikh@email.com
+          password: '{{ .Values.global.aweApproverUserPassword }}'
+          enabled: true
+          clientRoleMappings:
+            '{{ .Release.Name }}-staff-portal':
+              - "Operations Administrator"
+              - "Technical Administrator"
+        - username: zara.khan
+          email: zara.khan@email.com
+          password: '{{ .Values.global.aweApproverUserPassword }}'
+          enabled: true
+          clientRoleMappings:
+            '{{ .Release.Name }}-staff-portal':
+              - "Operations Administrator"
+              - "Technical Administrator"
+        - username: chipo.banda
+          email: chipo.banda@email.com
+          password: '{{ .Values.global.aweApproverUserPassword }}'
+          enabled: true
+          clientRoleMappings:
+            '{{ .Release.Name }}-staff-portal':
+              - "Operations Administrator"
+              - "Technical Administrator"
+        - username: tendai.moyo
+          email: tendai.moyo@email.com
+          password: '{{ .Values.global.aweApproverUserPassword }}'
+          enabled: true
+          clientRoleMappings:
+            '{{ .Release.Name }}-staff-portal':
+              - "Operations Administrator"
+              - "Technical Administrator"
+        - username: hana.bekele
+          email: hana.bekele@email.com
+          password: '{{ .Values.global.aweApproverUserPassword }}'
+          enabled: true
+          clientRoleMappings:
+            '{{ .Release.Name }}-staff-portal':
+              - "Operations Administrator"
+              - "Technical Administrator"
+        - username: tesfaye.mekonnen
+          email: tesfaye.mekonnen@email.com
+          password: '{{ .Values.global.aweApproverUserPassword }}'
+          enabled: true
+          clientRoleMappings:
+            '{{ .Release.Name }}-staff-portal':
+              - "Operations Administrator"
+              - "Technical Administrator"
+        - username: mwansa.tembo
+          email: mwansa.tembo@email.com
+          password: '{{ .Values.global.aweApproverUserPassword }}'
+          enabled: true
+          clientRoleMappings:
+            '{{ .Release.Name }}-staff-portal':
+              - "Operations Administrator"
+              - "Technical Administrator"
+
+idgenerator:
+  enabled: true
   global:
-    # Tag this deployment as the Farmer-Registry variant (mainly informational
-    # in the base chart — its templates key off per-component hostnames, not
-    # this value).
-    registryVariant: 'farmer-registry'
+    idGeneratorDB: '{{ printf "%s_idgenerator" .Release.Name | replace "-" "_" }}'
+    idGeneratorDBUser: '{{ printf "%s_idgenerator_user" .Release.Name | replace "-" "_" }}'
+    idGeneratorDBSecret: '{{ .Release.Name }}-idgenerator'
+    idGeneratorDBUserPasswordKey: '{{ .Release.Name }}-idgenerator-db-user'
+  postgres-init:
+    enabled: true
+    nameOverride: idgen-pg-init
+  idGenerator:
+    enabled: true
+    appConfig:
+      idTypes:
+        farmer:
+          idLength: 12
+        household:
+          idLength: 10
+      sequenceLimit: 3
+      repeatingLimit: 2
+      repeatingBlockLimit: 2
+      conjugativeEvenDigitsLimit: 3
+      digitsGroupLimit: 5
+      reverseDigitsGroupLimit: 5
+      notStartWith: ["0", "1"]
+      restrictedNumbers: []
+      poolMinThreshold: 1000
+      poolGenerationBatchSize: 5000
+      poolCheckIntervalSeconds: 30
+      exhaustionMaxAttempts: 1000
+      subBatchSize: 10000
 
-  # ==========================================================================
-  # Docker image overrides — one per Farmer Registry component.
-  # Image names match the images produced by this repo's docker workflows:
-  #   .github/workflows/docker-build-backend.yml
-  #   .github/workflows/docker-build-ui.yml
-  #   .github/workflows/docker-build-db-seed.yml
-  # The `develop` tag tracks the develop branch (branch-==-tag convention).
-  # ==========================================================================
-
-  staffPortalApi:
-    image:
-      repository: openg2p/openg2p-farmer-registry-staff-portal-api
-      tag: "develop"
-      pullPolicy: Always
-
-  partnerApi:
-    image:
-      repository: openg2p/openg2p-farmer-registry-partner-api
-      tag: "develop"
-      pullPolicy: Always
-
-  staffPortalUi:
-    image:
-      repository: openg2p/openg2p-farmer-registry-staff-portal-ui
-      tag: "develop"
-      pullPolicy: Always
-
-  # The base chart defines TWO Celery deployments (celeryBeatProducer +
-  # celeryWorker), not one. Our single `openg2p-farmer-registry-celery` image
-  # can run either mode — the base chart's values.yaml already sets the right
-  # CELERY_APP / CELERY_OPTS env vars per deployment. We just override the
-  # image on both.
-  celeryBeatProducer:
-    image:
-      repository: openg2p/openg2p-farmer-registry-celery
-      tag: "develop"
-      pullPolicy: Always
-
-  celeryWorker:
-    image:
-      repository: openg2p/openg2p-farmer-registry-celery
-      tag: "develop"
-      pullPolicy: Always
-
-  # DB-seeder: configurations + (optionally) sample_data. Job-style deployment.
-  # `loadSampleData` defaults true on the base chart — keep it as-is here so
-  # fresh installs come with demo rows; set to `false` for production.
-  dbSeed:
-    image:
-      repository: openg2p/openg2p-farmer-registry-db-seed
-      tag: "develop"
-      pullPolicy: Always
-
-  # ==========================================================================
-  # ID Generator — Farmer-Registry id_types.
-  #
-  # Base chart default:
-  #   idTypes:
-  #     farmer:    { idLength: 12 }
-  #     household: { idLength: 10 }
-  #
-  # The Farmer Registry uses both `farmer` and `household` as foundational
-  # id-types — exactly matching the base chart default. We declare the full
-  # map here for clarity / explicitness.
-  # ==========================================================================
-  idgenerator:
-    idGenerator:
-      appConfig:
-        idTypes:
-          farmer:
-            idLength: 12
-          household:
-            idLength: 10
+# ---------------------------------------------------------------------------
+# AWE — Approval Workflow Engine (openg2p-awe subchart).
+#
+# Installed as part of the Registry platform. The subchart ships sensible
+# defaults for the backend, UI, Keycloak clients (awe-admin-portal,
+# awe-admin-resolver) and Istio routing — we only override what must differ
+# when AWE runs UNDER the registry release rather than standalone:
+#
+#   1. enabled            — gates the dependency (Chart.yaml condition).
+#   2. postgres-init      — distinct nameOverride so AWE's DB-provisioning
+#                           Job + ServiceAccount don't collide with the
+#                           registry's own postgres-init (both default to
+#                           `<release>-postgres-init`).
+#   3. keycloak-init      — distinct nameOverride so AWE's client-provisioning
+#                           Job + ConfigMap don't collide with the registry's
+#                           own keycloak-init (both default to
+#                           `<release>-keycloak-init-<revision>`).
+#
+# AWE's DB/secret names are namespaced via the `awe*` globals above. Its
+# Keycloak client IDs (awe-admin-portal / awe-admin-resolver) already differ
+# from the registry's (registry-staff-portal), so those Secrets don't clash.
+# ---------------------------------------------------------------------------
+openg2p-awe:
+  enabled: true
+  postgres-init:
+    enabled: true
+    nameOverride: awe-pg-init
+  keycloak-init:
+    enabled: true
+    nameOverride: awe-kc-init

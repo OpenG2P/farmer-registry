@@ -1,58 +1,70 @@
 # openg2p-farmer-registry
 
-Thin wrapper Helm chart for the **OpenG2P Farmer Registry**.
+Self-sufficient Helm chart for the **OpenG2P Farmer Registry**.
 
-This chart does not define templates of its own. It depends on the OpenG2P
-Registry Gen 2 base chart and supplies only the Farmer-Registry-specific
-overrides:
+This chart owns its templates directly. It was derived from the OpenG2P
+Registry Gen 2 base chart (`openg2p-registry`) — those templates and defaults
+now live in this chart, so it **no longer depends on `openg2p-registry`**. The
+only Farmer-Registry-specific differences from the base defaults are:
 
-1. Docker image names for the five Farmer Registry components
-2. ID Generator `idTypes` — `farmer` and `household`
+1. Farmer-Registry-branded Docker images for the Farmer Registry components.
+2. `global.registryVariant: farmer-registry`.
+3. ID Generator `idTypes`: `farmer` (12) + `household` (10).
 
-Everything else (deployments, services, ingresses, keycloak, postgres,
-rabbitmq, helper jobs, …) comes from the base chart.
+Everything else (deployments, services, gateways/virtualservices, db-seed Job,
+logging, helper subcharts, …) comes from the inlined base-chart templates.
 
-```
-openg2p-registry (0.0.0-develop, base)    +    openg2p-farmer-registry (0.0.0-develop, wrapper)
-        │                                              │
-        └─────────────────  =  Farmer Registry install  ┘
-```
+## Sub-dependencies
+
+Same set as the base chart, declared in `Chart.yaml` and fetched from the
+OpenG2P Helm repo (the packaged `.tgz` are gitignored, as in the base chart):
+
+| Subchart | Version |
+|---|---|
+| common | 2.30.0 |
+| postgres-init | 1.1.0 |
+| redis | 19.6.4 |
+| openg2p-id-generator (alias `idgenerator`) | 1.0.0 |
+| keycloak-init | 1.1.1 |
+| openg2p-awe | 0.0.0-develop |
+
+Run `helm dependency build` (or `update`) before packaging/installing from a
+fresh checkout.
 
 ## Versioning
 
 Branch-name-equals-version convention:
 
-| Branch | `Chart.yaml.version` | Depends on base chart |
-|---|---|---|
-| `develop` | `0.0.0-develop` | `0.0.0-develop` |
-| `1.0.0` (release tag branch, future) | `1.0.0` | `1.0.0` |
+| Branch | `Chart.yaml.version` |
+|---|---|
+| `develop` | `0.0.0-develop` |
+| `1.0.0` (release tag branch, future) | `1.0.0` |
 
-When cutting a release, both `version` and the base chart `dependencies[0].version`
-drop the `-develop` suffix together.
+## Images
 
-## What it overrides
-
-### Images (five Farmer Registry services)
-
-| Component | Image (built by this repo) |
+| Component | Image |
 |---|---|
 | staffPortalApi | `openg2p/openg2p-farmer-registry-staff-portal-api:develop` |
 | partnerApi | `openg2p/openg2p-farmer-registry-partner-api:develop` |
-| staffPortalUi | `openg2p/openg2p-farmer-registry-staff-portal-ui:develop` |
-| celeryWorker / celeryBeat | `openg2p/openg2p-farmer-registry-celery:develop` *(same image — mode picked by env vars)* |
+| staffPortalUi | `openg2p/openg2p-registry-staff-portal-ui:develop` *(built by the `registry-platform` repo)* |
+| celeryBeatProducer / celeryWorker | `openg2p/openg2p-farmer-registry-celery:develop` *(same image — mode picked by env vars)* |
 | dbSeed | `openg2p/openg2p-farmer-registry-db-seed:develop` |
 
-### ID Generator `idTypes`
+All Farmer Registry API/celery/db-seed images are built by this repo's docker workflows;
+the Staff Portal UI image is built by the `registry-platform` repo.
 
-The base chart's `idTypes` map already matches what the Farmer Registry needs:
+## ID Generator `idTypes`
 
 ```yaml
-idTypes:
-  farmer:    { idLength: 12 }
-  household: { idLength: 10 }
+idgenerator:
+  idGenerator:
+    appConfig:
+      idTypes:
+        farmer:
+          idLength: 12
+        household:
+          idLength: 10
 ```
-
-We declare the same map explicitly in this wrapper for clarity.
 
 ## Installing
 
@@ -60,56 +72,24 @@ We declare the same map explicitly in this wrapper for clarity.
 
 ```bash
 cd helm/openg2p-farmer-registry
-helm dependency update
+helm dependency build
 helm install farmer-registry . \
   --namespace openg2p-farmer-registry \
   --create-namespace \
-  --set openg2p-registry.global.domain=farmer.example.com
+  --set global.registryHostname=farmer-registry.example.com
 ```
 
-### From the published Helm repo (once released)
-
-```bash
-helm repo add openg2p https://openg2p.github.io/openg2p-helm
-helm repo update
-helm install farmer-registry openg2p/openg2p-farmer-registry \
-  --version 0.0.0-develop \
-  --namespace openg2p-farmer-registry \
-  --create-namespace
-```
+Component URLs are auto-computed from `global.registryHostname`
+(default `{{ .Release.Name }}.{{ .Release.Namespace }}.openg2p.org`).
 
 ### With sample data (dev / test only)
 
 ```bash
-helm install farmer-registry . \
-  --set openg2p-registry.dbSeed.loadSampleData=true
+helm install farmer-registry . --set dbSeed.loadSampleData=true
 ```
-
-Loads the demo households, farmers, lands, crops, livestock, farm inputs,
-and supporting-table demo rows from `farmer-extension/src/.../sample_data/`
-into the database.
-
-## Upgrading
-
-When the base chart releases a new version, bump the dependency in
-`Chart.yaml`:
-
-```yaml
-dependencies:
-  - name: openg2p-registry
-    version: 1.0.0-develop      # was 0.0.0-develop
-```
-
-then run `helm dependency update`. For breaking changes, bump this
-wrapper's major version too.
 
 ## Rancher catalog
 
-The chart ships a `questions.yaml` for Rancher UI installs with fields for:
-
-- Base domain + namespace
-- Per-image tag overrides
-- DB-seeder toggle (and sample-data toggle)
-- ID-type informational note
-
-Advanced users should edit `values.yaml` directly.
+The chart ships a `questions.yaml` for Rancher UI installs (hostnames,
+per-component enable toggles, image repo/tag overrides, db-seed toggles,
+id-type note). Advanced users should edit `values.yaml` directly.

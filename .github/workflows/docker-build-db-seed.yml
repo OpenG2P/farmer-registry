@@ -1,8 +1,8 @@
 name: Build DB Seed Docker Image
 
 # The db-seed image bundles SQL seed content and flat Jinja templates. Rebuild
-# when meta_data/, awe_meta_data/, sample_data/, templates/, docker/db-seed/,
-# or this workflow changes.
+# when meta_data/, sample_data/, templates/, docker/db-seed/, or this workflow
+# changes.
 #
 # The image tag equals the current branch name (master/main → develop).
 on:

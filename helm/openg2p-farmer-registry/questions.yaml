@@ -1,283 +1,255 @@
-# ---------------------------------------------------------------------------
-# questions.yaml — Rancher UI form for installing the Farmer Registry wrapper chart.
-#
-# Variable paths are prefixed with `openg2p-registry.` because all base-chart
-# values live under that subchart alias in this wrapper's values.yaml.
-#
-# Structure mirrors the base chart's own questions.yaml so operators get a
-# familiar layout; the only Farmer-Registry-specific differences are:
-#   - image defaults point at openg2p/openg2p-farmer-registry-*:develop
-#   - an informational note explains that Farmer Registry's default idTypes
-#     are farmer (12) and household (10).
-#
-# Advanced users should edit values.yaml directly — the Rancher form only
-# exposes the commonly-changed knobs.
-# ---------------------------------------------------------------------------
-
-categories:
-  - Social Protection
-  - OpenG2P
-
-labels:
-  io.cattle.field/appName: OpenG2P Farmer Registry
-
 questions:
 
-  # -------------------------------------------------------------------------
-  # General — hostnames, external dependencies, component toggles.
-  # -------------------------------------------------------------------------
-  - variable: openg2p-registry.global.registryHostname
-    description: |
-      Base hostname under which all Farmer Registry services are exposed.
-      Default (auto-computed): "<release-name>.<namespace>.openg2p.org".
-      Individual components derive their own hostnames from this:
-        - Staff Portal UI:  {registryHostname}
-        - Staff Portal API: staff-{registryHostname}
-        - Partner API:      partner-{registryHostname}
-        - ID Generator:     idgenerator-{release-name}.{namespace}.openg2p.org
-    type: string
-    label: Registry Hostname
-    group: General
+# General
+- variable: global.registryHostname
+  description: Hostname under which all Registry services will be accessed
+  type: string
+  label: Registry Hostname
+  group: General
 
-  - variable: openg2p-registry.global.postgresqlHost
-    description: PostgreSQL server host (cluster-internal service name)
-    type: string
-    label: PostgreSQL Server Host
-    group: General
+- variable: global.postgresqlHost
+  description: PostgreSQL server host
+  type: string
+  label: PostgreSQL Server Host
+  group: General
 
-  - variable: openg2p-registry.global.keycloakBaseUrl
-    description: Keycloak Base URL used by all components for OIDC
-    type: string
-    label: Keycloak Base URL
-    group: General
+- variable: global.keycloakBaseUrl
+  description: Keycloak Base URL used in all components
+  type: string
+  label: Keycloak Base URL
+  group: General
 
-  - variable: openg2p-registry.keycloak-init.enabled
-    description: Run Keycloak Init Job to create realm and OIDC client
-    type: boolean
-    label: Keycloak Init
-    group: General
+- variable: global.minioHost
+  description: "External MinIO S3 API endpoint reachable from end-user browsers (the registry generates pre-signed S3 URLs that browsers follow directly). Use the API hostname exposed by commons-base, NOT the Console hostname. Example: minio-api.<namespace>.openg2p.org (do not include scheme or trailing slash). MinIO is assumed to be served over HTTPS via the Istio gateway."
+  type: string
+  label: MinIO S3 API Host
+  group: General
 
-  - variable: openg2p-registry.staffPortalApi.enabled
-    description: Install Staff Portal API
-    type: boolean
-    label: Staff Portal API
-    group: General
+- variable: keycloak-init.enabled
+  description: Run Keycloak Init to create realm and OIDC client
+  type: boolean
+  label: Keycloak Init
+  group: General
 
-  - variable: openg2p-registry.staffPortalUi.enabled
-    description: Install Staff Portal UI
-    type: boolean
-    label: Staff Portal UI
-    group: General
+- variable: staffPortalApi.enabled
+  description: Install Staff Portal API
+  type: boolean
+  label: Staff Portal API
+  group: General
 
-  - variable: openg2p-registry.partnerApi.enabled
-    description: Install Partner API
-    type: boolean
-    label: Partner API
-    group: General
+- variable: staffPortalUi.enabled
+  description: Install Staff Portal UI
+  type: boolean
+  label: Staff Portal UI
+  group: General
 
-  - variable: openg2p-registry.benePortalApi.enabled
-    description: Install Beneficiary Portal API (off by default)
-    type: boolean
-    label: Beneficiary Portal API
-    group: General
+- variable: partnerApi.enabled
+  description: Install Partner API
+  type: boolean
+  label: Partner API
+  group: General
 
-  - variable: openg2p-registry.idgenerator.enabled
-    description: Install ID Generator service (produces foundational IDs for Farmer and Household)
-    type: boolean
-    label: ID Generator
-    group: General
+- variable: benePortalApi.enabled
+  description: Install Beneficiary Portal API
+  type: boolean
+  label: Beneficiary Portal API
+  group: General
 
-  # -------------------------------------------------------------------------
-  # Images — per-component tag overrides. Repositories are set to
-  # Farmer-Registry images in values.yaml; override tag here to pin to a
-  # released tag (e.g. 1.0.0) instead of tracking `develop`.
-  # -------------------------------------------------------------------------
-  - variable: openg2p-registry.staffPortalApi.image.repository
-    description: Docker image repository for Staff Portal API
-    type: string
-    label: Staff Portal API Image Repository
-    group: Images
-  - variable: openg2p-registry.staffPortalApi.image.tag
-    description: Docker image tag for Staff Portal API
-    type: string
-    label: Staff Portal API Image Tag
-    group: Images
+- variable: idgenerator.enabled
+  description: Install ID Generator service
+  type: boolean
+  label: ID Generator
+  group: General
 
-  - variable: openg2p-registry.staffPortalUi.image.repository
-    description: Docker image repository for Staff Portal UI
-    type: string
-    label: Staff Portal UI Image Repository
-    group: Images
-  - variable: openg2p-registry.staffPortalUi.image.tag
-    description: Docker image tag for Staff Portal UI
-    type: string
-    label: Staff Portal UI Image Tag
-    group: Images
+# Images
+- variable: staffPortalApi.image.repository
+  description: Docker image repository for Staff Portal API
+  type: string
+  label: Staff Portal API Image Repository
+  group: Images
 
-  - variable: openg2p-registry.partnerApi.image.repository
-    description: Docker image repository for Partner API
-    type: string
-    label: Partner API Image Repository
-    group: Images
-  - variable: openg2p-registry.partnerApi.image.tag
-    description: Docker image tag for Partner API
-    type: string
-    label: Partner API Image Tag
-    group: Images
+- variable: staffPortalApi.image.tag
+  description: Docker image tag for Staff Portal API
+  type: string
+  label: Staff Portal API Image Tag
+  group: Images
 
-  - variable: openg2p-registry.celeryBeatProducer.image.repository
-    description: Docker image repository for Celery Beat Producer (shares image with Celery Worker)
-    type: string
-    label: Celery Beat Producer Image Repository
-    group: Images
-  - variable: openg2p-registry.celeryBeatProducer.image.tag
-    description: Docker image tag for Celery Beat Producer
-    type: string
-    label: Celery Beat Producer Image Tag
-    group: Images
+- variable: staffPortalUi.image.repository
+  description: Docker image repository for Staff Portal UI
+  type: string
+  label: Staff Portal UI Image Repository
+  group: Images
 
-  - variable: openg2p-registry.celeryWorker.image.repository
-    description: Docker image repository for Celery Worker
-    type: string
-    label: Celery Worker Image Repository
-    group: Images
-  - variable: openg2p-registry.celeryWorker.image.tag
-    description: Docker image tag for Celery Worker
-    type: string
-    label: Celery Worker Image Tag
-    group: Images
+- variable: staffPortalUi.image.tag
+  description: Docker image tag for Staff Portal UI
+  type: string
+  label: Staff Portal UI Image Tag
+  group: Images
 
-  # -------------------------------------------------------------------------
-  # Logging
-  # -------------------------------------------------------------------------
-  - variable: openg2p-registry.logging.enabled
-    description: Ship Farmer Registry pod logs (JSON) to the OpenSearch Output configured by commons-base
-    type: boolean
-    label: Enable Logging
-    group: Logging
-  - variable: openg2p-registry.logging.outputRef
-    description: Name of the namespace-scoped Fluent Output resource (created by commons-base) to route logs to
-    type: string
-    label: Fluent Output Name
-    group: Logging
+- variable: partnerApi.image.repository
+  description: Docker image repository for Partner API
+  type: string
+  label: Partner API Image Repository
+  group: Images
 
-  # -------------------------------------------------------------------------
-  # DB Seed — configurations + optional sample data.
-  # -------------------------------------------------------------------------
-  - variable: openg2p-registry.dbSeed.enabled
-    description: Run DB seed Job after pods come up (loads register definitions, schemas, tabs, sections, attribute lookups, registry config)
-    type: boolean
-    label: Enable DB Seed
-    group: DB Seed
+- variable: partnerApi.image.tag
+  description: Docker image tag for Partner API
+  type: string
+  label: Partner API Image Tag
+  group: Images
 
-  - variable: openg2p-registry.dbSeed.loadSampleData
-    description: Also insert demo households, farmers, lands, crops, livestock, and supporting-table demo rows. Use only for dev / test.
-    type: boolean
-    label: Load Sample Data
-    group: DB Seed
+- variable: benePortalApi.image.repository
+  description: Docker image repository for Beneficiary Portal API
+  type: string
+  label: Beneficiary Portal API Image Repository
+  group: Images
 
-  - variable: openg2p-registry.dbSeed.image.repository
-    description: Docker image repository for the DB seed container
-    type: string
-    label: DB Seed Image Repository
-    group: DB Seed
-  - variable: openg2p-registry.dbSeed.image.tag
-    description: Docker image tag for the DB seed container
-    type: string
-    label: DB Seed Image Tag
-    group: DB Seed
+- variable: benePortalApi.image.tag
+  description: Docker image tag for Beneficiary Portal API
+  type: string
+  label: Beneficiary Portal API Image Tag
+  group: Images
 
-  # -------------------------------------------------------------------------
-  # AWE — passthrough to openg2p-registry subchart (templates/defaults in
-  # openg2p-registry-gen2-deployment). Requires base chart version that includes AWE.
-  # -------------------------------------------------------------------------
-  - variable: openg2p-registry.global.aweEnabled
-    description: Enable AWE on staff-portal-api and seed AWE DB from db-seed job
-    type: boolean
-    label: Enable AWE Integration
-    group: AWE
+- variable: celeryBeatProducer.image.repository
+  description: Docker image repository for Celery Beat Producer
+  type: string
+  label: Celery Beat Producer Image Repository
+  group: Images
 
-  - variable: openg2p-registry.global.aweBaseUrl
-    description: Public AWE API base URL (host only, no /v1/awe path)
-    type: string
-    label: AWE Base URL
-    group: AWE
+- variable: celeryBeatProducer.image.tag
+  description: Docker image tag for Celery Beat Producer
+  type: string
+  label: Celery Beat Producer Image Tag
+  group: Images
 
-  - variable: openg2p-registry.global.aweCallbackSecretId
-    description: callback_secret.id in AWE DB (default registry)
-    type: string
-    label: AWE Callback Secret ID
-    group: AWE
+- variable: celeryWorker.image.repository
+  description: Docker image repository for Celery Worker
+  type: string
+  label: Celery Worker Image Repository
+  group: Images
 
-  - variable: openg2p-registry.global.aweHttpTimeoutSeconds
-    description: Outbound AWE HTTP timeout in seconds
-    type: int
-    label: AWE HTTP Timeout (s)
-    group: AWE
+- variable: celeryWorker.image.tag
+  description: Docker image tag for Celery Worker
+  type: string
+  label: Celery Worker Image Tag
+  group: Images
 
-  - variable: openg2p-registry.global.aweWebhookTimestampToleranceSeconds
-    description: Inbound webhook signature clock skew tolerance in seconds
-    type: int
-    label: AWE Webhook Timestamp Tolerance (s)
-    group: AWE
+# Logging
+- variable: logging.enabled
+  description: Ship openg2p pod logs (JSON) to the OpenSearch Output configured by commons-base
+  type: boolean
+  label: Enable Logging
+  group: Logging
 
-  - variable: openg2p-registry.global.aweApproverUserPassword
-    description: Initial Keycloak password for seeded approver users
-    type: string
-    label: AWE Approver User Password
-    group: AWE
+- variable: logging.outputRef
+  description: Name of the namespace-scoped Fluent Output resource (created by commons-base) to route logs to
+  type: string
+  label: Fluent Output Name
+  group: Logging
 
-  - variable: openg2p-registry.global.aweReleaseName
-    description: Helm release name of openg2p-awe (db-seed health wait)
-    type: string
-    label: AWE Helm Release Name
-    group: AWE
+# DB Seed
+- variable: dbSeed.enabled
+  description: Run DB seed Job to load configuration SQL scripts after pods start
+  type: boolean
+  label: Enable DB Seed
+  group: DB Seed
 
-  - variable: openg2p-registry.global.aweDB
-    description: PostgreSQL database name for AWE
-    type: string
-    label: AWE Database Name
-    group: AWE
+- variable: dbSeed.loadSampleData
+  description: Also load sample/demo data into the registry (farmers, households, lands, crops, livestock, farm inputs, membership and supporting tables). Off by default.
+  type: boolean
+  label: Load Sample Data
+  group: DB Seed
 
-  - variable: openg2p-registry.global.aweDBUser
-    description: PostgreSQL user for AWE database
-    type: string
-    label: AWE Database User
-    group: AWE
+- variable: dbSeed.loadImages
+  description: Upload sample profile images to MinIO and link them to the seeded farmers. Requires Load Sample Data to be enabled.
+  type: boolean
+  label: Load Sample Images
+  group: DB Seed
 
-  - variable: openg2p-registry.global.aweDBSecret
-    description: K8s secret holding AWE DB password
-    type: string
-    label: AWE Database Secret
-    group: AWE
+- variable: dbSeed.loadTemplates
+  description: Upload Jinja templates from the db-seed image to MinIO after SQL seed (object key = filename). Requires MinIO to be reachable at global.minioHost.
+  type: boolean
+  label: Load Templates to MinIO
+  group: DB Seed
 
-  - variable: openg2p-registry.global.aweDBUserPasswordKey
-    description: Key inside AWE DB secret for the user password
-    type: string
-    label: AWE Database Secret Key
-    group: AWE
+- variable: dbSeed.image.repository
+  description: Docker image repository for the DB seed container
+  type: string
+  label: DB Seed Image Repository
+  group: DB Seed
 
-  - variable: openg2p-registry.keycloak-init.enabled
-    description: Run Keycloak init (creates approver users in staff realm)
-    type: boolean
-    label: Keycloak Init (AWE approvers)
-    group: AWE
+- variable: dbSeed.image.tag
+  description: Docker image tag for the DB seed container
+  type: string
+  label: DB Seed Image Tag
+  group: DB Seed
 
-  # -------------------------------------------------------------------------
-  # ID Generator — informational note only. The `idTypes` field is a map
-  # keyed by id-type name, which Rancher form widgets cannot meaningfully
-  # render as a tree of editable fields. Operators who need to change
-  # id-length/prefix should switch to "Edit YAML" and modify
-  # `openg2p-registry.idgenerator.idGenerator.appConfig.idTypes` directly.
-  # -------------------------------------------------------------------------
-  - variable: openg2p-registry.idgenerator.idGenerator.appConfig.idTypesNote
-    description: |
-      Farmer Registry default id types:
-        - farmer    (12 digits)  — issued for individual farmers
-        - household (10 digits)  — issued for household units
-      To add, remove, or change id-length/prefix, switch to 'Edit YAML' and
-      update `openg2p-registry.idgenerator.idGenerator.appConfig.idTypes`.
-    type: string
-    label: ID Types Configuration
-    group: ID Generator
-    default: "See description — edit YAML to configure"
+# AWE
+- variable: global.aweEnabled
+  description: Enable AWE integration on staff-portal-api and seed AWE DB from db-seed job
+  type: boolean
+  label: Enable AWE Integration
+  group: AWE
+
+- variable: global.aweBaseUrl
+  description: Public AWE API base URL (host only, no /v1/awe path)
+  type: string
+  label: AWE Base URL
+  group: AWE
+
+- variable: global.aweCallbackSecretId
+  description: callback_secret.id in AWE DB (must match seeded row)
+  type: string
+  label: AWE Callback Secret ID
+  group: AWE
+
+- variable: global.aweHttpTimeoutSeconds
+  description: HTTP timeout (seconds) for outbound AWE API calls
+  type: int
+  label: AWE HTTP Timeout (s)
+  group: AWE
+
+- variable: global.aweWebhookTimestampToleranceSeconds
+  description: Max clock skew (seconds) for inbound AWE webhook signatures
+  type: int
+  label: AWE Webhook Timestamp Tolerance (s)
+  group: AWE
+
+- variable: global.aweApproverUserPassword
+  description: Initial Keycloak password for seeded approver users
+  type: string
+  label: AWE Approver User Password
+  group: AWE
+
+- variable: openg2p-awe.enabled
+  description: Install AWE subchart (required for AWE seeding and staff-portal integration)
+  type: boolean
+  label: Enable AWE Subchart
+  group: AWE
+
+# ID Generator
+- variable: idgenerator.idGenerator.appConfig.idTypesNote
+  description: "Default ID types: farmer (12 digits), household (10 digits). To add, remove, or modify ID types, switch to 'Edit YAML' and update the idgenerator.idGenerator.appConfig.idTypes section."
+  type: string
+  label: ID Types Configuration
+  group: ID Generator
+  default: "See description — edit YAML to configure"
+
+# Audit Manager
+- variable: global.auditEnabled
+  description: Master switch for emitting audit events to OpenG2P Audit Manager. Must be true AND global.auditManagerUrl must be set for any audits to flow. Available from staff-portal-api 1.1.x.
+  type: boolean
+  label: Audit Enabled
+  group: Audit Manager
+
+- variable: global.auditManagerUrl
+  description: Internal URL of the OpenG2P Audit Manager service (e.g. http://audit-manager:80 when in the same namespace).
+  type: string
+  label: Audit Manager URL
+  group: Audit Manager
+
+- variable: global.auditAnonymousFailures
+  description: When true, also audit rejected anonymous calls (401/403). Set false to skip them and only audit authenticated user calls.
+  type: boolean
+  label: Audit Anonymous Failures
+  group: Audit Manager
