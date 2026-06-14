@@ -134,18 +134,7 @@ questions:
   label: Celery Worker Image Tag
   group: Images
 
-# Logging
-- variable: logging.enabled
-  description: Ship openg2p pod logs (JSON) to the OpenSearch Output configured by commons-base
-  type: boolean
-  label: Enable Logging
-  group: Logging
-
-- variable: logging.outputRef
-  description: Name of the namespace-scoped Fluent Output resource (created by commons-base) to route logs to
-  type: string
-  label: Fluent Output Name
-  group: Logging
+# Logging is handled cluster-wide by OpenTelemetry + Loki; no per-chart config.
 
 # DB Seed
 - variable: dbSeed.enabled

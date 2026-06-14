@@ -126,22 +126,9 @@ global:
   # AWE subchart runs under the same Helm release (service: <release>-awe)
   aweReleaseName: '{{ .Release.Name }}'
 
-# Logging — ships openg2p pod logs (as JSON) to the OpenSearch Output
-# installed by openg2p-commons-base via Fluent Operator.
-logging:
-  enabled: true
-  # Name of the namespace-scoped fluent Output resource (created by commons-base)
-  # to which registry pod logs will be routed.
-  outputRef: commons-opensearch
-  # Container names whose logs should be captured by the Flow. Must match the
-  # container names (i.e. component nameOverrides) in the deployments below.
-  containerNames:
-    - staff-portal-api
-    - staff-portal-ui
-    - partner-api
-    - bene-portal-api
-    - celery-beat-producer
-    - celery-worker
+# Logging is handled cluster-wide by OpenTelemetry + Grafana Loki (deployed by
+# the platform's infra automation). The OTel agent DaemonSet tails every pod's
+# logs automatically, so no per-chart logging config is needed here anymore.
 
 # DB Seed — runs configuration and (optionally) sample data SQL scripts
 # after all application pods are ready. Uses a Docker image published
@@ -239,7 +226,7 @@ partnerApi:
       host: 'partner-{{ tpl .Values.global.registryHostname $ }}'
       gateway: "internal"
       destination: '{{ .Release.Name }}-partner-api'
-      destinationPort: '{{ .Values.service.port }}'
+      destinationPort: '{{ .Values.partnerApi.service.port }}'
       prefix: '{{ .Values.openapiRootPath }}/'
       rewriteUri: "/"
     gateway:
@@ -420,7 +407,7 @@ benePortalApi:
       host: ""
       gateway: "internal"
       destination: '{{ .Release.Name }}-bene-portal-api'
-      destinationPort: '{{ .Values.service.port }}'
+      destinationPort: '{{ .Values.benePortalApi.service.port }}'
       prefix: '{{ .Values.openapiRootPath }}/'
       rewriteUri: "/"
     gateway:
@@ -569,7 +556,7 @@ staffPortalApi:
       host: 'staff-{{ tpl .Values.global.registryHostname $ }}'
       gateway: "internal"
       destination: '{{ .Release.Name }}-staff-portal-api'
-      destinationPort: '{{ .Values.service.port }}'
+      destinationPort: '{{ .Values.staffPortalApi.service.port }}'
       prefix: '{{ .Values.openapiRootPath }}/'
       rewriteUri: "/"
     gateway:
