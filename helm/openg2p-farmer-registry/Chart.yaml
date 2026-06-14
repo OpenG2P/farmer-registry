@@ -12,7 +12,7 @@ type: application
 # Branch-name-equals-version convention: this file lives on the `develop`
 # branch of the Farmer Registry repo, so the version carries the `-develop` pre-release
 # tag. Bump to a SemVer release (e.g. 1.0.0) when cutting a tag branch.
-version: 0.0.1-develop
+version: 0.0.1
 appVersion: "develop"
 
 keywords:
