@@ -17,8 +17,13 @@
 #   3. Sweep leftover Secrets/ConfigMaps   (label: app.kubernetes.io/instance)
 #   4. Drop Postgres databases + roles     (via `kubectl exec` into
 #                                           commons-postgresql-0)
-#   5. Delete PVCs by label                (app.kubernetes.io/instance)
-#   6. Delete PVs still bound to those PVCs
+#   5. Delete this registry's IAM rows     (staff_portal_applications +
+#                                           staff_roles / permissions / mappings
+#                                           for mnemonic <release>-staff-portal,
+#                                           in the IAM DB inside the same
+#                                           commons-postgresql instance)
+#   6. Delete PVCs by label                (app.kubernetes.io/instance)
+#   7. Delete PVs still bound to those PVCs
 #      (typically `Released` PVs created with reclaimPolicy=Retain)
 #
 # Requires: kubectl (cluster admin), helm, bash 4+.
@@ -29,6 +34,8 @@
 #       [--release <name>]            (default: registry)
 #       [--postgres-release <name>]   (default: commons-postgresql)
 #       [--postgres-namespace <ns>]   (default: same as --namespace)
+#       [--iam-db <name>]             (default: iam; IAM staff-portal DB to clean)
+#       [--keep-iam]                  (do NOT delete this registry's IAM rows)
 #       [--keep-pvs]                  (delete PVCs but not PVs)
 #       [--dry-run]                   (print actions, change nothing)
 #       [--yes]                       (skip interactive confirmation)
@@ -50,12 +57,14 @@ RELEASE="registry"
 NAMESPACE=""
 POSTGRES_RELEASE="commons-postgresql"
 POSTGRES_NAMESPACE=""
+IAM_DB="iam"
+KEEP_IAM=false
 KEEP_PVS=false
 DRY_RUN=false
 ASSUME_YES=false
 
 # ---------- cli ----------
-usage() { sed -n '2,40p' "$0"; exit 1; }
+usage() { sed -n '2,51p' "$0"; exit 1; }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -63,6 +72,8 @@ while [[ $# -gt 0 ]]; do
     --namespace|-n)      NAMESPACE="$2";         shift 2 ;;
     --postgres-release)  POSTGRES_RELEASE="$2";  shift 2 ;;
     --postgres-namespace) POSTGRES_NAMESPACE="$2"; shift 2 ;;
+    --iam-db)            IAM_DB="$2";            shift 2 ;;
+    --keep-iam)          KEEP_IAM=true;          shift ;;
     --keep-pvs)          KEEP_PVS=true;          shift ;;
     --dry-run)           DRY_RUN=true;           shift ;;
     --yes|-y)            ASSUME_YES=true;        shift ;;
@@ -85,6 +96,11 @@ REGISTRY_DB="${RELEASE_UNDERSCORED}"
 REGISTRY_USER="${RELEASE_UNDERSCORED}_user"
 IDGEN_DB="${RELEASE_UNDERSCORED}_idgenerator"
 IDGEN_USER="${RELEASE_UNDERSCORED}_idgenerator_user"
+
+# IAM staff-portal application mnemonic == the per-release Keycloak client_id,
+# templated in values.yaml as `{{ .Release.Name }}-staff-portal` (hyphenated,
+# NOT underscored like the DB names above).
+IAM_APP_MNEMONIC="${RELEASE}-staff-portal"
 
 # ---------- helpers ----------
 _red()   { printf "\033[31m%s\033[0m\n" "$*"; }
@@ -122,6 +138,31 @@ kexec_psql() {
   if [[ "$DRY_RUN" == false ]]; then
     "${cmd[@]}" || _yellow "  (psql returned non-zero — continuing)"
   fi
+}
+
+kexec_psql_db() {
+  # Like kexec_psql, but connects to a specific database (-d). Used to clean
+  # this registry's rows out of the IAM staff-portal database, which lives in
+  # the same commons-postgresql instance. Tolerant of failure — continues.
+  local db="$1"
+  local sql="$2"
+  local cmd=(kubectl exec -n "$POSTGRES_NAMESPACE" "$PG_POD" -c postgresql -- \
+             bash -c "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U postgres -d \"$db\" -v ON_ERROR_STOP=0 -c \"$sql\"")
+  echo "  \$ psql -U postgres -d $db -c \"$sql\""
+  if [[ "$DRY_RUN" == false ]]; then
+    "${cmd[@]}" || _yellow "  (psql returned non-zero — continuing)"
+  fi
+}
+
+kexec_psql_capture() {
+  # Run a read-only query and echo the trimmed result to stdout. Quiet (no
+  # command echo, errors suppressed) — used for existence checks so we can skip
+  # gracefully when the IAM DB / tables are absent. Returns empty on any error.
+  local db="$1"
+  local sql="$2"
+  kubectl exec -n "$POSTGRES_NAMESPACE" "$PG_POD" -c postgresql -- \
+    bash -c "PGPASSWORD=\"\$POSTGRES_PASSWORD\" psql -U postgres -d \"$db\" -tAc \"$sql\"" 2>/dev/null \
+    | tr -d '[:space:]' || true
 }
 
 # ---------- pre-flight ----------
@@ -180,6 +221,11 @@ echo "Helm release:       $RELEASE (namespace: $NAMESPACE)"
 echo "Postgres databases: $REGISTRY_DB , $IDGEN_DB"
 echo "Postgres roles:     $REGISTRY_USER , $IDGEN_USER"
 echo "Postgres pod:       ${PG_POD:-<not found — will skip DB drop>} ($POSTGRES_NAMESPACE)"
+if [[ "$KEEP_IAM" == true ]]; then
+  echo "IAM rows:           (skipped — --keep-iam)"
+else
+  echo "IAM rows:           mnemonic '$IAM_APP_MNEMONIC' in DB '$IAM_DB' (staff_portal_applications + roles/permissions/mappings)"
+fi
 echo
 
 if [[ "$NAMESPACE_EXISTS" == true ]]; then
@@ -241,7 +287,7 @@ if [[ "$ASSUME_YES" == false && "$DRY_RUN" == false ]]; then
 fi
 
 # ========== STEP 1: helm uninstall ==========
-_blue "==> [1/6] Helm uninstall"
+_blue "==> [1/7] Helm uninstall"
 if [[ "$HELM_RELEASE_EXISTS" == true ]]; then
   run "helm uninstall '$RELEASE' -n '$NAMESPACE' --wait --timeout 5m || true"
 else
@@ -253,7 +299,7 @@ fi
 # with `helm.sh/hook-delete-policy: before-hook-creation`, which means they are
 # NOT cleaned up by `helm uninstall`. We delete them explicitly here — BEFORE
 # dropping the DBs, so their Pods close their Postgres connections cleanly.
-_blue "==> [2/6] Delete leftover Jobs and their Pods"
+_blue "==> [2/7] Delete leftover Jobs and their Pods"
 if [[ "$NAMESPACE_EXISTS" == true ]]; then
   run "kubectl -n '$NAMESPACE' delete job -l 'app.kubernetes.io/instance=$RELEASE' --ignore-not-found --wait=true --timeout=2m"
   # Orphan pods (completed/failed) that a Job left behind after TTL etc.
@@ -263,7 +309,7 @@ else
 fi
 
 # ========== STEP 3: sweep leftover Secrets & ConfigMaps ==========
-_blue "==> [3/6] Sweep leftover Secrets / ConfigMaps"
+_blue "==> [3/7] Sweep leftover Secrets / ConfigMaps"
 if [[ "$NAMESPACE_EXISTS" == true ]]; then
   run "kubectl -n '$NAMESPACE' delete secret    -l 'app.kubernetes.io/instance=$RELEASE' --ignore-not-found"
   run "kubectl -n '$NAMESPACE' delete configmap -l 'app.kubernetes.io/instance=$RELEASE' --ignore-not-found"
@@ -272,7 +318,7 @@ else
 fi
 
 # ========== STEP 4: drop Postgres DBs & roles ==========
-_blue "==> [4/6] Drop Postgres databases and roles"
+_blue "==> [4/7] Drop Postgres databases and roles"
 if [[ "$PG_POD_FOUND" == true ]]; then
   for db in "$REGISTRY_DB" "$IDGEN_DB"; do
     echo "  - Database: $db"
@@ -292,16 +338,49 @@ else
   echo "  (skipped — commons-postgresql pod not reachable; if Postgres is already gone, DBs are gone too)"
 fi
 
-# ========== STEP 5: PVCs ==========
-_blue "==> [5/6] Delete PVCs"
+# ========== STEP 5: clean this registry's IAM rows ==========
+# IAM no longer seeds registry data — each registry self-registers its tile +
+# roles/permissions into IAM at install time (keyed by application_mnemonic =
+# <release>-staff-portal). `helm uninstall` does not touch IAM, so remove those
+# rows here (child rows first). Targeted strictly by this release's mnemonic, so
+# it never affects other registries or the keycloak/minio/superset singletons.
+_blue "==> [5/7] Clean IAM staff-portal rows"
+if [[ "$KEEP_IAM" == true ]]; then
+  _yellow "  (skipped — --keep-iam)"
+elif [[ "$PG_POD_FOUND" != true ]]; then
+  echo "  (skipped — commons-postgresql pod not reachable; cannot reach IAM DB)"
+elif [[ "$DRY_RUN" == true ]]; then
+  echo "  Would delete IAM rows for mnemonic '$IAM_APP_MNEMONIC' from DB '$IAM_DB' (if the DB/tables exist)"
+else
+  # Tolerate an absent IAM install: if the IAM DB or its tables don't exist,
+  # there is nothing to clean — report and move on without noisy psql errors.
+  IAM_DB_EXISTS=$(kexec_psql_capture "postgres" "SELECT 1 FROM pg_database WHERE datname = '$IAM_DB'")
+  if [[ "$IAM_DB_EXISTS" != "1" ]]; then
+    _yellow "  (skipped — IAM database '$IAM_DB' not found)"
+  else
+    IAM_TABLE_EXISTS=$(kexec_psql_capture "$IAM_DB" "SELECT to_regclass('public.staff_portal_applications') IS NOT NULL")
+    if [[ "$IAM_TABLE_EXISTS" != "t" ]]; then
+      _yellow "  (skipped — table staff_portal_applications not found in IAM DB '$IAM_DB')"
+    else
+      echo "  - Application mnemonic: $IAM_APP_MNEMONIC (DB: $IAM_DB)"
+      kexec_psql_db "$IAM_DB" "DELETE FROM staff_role_permissions WHERE role_id IN (SELECT id FROM staff_roles WHERE application_id IN (SELECT id FROM staff_portal_applications WHERE application_mnemonic = '$IAM_APP_MNEMONIC'));"
+      kexec_psql_db "$IAM_DB" "DELETE FROM staff_roles WHERE application_id IN (SELECT id FROM staff_portal_applications WHERE application_mnemonic = '$IAM_APP_MNEMONIC');"
+      kexec_psql_db "$IAM_DB" "DELETE FROM staff_application_permissions WHERE application_id IN (SELECT id FROM staff_portal_applications WHERE application_mnemonic = '$IAM_APP_MNEMONIC');"
+      kexec_psql_db "$IAM_DB" "DELETE FROM staff_portal_applications WHERE application_mnemonic = '$IAM_APP_MNEMONIC';"
+    fi
+  fi
+fi
+
+# ========== STEP 6: PVCs ==========
+_blue "==> [6/7] Delete PVCs"
 if [[ "$NAMESPACE_EXISTS" == true ]]; then
   run "kubectl -n '$NAMESPACE' delete pvc -l 'app.kubernetes.io/instance=$RELEASE' --ignore-not-found"
 else
   echo "  (skipped — namespace '$NAMESPACE' not present; any orphan PVs handled in step 6)"
 fi
 
-# ========== STEP 6: PVs ==========
-_blue "==> [6/6] Delete PVs"
+# ========== STEP 7: PVs ==========
+_blue "==> [7/7] Delete PVs"
 if [[ "$KEEP_PVS" == true ]]; then
   _yellow "  (skipped — --keep-pvs)"
 else
