@@ -106,7 +106,7 @@ spec:
             - name: LOAD_TEMPLATES
               value: {{ .Values.dbSeed.loadTemplates | quote }}
             - name: IMAGE_BUCKET_NAME
-              value: {{ .Values.global.imageBucketName | quote }}
+              value: {{ tpl .Values.global.imageBucketName $ | quote }}
             - name: AWE_DB_SEED_ENABLED
               value: {{ .Values.global.aweEnabled | quote }}
             - name: AWE_PGHOST
@@ -123,6 +123,8 @@ spec:
                   name: {{ include "common.tplvalues.render" (dict "value" .Values.global.aweDBSecret "context" $) | quote }}
                   key: {{ include "common.tplvalues.render" (dict "value" .Values.global.aweDBUserPasswordKey "context" $) | quote }}
             {{- if .Values.global.aweEnabled }}
+            - name: AWE_CALLBACK_SECRET_ID
+              value: {{ tpl .Values.global.aweCallbackSecretId $ | quote }}
             - name: AWE_CALLBACK_HMAC_SECRET
               valueFrom:
                 secretKeyRef:

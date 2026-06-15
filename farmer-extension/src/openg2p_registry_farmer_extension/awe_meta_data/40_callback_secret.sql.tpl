@@ -7,7 +7,7 @@ INSERT INTO "public"."callback_secret" (
     "created_at",
     "updated_at"
 ) VALUES (
-    'registry',
+    '${AWE_CALLBACK_SECRET_ID}',
     'openg2p.registry',
     '${AWE_CALLBACK_HMAC_SECRET}',
     'active',

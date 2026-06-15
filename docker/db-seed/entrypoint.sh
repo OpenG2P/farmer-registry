@@ -17,6 +17,7 @@ set -e
 #   AWE_DB_SEED_ENABLED — "true" to seed the AWE Postgres database
 #   AWE_PGHOST, AWE_PGPORT, AWE_PGDATABASE, AWE_PGUSER, AWE_PGPASSWORD
 #   AWE_CALLBACK_HMAC_SECRET — callback_secret row + registry staff API
+#   AWE_CALLBACK_SECRET_ID   — callback_secret row id (per-release; default "registry")
 # ──────────────────────────────────────────────────────────────
 
 PGPORT="${PGPORT:-5432}"
@@ -68,11 +69,15 @@ run_callback_secret() {
     echo "[db-seed] AWE_CALLBACK_HMAC_SECRET unset — skipping callback_secret."
     return
   fi
-  echo "[db-seed]   -> callback_secret (AWE DB, from template)"
-  export AWE_CALLBACK_HMAC_SECRET
+  # Callback-secret row id — per registry instance. Passed by the db-seed Job
+  # from the chart's global.aweCallbackSecretId; defaults to "registry" so the
+  # image stays backward-compatible if the env is unset.
+  AWE_CALLBACK_SECRET_ID="${AWE_CALLBACK_SECRET_ID:-registry}"
+  echo "[db-seed]   -> callback_secret (AWE DB, from template) id=${AWE_CALLBACK_SECRET_ID}"
+  export AWE_CALLBACK_HMAC_SECRET AWE_CALLBACK_SECRET_ID
   PGHOST="${AWE_PGHOST}" PGPORT="${AWE_PGPORT:-5432}" PGDATABASE="${AWE_PGDATABASE}" \
     PGUSER="${AWE_PGUSER}" PGPASSWORD="${AWE_PGPASSWORD}" \
-    envsubst '${AWE_CALLBACK_HMAC_SECRET}' < "$tpl" | psql -v ON_ERROR_STOP=0 -f -
+    envsubst '${AWE_CALLBACK_HMAC_SECRET} ${AWE_CALLBACK_SECRET_ID}' < "$tpl" | psql -v ON_ERROR_STOP=0 -f -
 }
 
 echo "============================================="
