@@ -11,7 +11,8 @@ type: application
 
 # Branch-name-equals-version convention: this file lives on the `develop`
 # branch of the Farmer Registry repo, so the version carries the `-develop` pre-release
-# tag. Bump to a SemVer release (e.g. 1.0.0) when cutting a tag branch.
+# TODO & WARNING: this is a develop version and due to an issue we are 'freezing' it to 1.1.1. This is not an official
+# frozen version. Revert later. 
 version: 1.1.1 
 appVersion: "develop"
 
@@ -37,7 +38,7 @@ dependencies:
     repository: https://openg2p.github.io/openg2p-helm
     version: 2.30.0
   - name: postgres-init
-    version: 1.1.0
+    version: 0.0.0-develop
     repository: https://openg2p.github.io/openg2p-helm
     condition: postgres-init.enabled
   - name: redis
