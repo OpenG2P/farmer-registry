@@ -176,6 +176,40 @@ dbSeed:
       cpu: 50m
       memory: 64Mi
 
+# ---------------------------------------------------------------------------
+# IAM registration — self-registers this registry into the IAM staff portal.
+# Runs as a one-shot post-install/post-upgrade hook Job that pushes this
+# registry's tile + roles/permissions catalog (files/iam-registration/payload.json)
+# to the IAM staff-portal API. The application_mnemonic is the per-release
+# Keycloak client (global.authClientId) and application_url is the Staff Portal
+# UI host (https://<registryHostname>), so multiple registry instances coexist.
+#
+# Auth: obtains an access token via client_credentials using the per-release
+# staff-portal client + secret created by keycloak-init (global.authClientId /
+# authClientSecret) — the same client other registry services authenticate
+# with. The staff realm must be a trusted login provider in IAM (it is, since
+# the registry's own staff-portal-api authenticates against it).
+#
+# NOTE (CORS): IAM's CORS allow-list is static and read once at IAM startup, so
+# this registry's origin (https://<registryHostname>) must also be added to
+# IAM_STAFF_CORS_ALLOW_ORIGINS on the IAM chart and IAM rolled. See the IAM repo
+# iam-staff-portal-api/samples/README.md.
+iamRegister:
+  enabled: true
+  image:
+    repository: curlimages/curl
+    tag: "8.11.1"
+    pullPolicy: IfNotPresent
+  # Job-level retry budget; the script also retries token + register internally.
+  backoffLimit: 5
+  # Internal retry attempts (×5s) while the Keycloak client / IAM finish coming up.
+  tokenMaxAttempts: 30
+  registerMaxAttempts: 10
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+
 postgres-init:
   enabled: true
   postgresql:
