@@ -1,0 +1,21 @@
+{{- if .Values.iamRegister.enabled }}
+# Catalog this registry pushes into IAM (tile + roles + permissions). The
+# release-specific application_mnemonic and application_url are placeholders
+# here ("__APPLICATION_MNEMONIC__" / "__APPLICATION_URL__") and substituted at
+# runtime by the iam-register Job, so this file stays release-agnostic.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-iam-register-payload
+  labels:
+    app.kubernetes.io/name: iam-register
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "19"
+    helm.sh/hook-delete-policy: before-hook-creation
+data:
+  payload.json: |-
+{{ .Files.Get "files/iam-registration/payload.json" | indent 4 }}
+{{- end }}
