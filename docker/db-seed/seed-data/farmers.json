@@ -1,0 +1,5002 @@
+[
+  {
+    "internal_record_id": "i0001",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0002",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0003",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0004",
+    "disabled": "TRUE",
+    "disability_type": "COGNITION",
+    "disability_severity": "SOME_DIFFICULTY",
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0005",
+    "disabled": "TRUE",
+    "disability_type": "VISION",
+    "disability_severity": "SOME_DIFFICULTY",
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0006",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "FALSE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0007",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0008",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0009",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0010",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0011",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0012",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0013",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0014",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0015",
+    "disabled": "TRUE",
+    "disability_type": "SELF_CARE",
+    "disability_severity": "SOME_DIFFICULTY",
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0016",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0017",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0018",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0019",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0020",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0021",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0022",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0023",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0024",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0025",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0026",
+    "disabled": "TRUE",
+    "disability_type": "HEARING",
+    "disability_severity": "SOME_DIFFICULTY",
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0027",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0028",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0029",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0030",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0031",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0032",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0033",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0034",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0035",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0036",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0037",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0038",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0039",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0040",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0041",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0042",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0043",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0044",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0045",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0046",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0047",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0048",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0049",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0050",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0051",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0052",
+    "disabled": "TRUE",
+    "disability_type": "SELF_CARE",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0053",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0054",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0055",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0056",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0057",
+    "disabled": "TRUE",
+    "disability_type": "MOBILITY",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0058",
+    "disabled": "TRUE",
+    "disability_type": "COMMUNICATION",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0059",
+    "disabled": "TRUE",
+    "disability_type": "COMMUNICATION",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0060",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0061",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0062",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0063",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0064",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0065",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0066",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0067",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0068",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0069",
+    "disabled": "TRUE",
+    "disability_type": "HEARING",
+    "disability_severity": "SOME_DIFFICULTY",
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0070",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0071",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0072",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0073",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0074",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0075",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0076",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0077",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0078",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0079",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0080",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0081",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0082",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0083",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0084",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0085",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0086",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0087",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0088",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "FALSE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0089",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0090",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0091",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0092",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0093",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0094",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0095",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0096",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0097",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0098",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0099",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0100",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0101",
+    "disabled": "TRUE",
+    "disability_type": "HEARING",
+    "disability_severity": "CANNOT_DO_AT_ALL",
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0102",
+    "disabled": "TRUE",
+    "disability_type": "COGNITION",
+    "disability_severity": "CANNOT_DO_AT_ALL",
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0103",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0104",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0105",
+    "disabled": "TRUE",
+    "disability_type": "MOBILITY",
+    "disability_severity": "SOME_DIFFICULTY",
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0106",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0107",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0108",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0109",
+    "disabled": "TRUE",
+    "disability_type": "HEARING",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0110",
+    "disabled": "TRUE",
+    "disability_type": "MOBILITY",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0111",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0112",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0113",
+    "disabled": "TRUE",
+    "disability_type": "COMMUNICATION",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0114",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0115",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0116",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0117",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0118",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0119",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "FALSE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0120",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0121",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0122",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0123",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0124",
+    "disabled": "TRUE",
+    "disability_type": "HEARING",
+    "disability_severity": "SOME_DIFFICULTY",
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0125",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0126",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0127",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0128",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0129",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0130",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0131",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0132",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0133",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0134",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0135",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0136",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0137",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0138",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0139",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0140",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0141",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0142",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0143",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0144",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0145",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0146",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0147",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0148",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0149",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0150",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0151",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0152",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0153",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0154",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0155",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0156",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0157",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0158",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0159",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0160",
+    "disabled": "TRUE",
+    "disability_type": "COMMUNICATION",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0161",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0162",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0163",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0164",
+    "disabled": "TRUE",
+    "disability_type": "MOBILITY",
+    "disability_severity": "SOME_DIFFICULTY",
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0165",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "FALSE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0166",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0167",
+    "disabled": "TRUE",
+    "disability_type": "COGNITION",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0168",
+    "disabled": "TRUE",
+    "disability_type": "COGNITION",
+    "disability_severity": "CANNOT_DO_AT_ALL",
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0169",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0170",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0171",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0172",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0173",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0174",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0175",
+    "disabled": "TRUE",
+    "disability_type": "VISION",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "FALSE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0176",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0177",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0178",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0179",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0180",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0181",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0182",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0183",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0184",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0185",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0186",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0187",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0188",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0189",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0190",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0191",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0192",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0193",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0194",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0195",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0196",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0197",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0198",
+    "disabled": "TRUE",
+    "disability_type": "MOBILITY",
+    "disability_severity": "CANNOT_DO_AT_ALL",
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0199",
+    "disabled": "TRUE",
+    "disability_type": "HEARING",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0200",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0201",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0202",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0203",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0204",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0205",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0206",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0207",
+    "disabled": "TRUE",
+    "disability_type": "COGNITION",
+    "disability_severity": "CANNOT_DO_AT_ALL",
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0208",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0209",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0210",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0211",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0212",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0213",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0214",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0215",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0216",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0217",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0218",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0219",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0220",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0221",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0222",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0223",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0224",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0225",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0226",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0227",
+    "disabled": "TRUE",
+    "disability_type": "MOBILITY",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0228",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0229",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0230",
+    "disabled": "TRUE",
+    "disability_type": "HEARING",
+    "disability_severity": "SOME_DIFFICULTY",
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0231",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0232",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0233",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0234",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0235",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0236",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0237",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0238",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0239",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0240",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0241",
+    "disabled": "TRUE",
+    "disability_type": "COMMUNICATION",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0242",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0243",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0244",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0245",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0246",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0247",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0248",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0249",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0250",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0251",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0252",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0253",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0254",
+    "disabled": "TRUE",
+    "disability_type": "COGNITION",
+    "disability_severity": "CANNOT_DO_AT_ALL",
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0255",
+    "disabled": "TRUE",
+    "disability_type": "COGNITION",
+    "disability_severity": "SOME_DIFFICULTY",
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0256",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0257",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0258",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0259",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0260",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0261",
+    "disabled": "TRUE",
+    "disability_type": "VISION",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0262",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0263",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0264",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0265",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0266",
+    "disabled": "TRUE",
+    "disability_type": "MOBILITY",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0267",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0268",
+    "disabled": "TRUE",
+    "disability_type": "SELF_CARE",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0269",
+    "disabled": "TRUE",
+    "disability_type": "COGNITION",
+    "disability_severity": "CANNOT_DO_AT_ALL",
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0270",
+    "disabled": "TRUE",
+    "disability_type": "VISION",
+    "disability_severity": "SOME_DIFFICULTY",
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0271",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0272",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0273",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0274",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0275",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0276",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0277",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0278",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0279",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0280",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0281",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0282",
+    "disabled": "TRUE",
+    "disability_type": "MOBILITY",
+    "disability_severity": "SOME_DIFFICULTY",
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0283",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0284",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0285",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0286",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0287",
+    "disabled": "TRUE",
+    "disability_type": "COGNITION",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0288",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0289",
+    "disabled": "TRUE",
+    "disability_type": "VISION",
+    "disability_severity": "CANNOT_DO_AT_ALL",
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0290",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0291",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0292",
+    "disabled": "TRUE",
+    "disability_type": "HEARING",
+    "disability_severity": "SOME_DIFFICULTY",
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0293",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0294",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0295",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0296",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0297",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0298",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0299",
+    "disabled": "TRUE",
+    "disability_type": "COMMUNICATION",
+    "disability_severity": "SOME_DIFFICULTY",
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0300",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0301",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0302",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0303",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0304",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0305",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0306",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0307",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0308",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0309",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0310",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0311",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0312",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0313",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0314",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0315",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0316",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0317",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0318",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0319",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0320",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0321",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0322",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0323",
+    "disabled": "TRUE",
+    "disability_type": "COMMUNICATION",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0324",
+    "disabled": "TRUE",
+    "disability_type": "HEARING",
+    "disability_severity": "CANNOT_DO_AT_ALL",
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0325",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0326",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0327",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0328",
+    "disabled": "TRUE",
+    "disability_type": "VISION",
+    "disability_severity": "SOME_DIFFICULTY",
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0329",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0330",
+    "disabled": "TRUE",
+    "disability_type": "VISION",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0331",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0332",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0333",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0334",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0335",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0336",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0337",
+    "disabled": "TRUE",
+    "disability_type": "HEARING",
+    "disability_severity": "SOME_DIFFICULTY",
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0338",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0339",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0340",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0341",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0342",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0343",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0344",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0345",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0346",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0347",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0348",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0349",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0350",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0351",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0352",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0353",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0354",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0355",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0356",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0357",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0358",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0359",
+    "disabled": "TRUE",
+    "disability_type": "VISION",
+    "disability_severity": "CANNOT_DO_AT_ALL",
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0360",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0361",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0362",
+    "disabled": "TRUE",
+    "disability_type": "VISION",
+    "disability_severity": "CANNOT_DO_AT_ALL",
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0363",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0364",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0365",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0366",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0367",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0368",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0369",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0370",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0371",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0372",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0373",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0374",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0375",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0376",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0377",
+    "disabled": "TRUE",
+    "disability_type": "HEARING",
+    "disability_severity": "CANNOT_DO_AT_ALL",
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0378",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0379",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0380",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0381",
+    "disabled": "TRUE",
+    "disability_type": "COGNITION",
+    "disability_severity": "SOME_DIFFICULTY",
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0382",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0383",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0384",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0385",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0386",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0387",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0388",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0389",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0390",
+    "disabled": "TRUE",
+    "disability_type": "VISION",
+    "disability_severity": "CANNOT_DO_AT_ALL",
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0391",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0392",
+    "disabled": "TRUE",
+    "disability_type": "HEARING",
+    "disability_severity": "SOME_DIFFICULTY",
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0393",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0394",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0395",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0396",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0397",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0398",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0399",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0400",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0401",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0402",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0403",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0404",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0405",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0406",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0407",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0408",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0409",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0410",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0411",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0412",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0413",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0414",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0415",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0416",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0417",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0418",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0419",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0420",
+    "disabled": "TRUE",
+    "disability_type": "COMMUNICATION",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0421",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0422",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0423",
+    "disabled": "TRUE",
+    "disability_type": "COMMUNICATION",
+    "disability_severity": "A_LOT_OF_DIFFICULTY",
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0424",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0425",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0426",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0427",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0428",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0429",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0430",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0431",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0432",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0433",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0434",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0435",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0436",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0437",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0438",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0439",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0440",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0441",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0442",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0443",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0444",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0445",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0446",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0447",
+    "disabled": "TRUE",
+    "disability_type": "SELF_CARE",
+    "disability_severity": "CANNOT_DO_AT_ALL",
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0448",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0449",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0450",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0451",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0452",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0453",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0454",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0455",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0456",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0457",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0458",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0459",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0460",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0461",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0462",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0463",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0464",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0465",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0466",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0467",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0468",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0469",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0470",
+    "disabled": "TRUE",
+    "disability_type": "VISION",
+    "disability_severity": "CANNOT_DO_AT_ALL",
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0471",
+    "disabled": "TRUE",
+    "disability_type": "VISION",
+    "disability_severity": "CANNOT_DO_AT_ALL",
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0472",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0473",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0474",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0475",
+    "disabled": "TRUE",
+    "disability_type": "COGNITION",
+    "disability_severity": "CANNOT_DO_AT_ALL",
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0476",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0477",
+    "disabled": "TRUE",
+    "disability_type": "HEARING",
+    "disability_severity": "CANNOT_DO_AT_ALL",
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0478",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0479",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0480",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0481",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0482",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0483",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0484",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0485",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0486",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0487",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0488",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0489",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "LIVESTOCK",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0490",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0491",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0492",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0493",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "ENGLISH"
+  },
+  {
+    "internal_record_id": "i0494",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "REMITTANCES",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "FRENCH"
+  },
+  {
+    "internal_record_id": "i0495",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "BUSINESS_TRADE",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "HINDI"
+  },
+  {
+    "internal_record_id": "i0496",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "OTHERS",
+    "source_of_income_other": "Seasonal work",
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0497",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0498",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "GOVERNMENT_NGO_SUPPORT",
+    "source_of_income_other": null,
+    "has_personal_phone": "FALSE",
+    "language_spoken": "LOCAL"
+  },
+  {
+    "internal_record_id": "i0499",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "WAGE_LABOR",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  },
+  {
+    "internal_record_id": "i0500",
+    "disabled": "FALSE",
+    "disability_type": null,
+    "disability_severity": null,
+    "source_of_income": "CROP_FARMING",
+    "source_of_income_other": null,
+    "has_personal_phone": "TRUE",
+    "language_spoken": "SWAHILI"
+  }
+]

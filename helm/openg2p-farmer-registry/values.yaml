@@ -285,7 +285,8 @@ partnerApi:
 
     REGISTRY_PARTNER_API_MINIO_ENDPOINT: '{{ tpl .Values.global.minioHost $ }}'
     REGISTRY_PARTNER_API_MINIO_SECURE: '{{ .Values.global.minioSecure }}'
-    REGISTRY_PARTNER_API_MINIO_BUCKET_NAME: '{{ tpl .Values.global.defaultBucketName $ }}'
+    # Match imageBucketName so partner-served record-image URLs resolve.
+    REGISTRY_PARTNER_API_MINIO_BUCKET_NAME: '{{ tpl .Values.global.imageBucketName $ }}'
     REGISTRY_PARTNER_API_TEMPLATE_BUCKET_NAME: '{{ tpl .Values.global.templateBucketName $ }}'
 
     # OpenG2P Audit Manager integration. No-op unless both AUDIT_ENABLED=true
@@ -606,7 +607,9 @@ staffPortalApi:
     REGISTRY_STAFF_PORTAL_API_KEYCLOAK_CLIENT_ID: '{{ tpl .Values.global.authClientId $ }}'
     REGISTRY_STAFF_PORTAL_API_MINIO_ENDPOINT: '{{ tpl .Values.global.minioHost $ }}'
     REGISTRY_STAFF_PORTAL_API_MINIO_SECURE: '{{ .Values.global.minioSecure }}'
-    REGISTRY_STAFF_PORTAL_API_MINIO_BUCKET_NAME: '{{ tpl .Values.global.defaultBucketName $ }}'
+    # Record images (incl. db-seed uploads) live in imageBucketName; this must
+    # match so staff-portal presigned record-image URLs resolve.
+    REGISTRY_STAFF_PORTAL_API_MINIO_BUCKET_NAME: '{{ tpl .Values.global.imageBucketName $ }}'
     REGISTRY_STAFF_PORTAL_API_TEMPLATE_BUCKET_NAME: '{{ tpl .Values.global.templateBucketName $ }}'
 
     # OpenG2P Audit Manager integration. No-op unless both AUDIT_ENABLED=true
