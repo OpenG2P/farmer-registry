@@ -96,6 +96,13 @@ REGISTRY_DB="${RELEASE_UNDERSCORED}"
 REGISTRY_USER="${RELEASE_UNDERSCORED}_user"
 IDGEN_DB="${RELEASE_UNDERSCORED}_idgenerator"
 IDGEN_USER="${RELEASE_UNDERSCORED}_idgenerator_user"
+# AWE (Approval Workflow Engine) subchart runs under the same release. Its
+# DB/role live in commons-postgresql too and survive `helm uninstall` — they
+# MUST be dropped here, else the role keeps its old password while a reinstall
+# regenerates the `<release>-awe` secret, and the AWE pod hangs on auth.
+#   values.yaml: aweDB '{{ .Release.Name }}_awe', aweDBUser '{{ .Release.Name }}_awe_user'
+AWE_DB="${RELEASE_UNDERSCORED}_awe"
+AWE_USER="${RELEASE_UNDERSCORED}_awe_user"
 
 # IAM staff-portal application mnemonic == the per-release Keycloak client_id,
 # templated in values.yaml as `{{ .Release.Name }}-staff-portal` (hyphenated,
@@ -218,8 +225,8 @@ _blue "==> Resources to be deleted"
 
 echo
 echo "Helm release:       $RELEASE (namespace: $NAMESPACE)"
-echo "Postgres databases: $REGISTRY_DB , $IDGEN_DB"
-echo "Postgres roles:     $REGISTRY_USER , $IDGEN_USER"
+echo "Postgres databases: $REGISTRY_DB , $IDGEN_DB , $AWE_DB"
+echo "Postgres roles:     $REGISTRY_USER , $IDGEN_USER , $AWE_USER"
 echo "Postgres pod:       ${PG_POD:-<not found — will skip DB drop>} ($POSTGRES_NAMESPACE)"
 if [[ "$KEEP_IAM" == true ]]; then
   echo "IAM rows:           (skipped — --keep-iam)"
@@ -320,14 +327,14 @@ fi
 # ========== STEP 4: drop Postgres DBs & roles ==========
 _blue "==> [4/7] Drop Postgres databases and roles"
 if [[ "$PG_POD_FOUND" == true ]]; then
-  for db in "$REGISTRY_DB" "$IDGEN_DB"; do
+  for db in "$REGISTRY_DB" "$IDGEN_DB" "$AWE_DB"; do
     echo "  - Database: $db"
     kexec_psql "REVOKE CONNECT ON DATABASE \\\"$db\\\" FROM PUBLIC;"
     kexec_psql "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$db' AND pid <> pg_backend_pid();"
     kexec_psql "DROP DATABASE IF EXISTS \\\"$db\\\";"
   done
 
-  for role in "$REGISTRY_USER" "$IDGEN_USER"; do
+  for role in "$REGISTRY_USER" "$IDGEN_USER" "$AWE_USER"; do
     echo "  - Role: $role"
     # Reassign/drop stray ownership outside the dropped DBs (roles can own cluster-wide objects).
     kexec_psql "REASSIGN OWNED BY \\\"$role\\\" TO postgres;"
