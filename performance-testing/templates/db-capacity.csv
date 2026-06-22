@@ -1,0 +1,9 @@
+scenario,data_volume,db_vcpu,db_ram,pg_tuning,pgbouncer,gp3_iops,app_pods,threshold_rps,read_p95_ms,write_p95_ms,error_pct,first_bottleneck,top_slow_query,notes
+tuning-baseline,10M,8,32Gi,default,no,3000,3,,,,,,,
+tuning-tuned,10M,8,32Gi,tuned,no,3000,3,,,,,,,
+tuning-tuned+pgbouncer,10M,8,32Gi,tuned,yes,3000,3,,,,,,,
+volume-1M,1M,8,32Gi,tuned,yes,3000,3,,,,,,,
+volume-50M,50M,8,32Gi,tuned,yes,3000,3,,,,,,,
+volume-100M,100M,8,32Gi,tuned,yes,3000,3,,,,,,,
+vm-resize,10M,16,64Gi,tuned,yes,3000,3,,,,,,,
+io-bump,100M,8,32Gi,tuned,yes,6000,3,,,,,,,
