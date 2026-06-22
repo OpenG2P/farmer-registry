@@ -224,11 +224,11 @@ postgres-init:
       secretUserPasswordKey: '{{ tpl .Values.global.registryDBUserPasswordKey $ }}'
       extensions:
         - 'pg_trgm'
-    # Provision AWE webhook HMAC secret on the registry DB (idempotent).
-    - name: '{{ tpl .Values.global.registryDB $ }}'
-      user: '{{ tpl .Values.global.registryDBUser $ }}'
-      secret: '{{ tpl .Values.global.aweCallbackHmacSecretName $ }}'
-      secretUserPasswordKey: '{{ .Values.global.aweCallbackHmacSecretKey }}'
+    # NOTE: the AWE callback-HMAC secret is NOT provisioned here. A second
+    # entry reusing this same db name would render a duplicate postgres-init
+    # Job (Helm 4 SSA "spec.template field is immutable") and, with the
+    # idempotent init-db.sh, overwrite the registry user's password with the
+    # HMAC value. It is minted directly by templates/awe-callback-hmac-secret.yaml.
 
 partnerApi:
   enabled: true
