@@ -10,18 +10,26 @@ name: Publish Helm Charts
 # has it.
 #
 # Triggers:
-#   - push: when anything under helm/ changes (path-filtered)
-#   - tags: any tag push
+#   - push: when anything under helm/ changes (path-filtered). Tags do NOT
+#     trigger a publish — only branch pushes do.
 #   - workflow_dispatch: manual "publish everything" trigger
+#
+# The published chart version is derived from the BRANCH NAME (see the
+# "Resolve chart version" step). This is the Helm chart's SemVer ONLY and is
+# unrelated to the docker image tags. Only `develop`, two-part `N.N` and
+# three-part `N.N.N` branches publish; anything else is skipped.
 on:
   push:
     branches:
       - "**"
-    tags:
-      - '**'
     paths:
       - 'helm/**'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Explicit chart version to publish (e.g. 1.0.0-g2p5466). Leave empty to derive it from the branch name. Must be valid SemVer — helm package rejects anything else.'
+        required: false
+        type: string
 
 jobs:
   generate-charts:
@@ -37,11 +45,50 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      # Derive the Helm CHART version from the branch name. This is the chart's
+      # published SemVer ONLY — it has nothing to do with docker image tags.
+      # Convention:
+      #   develop          -> 0.0.0-develop.<run>
+      #   N.N    (active)   -> N.N.0-develop.<run>   (Helm needs 3-part SemVer)
+      #   N.N.N  (frozen)   -> N.N.N   (no suffix; a release outranks all its -develop builds)
+      #   anything else     -> skip publishing (set SKIP=TRUE)
+      # The <run> suffix (GitHub run number) is a unique, monotonically-increasing
+      # pre-release tag so each publish is a new version (sidesteps Rancher/CDN
+      # version-caching). A date is intentionally omitted — it adds no uniqueness
+      # and the longer string gets truncated in Rancher's chart-list tiles.
+      - name: Resolve chart version (branch-gated, with manual override)
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+          SUFFIX="${GITHUB_RUN_NUMBER}"
+          if [ -n "${INPUT_VERSION}" ]; then
+            # Explicit override via manual "Run workflow" — publish this EXACT
+            # version regardless of branch (e.g. 1.0.0-g2p5466). helm package
+            # will reject it if it is not valid SemVer.
+            VER="${INPUT_VERSION}"
+            echo "Using explicit version override: ${VER}"
+          elif [ "$BRANCH" = "develop" ]; then
+            VER="0.0.0-develop.${SUFFIX}"
+          elif printf '%s' "$BRANCH" | grep -qE '^[0-9]+\.[0-9]+$'; then
+            VER="${BRANCH}.0-develop.${SUFFIX}"
+          elif printf '%s' "$BRANCH" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            VER="${BRANCH}"
+          else
+            echo "::warning::Branch '${BRANCH}' is not develop / N.N / N.N.N and no explicit version was given — skipping Helm publish."
+            echo "SKIP=TRUE" >> "$GITHUB_ENV"
+            VER=""
+          fi
+          echo "CHART_VERSION=${VER}" >> "$GITHUB_ENV"
+          echo "Resolved chart version for branch '${BRANCH}': ${VER:-<skipped>}"
+
       - id: files
         uses: jitterbit/get-changed-files@v1
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && env.SKIP != 'TRUE'
 
       - name: Collect list of charts to publish
+        if: env.SKIP != 'TRUE'
         run: |
           touch charts-list.txt
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
@@ -68,6 +115,7 @@ jobs:
           cat charts-list.txt
 
       - name: Package charts (and detect Rancher charts)
+        if: env.SKIP != 'TRUE'
         run: |
           if [[ ! -s charts-list.txt ]]; then
             echo "::warning::No charts to publish"
@@ -76,9 +124,12 @@ jobs:
             RANCHER_CHARTS=()
             while IFS= read -r chartname; do
               chartpath="${CHARTS_DIR}/${chartname}"
-              echo "Packaging ${chartpath}"
+              echo "Packaging ${chartpath} as version ${CHART_VERSION}"
               helm dep up "${chartpath}"
-              helm package "${chartpath}"
+              # --version overrides Chart.yaml's version at package time (so
+              # Chart.yaml stays a static branch marker, no git churn). This is
+              # the Helm chart version only — unrelated to docker image tags.
+              helm package "${chartpath}" --version "${CHART_VERSION}"
               is_rancher_chart=$(grep "${RANCHER_CHART_FILTER}" "${chartpath}/Chart.yaml" || true)
               if [ -n "$is_rancher_chart" ]; then
                 RANCHER_CHARTS+=("$chartname")

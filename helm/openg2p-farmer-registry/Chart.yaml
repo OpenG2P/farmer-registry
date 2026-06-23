@@ -9,11 +9,18 @@ description: |
   directly in this chart, so it no longer depends on openg2p-registry.
 type: application
 
-# Branch-name-equals-version convention: this file lives on the `develop`
-# branch of the Farmer Registry repo, so the version carries the `-develop` pre-release
-# TODO & WARNING: this is a develop version and due to an issue we are 'freezing' it to 1.1.1. This is not an official
-# frozen version. Revert later. 
-version: 1.1.1 
+# Version handling:
+#   This `version` is a STATIC placeholder — it is NOT the published version.
+#   The helm-publish workflow derives the real version from the BRANCH NAME and
+#   overrides this at package time via `helm package --version`:
+#       develop  -> 0.0.0-develop.<run>
+#       N.N      -> N.N.0-develop.<run>   (Helm needs 3-part SemVer)
+#       N.N.N    -> N.N.N                  (frozen release, no suffix)
+#   (see ".github/workflows/helm-publish.yml" and the "Helm chart versioning"
+#   section in the Farmer Registry Gitbook docs). The value below is used ONLY
+#   for a local `helm package`/`helm install .` that does not pass --version,
+#   so just keep it a valid SemVer; bumping it has no effect on CI-published charts.
+version: 0.0.0-develop
 appVersion: "develop"
 
 keywords:
