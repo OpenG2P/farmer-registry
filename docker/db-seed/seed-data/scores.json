@@ -62,7 +62,7 @@
     "link_internal_record_id": "h006",
     "triggered_by_cr_id": "fcr0006",
     "triggered_by_submission_id": null,
-    "computed_score": 1.8,
+    "computed_score": 1.35,
     "computed_at": "2026-04-01 10:00:06"
   },
   {
@@ -84,7 +84,7 @@
     "link_internal_record_id": "h008",
     "triggered_by_cr_id": "fcr0008",
     "triggered_by_submission_id": null,
-    "computed_score": 1.35,
+    "computed_score": 2.8,
     "computed_at": "2026-04-01 10:00:08"
   },
   {
@@ -95,7 +95,7 @@
     "link_internal_record_id": "h009",
     "triggered_by_cr_id": "fcr0009",
     "triggered_by_submission_id": null,
-    "computed_score": 2.35,
+    "computed_score": 1.35,
     "computed_at": "2026-04-01 10:00:09"
   },
   {
@@ -106,7 +106,7 @@
     "link_internal_record_id": "h010",
     "triggered_by_cr_id": "fcr0010",
     "triggered_by_submission_id": null,
-    "computed_score": 1.8,
+    "computed_score": 3.7,
     "computed_at": "2026-04-01 10:00:10"
   },
   {
@@ -117,7 +117,7 @@
     "link_internal_record_id": "h011",
     "triggered_by_cr_id": "fcr0011",
     "triggered_by_submission_id": null,
-    "computed_score": 3.7,
+    "computed_score": 1.35,
     "computed_at": "2026-04-01 10:00:11"
   },
   {
@@ -128,7 +128,7 @@
     "link_internal_record_id": "h012",
     "triggered_by_cr_id": "fcr0012",
     "triggered_by_submission_id": null,
-    "computed_score": 3.7,
+    "computed_score": 4.8,
     "computed_at": "2026-04-01 10:00:12"
   },
   {
@@ -139,7 +139,7 @@
     "link_internal_record_id": "h013",
     "triggered_by_cr_id": "fcr0013",
     "triggered_by_submission_id": null,
-    "computed_score": 4.25,
+    "computed_score": 3.8,
     "computed_at": "2026-04-01 10:00:13"
   },
   {
@@ -150,7 +150,7 @@
     "link_internal_record_id": "h014",
     "triggered_by_cr_id": "fcr0014",
     "triggered_by_submission_id": null,
-    "computed_score": 3.25,
+    "computed_score": 2.25,
     "computed_at": "2026-04-01 10:00:14"
   },
   {
@@ -161,7 +161,7 @@
     "link_internal_record_id": "h015",
     "triggered_by_cr_id": "fcr0015",
     "triggered_by_submission_id": null,
-    "computed_score": 3.7,
+    "computed_score": 3.15,
     "computed_at": "2026-04-01 10:00:15"
   },
   {
@@ -172,7 +172,7 @@
     "link_internal_record_id": "h016",
     "triggered_by_cr_id": "fcr0016",
     "triggered_by_submission_id": null,
-    "computed_score": 2.25,
+    "computed_score": 1.9,
     "computed_at": "2026-04-01 10:00:16"
   },
   {
@@ -183,7 +183,7 @@
     "link_internal_record_id": "h017",
     "triggered_by_cr_id": "fcr0017",
     "triggered_by_submission_id": null,
-    "computed_score": 2.25,
+    "computed_score": 3.15,
     "computed_at": "2026-04-01 10:00:17"
   },
   {
@@ -194,7 +194,7 @@
     "link_internal_record_id": "h018",
     "triggered_by_cr_id": "fcr0018",
     "triggered_by_submission_id": null,
-    "computed_score": 2.8,
+    "computed_score": 1.35,
     "computed_at": "2026-04-01 10:00:18"
   },
   {
@@ -205,7 +205,7 @@
     "link_internal_record_id": "h019",
     "triggered_by_cr_id": "fcr0019",
     "triggered_by_submission_id": null,
-    "computed_score": 4.25,
+    "computed_score": 3.25,
     "computed_at": "2026-04-01 10:00:19"
   },
   {
@@ -216,7 +216,7 @@
     "link_internal_record_id": "h020",
     "triggered_by_cr_id": "fcr0020",
     "triggered_by_submission_id": null,
-    "computed_score": 2.25,
+    "computed_score": 4.25,
     "computed_at": "2026-04-01 10:00:20"
   },
   {
@@ -227,7 +227,7 @@
     "link_internal_record_id": "h021",
     "triggered_by_cr_id": "fcr0021",
     "triggered_by_submission_id": null,
-    "computed_score": 2.8,
+    "computed_score": 2.25,
     "computed_at": "2026-04-01 10:00:21"
   },
   {
@@ -238,7 +238,7 @@
     "link_internal_record_id": "h022",
     "triggered_by_cr_id": "fcr0022",
     "triggered_by_submission_id": null,
-    "computed_score": 3.15,
+    "computed_score": 2.8,
     "computed_at": "2026-04-01 10:00:22"
   },
   {
@@ -249,7 +249,7 @@
     "link_internal_record_id": "h023",
     "triggered_by_cr_id": "fcr0023",
     "triggered_by_submission_id": null,
-    "computed_score": 3.7,
+    "computed_score": 3.15,
     "computed_at": "2026-04-01 10:00:23"
   },
   {
@@ -260,7 +260,7 @@
     "link_internal_record_id": "h024",
     "triggered_by_cr_id": "fcr0024",
     "triggered_by_submission_id": null,
-    "computed_score": 2.9,
+    "computed_score": 3.7,
     "computed_at": "2026-04-01 10:00:24"
   },
   {
@@ -271,7 +271,7 @@
     "link_internal_record_id": "h025",
     "triggered_by_cr_id": "fcr0025",
     "triggered_by_submission_id": null,
-    "computed_score": 2.25,
+    "computed_score": 4.8,
     "computed_at": "2026-04-01 10:00:25"
   },
   {
@@ -282,7 +282,7 @@
     "link_internal_record_id": "h026",
     "triggered_by_cr_id": "fcr0026",
     "triggered_by_submission_id": null,
-    "computed_score": 2.35,
+    "computed_score": 4.25,
     "computed_at": "2026-04-01 10:00:26"
   },
   {
@@ -293,7 +293,7 @@
     "link_internal_record_id": "h027",
     "triggered_by_cr_id": "fcr0027",
     "triggered_by_submission_id": null,
-    "computed_score": 4.25,
+    "computed_score": 1.9,
     "computed_at": "2026-04-01 10:00:27"
   },
   {
@@ -304,7 +304,7 @@
     "link_internal_record_id": "h028",
     "triggered_by_cr_id": "fcr0028",
     "triggered_by_submission_id": null,
-    "computed_score": 3.7,
+    "computed_score": 3.8,
     "computed_at": "2026-04-01 10:00:28"
   },
   {
@@ -326,7 +326,7 @@
     "link_internal_record_id": "h030",
     "triggered_by_cr_id": "fcr0030",
     "triggered_by_submission_id": null,
-    "computed_score": 2.9,
+    "computed_score": 3.15,
     "computed_at": "2026-04-01 10:00:30"
   },
   {
@@ -337,7 +337,7 @@
     "link_internal_record_id": "h031",
     "triggered_by_cr_id": "fcr0031",
     "triggered_by_submission_id": null,
-    "computed_score": 3.25,
+    "computed_score": 4.25,
     "computed_at": "2026-04-01 10:00:31"
   },
   {
@@ -348,7 +348,7 @@
     "link_internal_record_id": "h032",
     "triggered_by_cr_id": "fcr0032",
     "triggered_by_submission_id": null,
-    "computed_score": 3.15,
+    "computed_score": 1.8,
     "computed_at": "2026-04-01 10:00:32"
   },
   {
@@ -370,7 +370,7 @@
     "link_internal_record_id": "h034",
     "triggered_by_cr_id": "fcr0034",
     "triggered_by_submission_id": null,
-    "computed_score": 1.8,
+    "computed_score": 4.25,
     "computed_at": "2026-04-01 10:00:34"
   },
   {
@@ -381,7 +381,7 @@
     "link_internal_record_id": "h035",
     "triggered_by_cr_id": "fcr0035",
     "triggered_by_submission_id": null,
-    "computed_score": 1.8,
+    "computed_score": 2.8,
     "computed_at": "2026-04-01 10:00:35"
   },
   {
@@ -392,7 +392,7 @@
     "link_internal_record_id": "h036",
     "triggered_by_cr_id": "fcr0036",
     "triggered_by_submission_id": null,
-    "computed_score": 1.35,
+    "computed_score": 1.8,
     "computed_at": "2026-04-01 10:00:36"
   },
   {
@@ -403,7 +403,7 @@
     "link_internal_record_id": "h037",
     "triggered_by_cr_id": "fcr0037",
     "triggered_by_submission_id": null,
-    "computed_score": 3.7,
+    "computed_score": 1.35,
     "computed_at": "2026-04-01 10:00:37"
   },
   {
@@ -414,7 +414,7 @@
     "link_internal_record_id": "h038",
     "triggered_by_cr_id": "fcr0038",
     "triggered_by_submission_id": null,
-    "computed_score": 3.8,
+    "computed_score": 4.25,
     "computed_at": "2026-04-01 10:00:38"
   },
   {
@@ -425,7 +425,7 @@
     "link_internal_record_id": "h039",
     "triggered_by_cr_id": "fcr0039",
     "triggered_by_submission_id": null,
-    "computed_score": 2.25,
+    "computed_score": 2.8,
     "computed_at": "2026-04-01 10:00:39"
   },
   {
@@ -436,7 +436,7 @@
     "link_internal_record_id": "h040",
     "triggered_by_cr_id": "fcr0040",
     "triggered_by_submission_id": null,
-    "computed_score": 2.8,
+    "computed_score": 3.25,
     "computed_at": "2026-04-01 10:00:40"
   },
   {
@@ -447,7 +447,7 @@
     "link_internal_record_id": "h041",
     "triggered_by_cr_id": "fcr0041",
     "triggered_by_submission_id": null,
-    "computed_score": 3.35,
+    "computed_score": 3.25,
     "computed_at": "2026-04-01 10:00:41"
   },
   {
@@ -458,7 +458,7 @@
     "link_internal_record_id": "h042",
     "triggered_by_cr_id": "fcr0042",
     "triggered_by_submission_id": null,
-    "computed_score": 3.25,
+    "computed_score": 1.8,
     "computed_at": "2026-04-01 10:00:42"
   },
   {
@@ -469,7 +469,7 @@
     "link_internal_record_id": "h043",
     "triggered_by_cr_id": "fcr0043",
     "triggered_by_submission_id": null,
-    "computed_score": 3.25,
+    "computed_score": 2.25,
     "computed_at": "2026-04-01 10:00:43"
   },
   {
@@ -491,7 +491,7 @@
     "link_internal_record_id": "h045",
     "triggered_by_cr_id": "fcr0045",
     "triggered_by_submission_id": null,
-    "computed_score": 3.7,
+    "computed_score": 4.8,
     "computed_at": "2026-04-01 10:00:45"
   },
   {
@@ -502,7 +502,7 @@
     "link_internal_record_id": "h046",
     "triggered_by_cr_id": "fcr0046",
     "triggered_by_submission_id": null,
-    "computed_score": 2.8,
+    "computed_score": 2.25,
     "computed_at": "2026-04-01 10:00:46"
   },
   {
@@ -513,7 +513,7 @@
     "link_internal_record_id": "h047",
     "triggered_by_cr_id": "fcr0047",
     "triggered_by_submission_id": null,
-    "computed_score": 3.7,
+    "computed_score": 3.9,
     "computed_at": "2026-04-01 10:00:47"
   },
   {
@@ -524,7 +524,7 @@
     "link_internal_record_id": "h048",
     "triggered_by_cr_id": "fcr0048",
     "triggered_by_submission_id": null,
-    "computed_score": 1.35,
+    "computed_score": 3.25,
     "computed_at": "2026-04-01 10:00:48"
   },
   {
@@ -535,7 +535,7 @@
     "link_internal_record_id": "h049",
     "triggered_by_cr_id": "fcr0049",
     "triggered_by_submission_id": null,
-    "computed_score": 2.35,
+    "computed_score": 3.25,
     "computed_at": "2026-04-01 10:00:49"
   },
   {
@@ -546,7 +546,7 @@
     "link_internal_record_id": "h050",
     "triggered_by_cr_id": "fcr0050",
     "triggered_by_submission_id": null,
-    "computed_score": 3.25,
+    "computed_score": 4.25,
     "computed_at": "2026-04-01 10:00:50"
   },
   {
@@ -557,7 +557,7 @@
     "link_internal_record_id": "h051",
     "triggered_by_cr_id": "fcr0051",
     "triggered_by_submission_id": null,
-    "computed_score": 1.35,
+    "computed_score": 2.35,
     "computed_at": "2026-04-01 10:00:51"
   },
   {
@@ -568,7 +568,7 @@
     "link_internal_record_id": "h052",
     "triggered_by_cr_id": "fcr0052",
     "triggered_by_submission_id": null,
-    "computed_score": 1.8,
+    "computed_score": 1.35,
     "computed_at": "2026-04-01 10:00:52"
   },
   {
@@ -579,7 +579,7 @@
     "link_internal_record_id": "h053",
     "triggered_by_cr_id": "fcr0053",
     "triggered_by_submission_id": null,
-    "computed_score": 2.25,
+    "computed_score": 3.7,
     "computed_at": "2026-04-01 10:00:53"
   },
   {
@@ -590,7 +590,7 @@
     "link_internal_record_id": "h054",
     "triggered_by_cr_id": "fcr0054",
     "triggered_by_submission_id": null,
-    "computed_score": 3.35,
+    "computed_score": 2.35,
     "computed_at": "2026-04-01 10:00:54"
   },
   {
@@ -601,7 +601,7 @@
     "link_internal_record_id": "h055",
     "triggered_by_cr_id": "fcr0055",
     "triggered_by_submission_id": null,
-    "computed_score": 2.35,
+    "computed_score": 3.25,
     "computed_at": "2026-04-01 10:00:55"
   },
   {
@@ -612,7 +612,7 @@
     "link_internal_record_id": "h056",
     "triggered_by_cr_id": "fcr0056",
     "triggered_by_submission_id": null,
-    "computed_score": 3.8,
+    "computed_score": 2.25,
     "computed_at": "2026-04-01 10:00:56"
   },
   {
@@ -623,7 +623,7 @@
     "link_internal_record_id": "h057",
     "triggered_by_cr_id": "fcr0057",
     "triggered_by_submission_id": null,
-    "computed_score": 1.9,
+    "computed_score": 2.35,
     "computed_at": "2026-04-01 10:00:57"
   },
   {
@@ -634,7 +634,7 @@
     "link_internal_record_id": "h058",
     "triggered_by_cr_id": "fcr0058",
     "triggered_by_submission_id": null,
-    "computed_score": 2.7,
+    "computed_score": 1.9,
     "computed_at": "2026-04-01 10:00:58"
   },
   {
@@ -645,7 +645,7 @@
     "link_internal_record_id": "h059",
     "triggered_by_cr_id": "fcr0059",
     "triggered_by_submission_id": null,
-    "computed_score": 1.35,
+    "computed_score": 1.9,
     "computed_at": "2026-04-01 10:00:59"
   },
   {
@@ -667,7 +667,7 @@
     "link_internal_record_id": "h061",
     "triggered_by_cr_id": "fcr0061",
     "triggered_by_submission_id": null,
-    "computed_score": 2.45,
+    "computed_score": 1.35,
     "computed_at": "2026-04-01 10:01:01"
   },
   {
@@ -678,7 +678,7 @@
     "link_internal_record_id": "h062",
     "triggered_by_cr_id": "fcr0062",
     "triggered_by_submission_id": null,
-    "computed_score": 1.35,
+    "computed_score": 1.9,
     "computed_at": "2026-04-01 10:01:02"
   },
   {
@@ -700,7 +700,7 @@
     "link_internal_record_id": "h064",
     "triggered_by_cr_id": "fcr0064",
     "triggered_by_submission_id": null,
-    "computed_score": 1.35,
+    "computed_score": 1.9,
     "computed_at": "2026-04-01 10:01:04"
   },
   {
@@ -733,7 +733,7 @@
     "link_internal_record_id": "h067",
     "triggered_by_cr_id": "fcr0067",
     "triggered_by_submission_id": null,
-    "computed_score": 1.9,
+    "computed_score": 1.35,
     "computed_at": "2026-04-01 10:01:07"
   },
   {
@@ -744,7 +744,7 @@
     "link_internal_record_id": "h068",
     "triggered_by_cr_id": "fcr0068",
     "triggered_by_submission_id": null,
-    "computed_score": 1.9,
+    "computed_score": 1.35,
     "computed_at": "2026-04-01 10:01:08"
   },
   {
@@ -755,7 +755,7 @@
     "link_internal_record_id": "h069",
     "triggered_by_cr_id": "fcr0069",
     "triggered_by_submission_id": null,
-    "computed_score": 1.9,
+    "computed_score": 1.35,
     "computed_at": "2026-04-01 10:01:09"
   },
   {
@@ -777,7 +777,7 @@
     "link_internal_record_id": "h071",
     "triggered_by_cr_id": "fcr0071",
     "triggered_by_submission_id": null,
-    "computed_score": 2.45,
+    "computed_score": 1.9,
     "computed_at": "2026-04-01 10:01:11"
   },
   {
@@ -810,7 +810,7 @@
     "link_internal_record_id": "h074",
     "triggered_by_cr_id": "fcr0074",
     "triggered_by_submission_id": null,
-    "computed_score": 1.35,
+    "computed_score": 1.9,
     "computed_at": "2026-04-01 10:01:14"
   },
   {
@@ -821,7 +821,7 @@
     "link_internal_record_id": "h075",
     "triggered_by_cr_id": "fcr0075",
     "triggered_by_submission_id": null,
-    "computed_score": 1.35,
+    "computed_score": 2.45,
     "computed_at": "2026-04-01 10:01:15"
   },
   {
@@ -865,7 +865,7 @@
     "link_internal_record_id": "h079",
     "triggered_by_cr_id": "fcr0079",
     "triggered_by_submission_id": null,
-    "computed_score": 2.45,
+    "computed_score": 1.9,
     "computed_at": "2026-04-01 10:01:19"
   },
   {
@@ -887,7 +887,7 @@
     "link_internal_record_id": "h081",
     "triggered_by_cr_id": "fcr0081",
     "triggered_by_submission_id": null,
-    "computed_score": 2.45,
+    "computed_score": 1.35,
     "computed_at": "2026-04-01 10:01:21"
   },
   {
@@ -898,7 +898,7 @@
     "link_internal_record_id": "h082",
     "triggered_by_cr_id": "fcr0082",
     "triggered_by_submission_id": null,
-    "computed_score": 1.9,
+    "computed_score": 1.35,
     "computed_at": "2026-04-01 10:01:22"
   },
   {
@@ -920,7 +920,7 @@
     "link_internal_record_id": "h084",
     "triggered_by_cr_id": "fcr0084",
     "triggered_by_submission_id": null,
-    "computed_score": 1.35,
+    "computed_score": 1.9,
     "computed_at": "2026-04-01 10:01:24"
   },
   {
@@ -931,7 +931,7 @@
     "link_internal_record_id": "h085",
     "triggered_by_cr_id": "fcr0085",
     "triggered_by_submission_id": null,
-    "computed_score": 1.9,
+    "computed_score": 1.35,
     "computed_at": "2026-04-01 10:01:25"
   },
   {
@@ -953,7 +953,7 @@
     "link_internal_record_id": "h087",
     "triggered_by_cr_id": "fcr0087",
     "triggered_by_submission_id": null,
-    "computed_score": 1.9,
+    "computed_score": 1.35,
     "computed_at": "2026-04-01 10:01:27"
   },
   {
@@ -986,7 +986,7 @@
     "link_internal_record_id": "h090",
     "triggered_by_cr_id": "fcr0090",
     "triggered_by_submission_id": null,
-    "computed_score": 1.9,
+    "computed_score": 1.35,
     "computed_at": "2026-04-01 10:01:30"
   },
   {
@@ -1008,7 +1008,7 @@
     "link_internal_record_id": "h092",
     "triggered_by_cr_id": "fcr0092",
     "triggered_by_submission_id": null,
-    "computed_score": 1.35,
+    "computed_score": 1.9,
     "computed_at": "2026-04-01 10:01:32"
   },
   {
@@ -1041,7 +1041,7 @@
     "link_internal_record_id": "h095",
     "triggered_by_cr_id": "fcr0095",
     "triggered_by_submission_id": null,
-    "computed_score": 1.9,
+    "computed_score": 1.35,
     "computed_at": "2026-04-01 10:01:35"
   },
   {
@@ -1063,7 +1063,7 @@
     "link_internal_record_id": "h097",
     "triggered_by_cr_id": "fcr0097",
     "triggered_by_submission_id": null,
-    "computed_score": 1.35,
+    "computed_score": 1.9,
     "computed_at": "2026-04-01 10:01:37"
   },
   {
@@ -1074,7 +1074,7 @@
     "link_internal_record_id": "h098",
     "triggered_by_cr_id": "fcr0098",
     "triggered_by_submission_id": null,
-    "computed_score": 1.35,
+    "computed_score": 1.9,
     "computed_at": "2026-04-01 10:01:38"
   },
   {
@@ -1085,7 +1085,7 @@
     "link_internal_record_id": "h099",
     "triggered_by_cr_id": "fcr0099",
     "triggered_by_submission_id": null,
-    "computed_score": 1.35,
+    "computed_score": 1.9,
     "computed_at": "2026-04-01 10:01:39"
   },
   {
@@ -1096,7 +1096,7 @@
     "link_internal_record_id": "h100",
     "triggered_by_cr_id": "fcr0100",
     "triggered_by_submission_id": null,
-    "computed_score": 1.9,
+    "computed_score": 1.35,
     "computed_at": "2026-04-01 10:01:40"
   }
 ]

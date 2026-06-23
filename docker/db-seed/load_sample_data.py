@@ -37,8 +37,43 @@ OPENG2P_DATA_DIR = Path(os.environ.get("OPENG2P_DATA_DIR", "/openg2p-data"))
 DEMO_DIR = OPENG2P_DATA_DIR / "demography"
 FARMER_DATA_DIR = Path(os.environ.get("FARMER_SEED_DATA_DIR", "/seed/seed-data"))
 
-JSON_COLUMNS_INDIVIDUAL = {"phone_numbers", "geo_hierarchy_json"}
-JSON_COLUMNS_HOUSEHOLD = {"geo_hierarchy_json"}
+JSON_COLUMNS_INDIVIDUAL = {"phone_numbers"}
+JSON_COLUMNS_HOUSEHOLD = set()
+
+# Geo is carried in the seed files as plain names (country..village). The
+# internal id + hierarchy JSON the registry stores are derived here, using the
+# SAME slug-path scheme as master-data's load_geo_data.py so the runtime
+# registry<->master-data join holds.
+GEO_LEVELS = ["country", "region", "district", "ward", "village"]
+
+
+def _slug(name: str) -> str:
+    return name.strip().lower().replace(" ", "_")
+
+
+def geo_lowest_id(rec: dict) -> str:
+    """Slug-path of the full country..village chain (= master-data PK)."""
+    return "/".join(_slug(rec[level]) for level in GEO_LEVELS)
+
+
+def geo_hierarchy_dict(rec: dict) -> dict:
+    """Build geo_code_hierarchy_json from the name columns, matching the shape
+    registry-core's G2PGeoHierarchyService produces at runtime."""
+    hierarchy = []
+    for depth, level in enumerate(GEO_LEVELS):
+        node_id = "/".join(_slug(rec[GEO_LEVELS[i]]) for i in range(depth + 1))
+        hierarchy.append(
+            {
+                "level_mnemonic": level,
+                "level_value_mnemonic": rec[level],
+                "level_value_id": node_id,
+            }
+        )
+    return {"hierarchy": hierarchy}
+
+
+def geo_hierarchy(rec: dict):
+    return to_json(geo_hierarchy_dict(rec))
 
 
 def env(name: str) -> str:
@@ -133,7 +168,7 @@ def insert_farmers(cur, individuals: list, extras_by_id: dict) -> None:
                 ind["latitude"], ind["longitude"], ind["altitude"], ind["plus_code"],
                 ind["address_line_1"], ind["address_line_2"],
                 ind["postal_code"], ind["country_code"],
-                ind["geo_village_id"], to_json(ind.get("geo_hierarchy_json")),
+                geo_lowest_id(ind), geo_hierarchy(ind),
                 _as_int(ind.get("estimated_age")), ex.get("has_personal_phone"),
                 ex.get("disabled"), ex.get("disability_type"),
                 ex.get("disability_severity"), ex.get("source_of_income"),
@@ -179,7 +214,7 @@ def insert_households(cur, households: list) -> None:
                 hh["latitude"], hh["longitude"], hh["altitude"], hh["plus_code"],
                 hh["address_line_1"], hh["address_line_2"],
                 hh["postal_code"], hh["country_code"],
-                hh["geo_village_id"], to_json(hh.get("geo_hierarchy_json")),
+                geo_lowest_id(hh), geo_hierarchy(hh),
                 hh["head_name"], _as_int(hh.get("size_total")), num_children,
                 _as_int(hh.get("number_of_female_members")),
                 _as_int(hh.get("number_of_male_members")), other_land_owner,
@@ -234,7 +269,7 @@ def insert_household_members(cur, members: list, ind_by_id: dict) -> None:
                 ind["latitude"], ind["longitude"], ind["altitude"], ind["plus_code"],
                 ind["address_line_1"], ind["address_line_2"],
                 ind["postal_code"], ind["country_code"],
-                ind["geo_village_id"], to_json(ind.get("geo_hierarchy_json")),
+                geo_lowest_id(ind), geo_hierarchy(ind),
                 m.get("is_disabled"),
             )
         )
@@ -446,6 +481,11 @@ def main() -> None:
         insert_household_members(cur, members, ind_by_id)
         for table, fname, extras, json_cols in SUB_TABLES:
             rows = load_json(FARMER_DATA_DIR / fname)
+            if table == "g2p_register_lands":
+                # lands.json carries geo as plain names; derive the DB id + JSON.
+                for r in rows:
+                    r["geo_lowest_level_value_id"] = geo_lowest_id(r)
+                    r["geo_code_hierarchy_json"] = geo_hierarchy_dict(r)
             insert_sub_table(cur, table, rows, extras, json_cols)
         insert_scores(cur, load_json(FARMER_DATA_DIR / "scores.json"))
 
