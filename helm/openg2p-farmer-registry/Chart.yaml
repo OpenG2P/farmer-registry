@@ -45,7 +45,7 @@ dependencies:
     repository: https://openg2p.github.io/openg2p-helm
     version: 2.30.0
   - name: postgres-init
-    version: 0.0.0-develop
+    version: 1.2.0
     repository: https://openg2p.github.io/openg2p-helm
     condition: postgres-init.enabled
   - name: redis
