@@ -62,7 +62,7 @@ dependencies:
     repository: https://openg2p.github.io/openg2p-helm
     condition: keycloak-init.enabled
   - name: openg2p-awe
-    version: 0.0.0-develop
+    version: 1.0.0
     repository: https://openg2p.github.io/openg2p-helm
     condition: openg2p-awe.enabled
 
