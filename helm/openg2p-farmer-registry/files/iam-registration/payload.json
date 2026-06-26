@@ -38,26 +38,6 @@
       "active": true
     },
     {
-      "permission_mnemonic": "verificationIntakeForm:create",
-      "permission_description": "verificationIntakeForm:create",
-      "active": true
-    },
-    {
-      "permission_mnemonic": "verificationIntakeForm:view",
-      "permission_description": "verificationIntakeForm:view",
-      "active": true
-    },
-    {
-      "permission_mnemonic": "verificationChangeRequest:view",
-      "permission_description": "verificationChangeRequest:view",
-      "active": true
-    },
-    {
-      "permission_mnemonic": "verificationChangeRequest:create",
-      "permission_description": "verificationChangeRequest:create",
-      "active": true
-    },
-    {
       "permission_mnemonic": "registerHistory:view",
       "permission_description": "registerHistory:view",
       "active": true
@@ -388,9 +368,7 @@
         "intakeFormDefinition:edit",
         "intakeFormDefinition:view",
         "intakeSubmission:approve",
-        "intakeSubmission:view",
-        "verificationIntakeForm:create",
-        "verificationIntakeForm:view"
+        "intakeSubmission:view"
       ]
     },
     {
@@ -412,9 +390,7 @@
       "permissions": [
         "changeRequest:view",
         "register:view",
-        "registerHistory:view",
-        "verificationChangeRequest:create",
-        "verificationChangeRequest:view"
+        "registerHistory:view"
       ]
     },
     {
@@ -425,8 +401,7 @@
         "changeRequest:view",
         "register:view",
         "registerHistory:view",
-        "registerScore:view",
-        "verificationChangeRequest:view"
+        "registerScore:view"
       ]
     },
     {
@@ -452,11 +427,7 @@
         "intakeSubmission:view",
         "outgoingMessage:view",
         "register:view",
-        "registerHistory:view",
-        "verificationChangeRequest:create",
-        "verificationChangeRequest:view",
-        "verificationIntakeForm:create",
-        "verificationIntakeForm:view"
+        "registerHistory:view"
       ]
     },
     {
@@ -568,9 +539,8 @@
         "ingestTemplate:create",
         "ingestTemplate:delete",
         "ingestTemplate:edit",
-        "ingestTemplate:view",
-        "intakeSubmission:approve",
-        "intakeSubmission:edit",
+        "intakeFormDefinition:edit",
+        "intakeFormDefinition:view",
         "intakeSubmission:view",
         "outgestTemplate:create",
         "outgestTemplate:delete",
@@ -604,11 +574,7 @@
         "registerTab:edit",
         "registerTab:view",
         "registryConfiguration:edit",
-        "registryConfiguration:view",
-        "verificationChangeRequest:create",
-        "verificationChangeRequest:view",
-        "verificationIntakeForm:create",
-        "verificationIntakeForm:view"
+        "registryConfiguration:view"
       ]
     }
   ]
