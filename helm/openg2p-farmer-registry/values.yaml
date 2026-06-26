@@ -874,6 +874,8 @@ staffPortalUi:
     APP_MNEMONIC: '{{ .Release.Name }}-ui'
     APP_URL: 'https://{{ tpl .Values.global.registryHostname $ }}'
     APPLICATION_MNEMONIC: '{{ tpl .Values.global.authClientId $ }}'
+    # Allow profile/document images from MinIO pre-signed URLs in the browser CSP.
+    CSP_SRC_IMG: 'self blob: data: https://{{ tpl .Values.global.minioHost $ }}'
     # Server-side calls from the Next.js Staff Portal UI pod to the Staff
     # Portal API stay inside the cluster — sibling K8s Service is named
     # "<release>-staff-portal-api" on port 80. Browser-side calls from the
