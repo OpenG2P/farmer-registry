@@ -173,12 +173,19 @@ global:
   aweWebhookTimestampToleranceSeconds: 300
   aweCallbackHmacSecretName: '{{ .Release.Name }}-awe-callback-hmac'
   aweCallbackHmacSecretKey: 'hmac-secret'
-  # NOTE: despite the name, this is the initial Keycloak password for the seeded
-  # demo staff users below (keycloak-init), not an AWE resource. Kept here.
-  aweApproverUserPassword: 'Changeme123!'
-  # Helm release that hosts the shared AWE — its Service is <aweReleaseName>-awe.
-  # Used by db-seed to wait for the AWE API before seeding the callback secret.
-  aweReleaseName: commons-services
+  aweApproverUserPassword: 'pass'
+  # AWE subchart runs under the same Helm release (service: <release>-awe)
+  aweReleaseName: '{{ .Release.Name }}'
+
+  # AWE admin Keycloak clients — release-scoped so two registry instances in
+  # one namespace each get their own clients + client-secret Secret inside the
+  # shared `staff` realm. The openg2p-awe subchart defaults these to fixed
+  # names (awe-admin-portal / awe-admin-resolver); we override both the globals
+  # (consumed by the AWE backend config + deployment) AND the keycloak-init
+  # realm block below so the produced clients/secret match these names.
+  aweAdminPortalClientId: '{{ .Release.Name }}-awe-admin-portal'
+  aweAdminResolverClientId: '{{ .Release.Name }}-awe-admin-resolver'
+  aweAdminResolverSecretName: '{{ .Release.Name }}-awe-admin-resolver'
 
 # Logging is handled cluster-wide by OpenTelemetry + Grafana Loki (deployed by
 # the platform's infra automation). The OTel agent DaemonSet tails every pod's
@@ -1168,6 +1175,8 @@ keycloak-init:
               - "Operations Administrator"
               - "Technical Administrator"
         - username: alex.carter
+          firstName: Alex
+          lastName: Carter
           email: alex.carter@email.com
           password: '{{ .Values.global.aweApproverUserPassword }}'
           enabled: true
@@ -1176,6 +1185,8 @@ keycloak-init:
               - "Operations Administrator"
               - "Technical Administrator"
         - username: maya.reed
+          firstName: Maya
+          lastName: Reed
           email: maya.reed@email.com
           password: '{{ .Values.global.aweApproverUserPassword }}'
           enabled: true
@@ -1184,6 +1195,8 @@ keycloak-init:
               - "Operations Administrator"
               - "Technical Administrator"
         - username: nina.patel
+          firstName: Nina
+          lastName: Patel
           email: nina.patel@email.com
           password: '{{ .Values.global.aweApproverUserPassword }}'
           enabled: true
@@ -1192,6 +1205,8 @@ keycloak-init:
               - "Operations Administrator"
               - "Technical Administrator"
         - username: omar.sheikh
+          firstName: Omar
+          lastName: Sheikh
           email: omar.sheikh@email.com
           password: '{{ .Values.global.aweApproverUserPassword }}'
           enabled: true
@@ -1200,6 +1215,8 @@ keycloak-init:
               - "Operations Administrator"
               - "Technical Administrator"
         - username: zara.khan
+          firstName: Zara
+          lastName: Khan
           email: zara.khan@email.com
           password: '{{ .Values.global.aweApproverUserPassword }}'
           enabled: true
@@ -1208,6 +1225,8 @@ keycloak-init:
               - "Operations Administrator"
               - "Technical Administrator"
         - username: chipo.banda
+          firstName: Chipo
+          lastName: Banda
           email: chipo.banda@email.com
           password: '{{ .Values.global.aweApproverUserPassword }}'
           enabled: true
@@ -1216,6 +1235,8 @@ keycloak-init:
               - "Operations Administrator"
               - "Technical Administrator"
         - username: tendai.moyo
+          firstName: Tendai
+          lastName: Moyo
           email: tendai.moyo@email.com
           password: '{{ .Values.global.aweApproverUserPassword }}'
           enabled: true
@@ -1224,6 +1245,8 @@ keycloak-init:
               - "Operations Administrator"
               - "Technical Administrator"
         - username: hana.bekele
+          firstName: Hana
+          lastName: Bekele
           email: hana.bekele@email.com
           password: '{{ .Values.global.aweApproverUserPassword }}'
           enabled: true
@@ -1232,6 +1255,8 @@ keycloak-init:
               - "Operations Administrator"
               - "Technical Administrator"
         - username: tesfaye.mekonnen
+          firstName: Tesfaye
+          lastName: Mekonnen
           email: tesfaye.mekonnen@email.com
           password: '{{ .Values.global.aweApproverUserPassword }}'
           enabled: true
@@ -1240,6 +1265,8 @@ keycloak-init:
               - "Operations Administrator"
               - "Technical Administrator"
         - username: mwansa.tembo
+          firstName: Mwansa
+          lastName: Tembo
           email: mwansa.tembo@email.com
           password: '{{ .Values.global.aweApproverUserPassword }}'
           enabled: true
