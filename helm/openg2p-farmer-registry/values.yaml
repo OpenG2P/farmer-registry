@@ -165,6 +165,10 @@ global:
   # registry instance. The extension SQL (awe_meta_data/40_callback_secret.sql.tpl)
   # reads this via the AWE_CALLBACK_SECRET_ID env passed by the db-seed Job.
   aweCallbackSecretId: '{{ .Release.Name }}'
+  # Full staff-portal webhook URL stored in AWE callback_secret.caller_service
+  # and passed to the registry as REGISTRY_STAFF_PORTAL_API_AWE_DEFAULT_CALLBACK_URL.
+  # e.g. https://staff-ofr.nsr.openg2p.org/awe/webhooks/decision
+  aweDefaultCallbackUrl: 'https://staff-{{ tpl .Values.global.registryHostname $ }}/awe/webhooks/decision'
   aweHttpTimeoutSeconds: 30
   aweWebhookTimestampToleranceSeconds: 300
   aweCallbackHmacSecretName: '{{ .Release.Name }}-awe-callback-hmac'
@@ -705,7 +709,7 @@ staffPortalApi:
     REGISTRY_STAFF_PORTAL_API_AWE_ENABLED: '{{ .Values.global.aweEnabled }}'
     REGISTRY_STAFF_PORTAL_API_AWE_BASE_URL: '{{ tpl .Values.global.aweBaseUrl $ }}'
     REGISTRY_STAFF_PORTAL_API_AWE_HTTP_TIMEOUT_SECONDS: '{{ .Values.global.aweHttpTimeoutSeconds }}'
-    REGISTRY_STAFF_PORTAL_API_AWE_DEFAULT_CALLBACK_URL: 'https://staff-{{ tpl .Values.global.registryHostname $ }}/awe/webhooks/decision'
+    REGISTRY_STAFF_PORTAL_API_AWE_DEFAULT_CALLBACK_URL: '{{ tpl .Values.global.aweDefaultCallbackUrl $ }}'
     REGISTRY_STAFF_PORTAL_API_AWE_CALLBACK_SECRET_ID: '{{ tpl .Values.global.aweCallbackSecretId $ }}'
     REGISTRY_STAFF_PORTAL_API_AWE_WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS: '{{ .Values.global.aweWebhookTimestampToleranceSeconds }}'
 
