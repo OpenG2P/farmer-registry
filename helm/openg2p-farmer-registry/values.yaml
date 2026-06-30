@@ -880,6 +880,8 @@ staffPortalUi:
   partnerIngestUrl: 'https://partner-{{ tpl .Values.global.registryHostname $ }}/partner/ingest_data?data_model=dcivc'
   vpPresentationId: "7f3c2a91-bb84-4d1f-9a6e-41c8e5a0d9f2"
   vpPurpose: "Digital identity verification for registry onboarding"
+  # Browser-facing IAM URL (Staff Portal UI login providers)
+  iamPublicUrl: 'https://staff-iam.{{ .Release.Namespace }}.openg2p.org'
 
   envVars:
     # Per-release identifiers so two registry installs in the same namespace
@@ -897,7 +899,7 @@ staffPortalUi:
     # https://staff-<host> hostname (add when needed).
     BACKEND_API_URL: 'http://{{ .Release.Name }}-staff-portal-api'
     COOKIE_DOMAIN: '.{{ .Release.Namespace }}.openg2p.org'
-    IAM_URL: '{{ .Values.global.iamServiceUrl }}'
+    IAM_URL: '{{ tpl .Values.iamPublicUrl $ }}'
     KEYCLOAK_LOGOUT_URL: '{{ tpl .Values.global.keycloakIssuerUrl $ }}/protocol/openid-connect/logout'
     LOGIN_PROVIDER_ID: '1'
     MASTERDATA_BACKEND_API_URL: '{{ .Values.global.masterDataApiUrl }}'
