@@ -60,9 +60,11 @@ COPY docker/db-seed/entrypoint.sh /seed/entrypoint.sh
 COPY docker/db-seed/upload_templates.py /seed/upload_templates.py
 COPY docker/db-seed/upload_images.py /seed/upload_images.py
 COPY docker/db-seed/load_sample_data.py /seed/load_sample_data.py
+COPY docker/db-seed/load_geo_data.py /seed/load_geo_data.py
 RUN chmod +x /seed/entrypoint.sh \
              /seed/upload_templates.py \
              /seed/upload_images.py \
-             /seed/load_sample_data.py
+             /seed/load_sample_data.py \
+             /seed/load_geo_data.py
 
 ENTRYPOINT ["/seed/entrypoint.sh"]
