@@ -305,3 +305,8 @@ questions:
   label: Partner Management Admin URL (e2e seed)
   group: Sanity
   show_if: sanity.runE2e=true
+- variable: global.csrfEnabled
+  description: Enable double-submit CSRF validation on state-changing staff-portal-api requests. Set false for local/dev troubleshooting only.
+  type: boolean
+  label: CSRF Enabled
+  group: Security

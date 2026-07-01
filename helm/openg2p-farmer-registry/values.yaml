@@ -112,6 +112,8 @@ global:
   # Uses the same shared Redis as iam-staff-portal-api (commons-redis-master).
   authRedisInstallationName: 'commons-redis'
   authRefreshTokenTtlSeconds: 1800
+  # Double-submit CSRF validation on state-changing staff-portal-api requests.
+  csrfEnabled: true
 
   # Master Data API internal URL
   masterDataApiUrl: 'http://commons-services-master-data-api'
@@ -704,6 +706,7 @@ staffPortalApi:
     REGISTRY_STAFF_PORTAL_API_AUTH_PROVIDER_API_URL: '{{ .Values.global.iamServiceUrl }}'
     REGISTRY_STAFF_PORTAL_API_AUTH_REDIS_URL: 'redis://{{ tpl .Values.global.authRedisInstallationName $ }}-master:6379/0'
     REGISTRY_STAFF_PORTAL_API_AUTH_REFRESH_TOKEN_TTL_SECONDS: '{{ .Values.global.authRefreshTokenTtlSeconds }}'
+    REGISTRY_STAFF_PORTAL_API_CSRF_ENABLED: '{{ .Values.global.csrfEnabled }}'
     REGISTRY_STAFF_PORTAL_API_KEYCLOAK_CLIENT_ID: '{{ tpl .Values.global.authClientId $ }}'
     REGISTRY_STAFF_PORTAL_API_MINIO_ENDPOINT: '{{ tpl .Values.global.minioHost $ }}'
     REGISTRY_STAFF_PORTAL_API_MINIO_SECURE: '{{ .Values.global.minioSecure }}'
