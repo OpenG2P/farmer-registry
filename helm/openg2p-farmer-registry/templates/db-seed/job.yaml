@@ -75,7 +75,7 @@ spec:
               echo "  celery-worker has no HTTP endpoint; assuming ready after APIs."
               {{- end }}
               echo "All application services are ready."
-              {{- if and .Values.global.aweEnabled (index .Values "openg2p-awe" "enabled") }}
+              {{- if .Values.global.aweEnabled }}
               until wget -qO- --timeout=5 http://{{ include "common.tplvalues.render" (dict "value" .Values.global.aweReleaseName "context" $) }}-awe:80/v1/awe/health >/dev/null 2>&1; do
                 echo "  waiting for awe API..."; sleep 5
               done
