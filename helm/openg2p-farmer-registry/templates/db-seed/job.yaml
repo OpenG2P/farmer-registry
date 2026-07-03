@@ -99,6 +99,23 @@ spec:
                 secretKeyRef:
                   name: {{ include "common.tplvalues.render" (dict "value" .Values.global.registryDBSecret "context" $) | quote }}
                   key: {{ include "common.tplvalues.render" (dict "value" .Values.global.registryDBUserPasswordKey "context" $) | quote }}
+            # Master-data DB — geo reference data is seeded here (see dbSeed.loadGeoData).
+            # master-data is a separate commons release; the registry only holds its creds.
+            - name: MD_PGHOST
+              value: {{ .Values.global.postgresqlHost | quote }}
+            - name: MD_PGPORT
+              value: {{ .Values.global.masterDataDBPort | default 5432 | quote }}
+            - name: MD_PGDATABASE
+              value: {{ include "common.tplvalues.render" (dict "value" .Values.global.masterDataDB "context" $) | quote }}
+            - name: MD_PGUSER
+              value: {{ include "common.tplvalues.render" (dict "value" .Values.global.masterDataDBUser "context" $) | quote }}
+            - name: MD_PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "common.tplvalues.render" (dict "value" .Values.global.masterDataDBSecret "context" $) | quote }}
+                  key: {{ include "common.tplvalues.render" (dict "value" .Values.global.masterDataDBUserPasswordKey "context" $) | quote }}
+            - name: LOAD_GEO_DATA
+              value: {{ .Values.dbSeed.loadGeoData | quote }}
             - name: LOAD_SAMPLE_DATA
               value: {{ .Values.dbSeed.loadSampleData | quote }}
             - name: LOAD_IMAGES

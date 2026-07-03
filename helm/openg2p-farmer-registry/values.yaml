@@ -148,6 +148,12 @@ global:
 # from openg2p-registry-gen2-extensions.
 dbSeed:
   enabled: true
+  # Load geo reference data (country->village hierarchy) into the master_data DB.
+  # master-data is a separate commons release that ships no seed data; geo is
+  # registry reference data, so it is seeded from here into master_data using the
+  # global.masterDataDB* creds. Enable alongside loadSampleData so the geo ids the
+  # registry rows derive resolve in master_data. Idempotent (ON CONFLICT DO NOTHING).
+  loadGeoData: true
   # Load sample/demo data into the registry (disabled by default)
   loadSampleData: true
   # Upload sample profile images (500 colored-initials avatars) to MinIO
@@ -315,7 +321,8 @@ partnerApi:
 
     REGISTRY_PARTNER_API_MINIO_ENDPOINT: '{{ tpl .Values.global.minioHost $ }}'
     REGISTRY_PARTNER_API_MINIO_SECURE: '{{ .Values.global.minioSecure }}'
-    REGISTRY_PARTNER_API_MINIO_BUCKET_NAME: '{{ tpl .Values.global.defaultBucketName $ }}'
+    # Match imageBucketName so partner-served record-image URLs resolve.
+    REGISTRY_PARTNER_API_MINIO_BUCKET_NAME: '{{ tpl .Values.global.imageBucketName $ }}'
     REGISTRY_PARTNER_API_TEMPLATE_BUCKET_NAME: '{{ tpl .Values.global.templateBucketName $ }}'
 
     # OpenG2P Audit Manager integration. No-op unless both AUDIT_ENABLED=true
@@ -636,7 +643,9 @@ staffPortalApi:
     REGISTRY_STAFF_PORTAL_API_KEYCLOAK_CLIENT_ID: '{{ tpl .Values.global.authClientId $ }}'
     REGISTRY_STAFF_PORTAL_API_MINIO_ENDPOINT: '{{ tpl .Values.global.minioHost $ }}'
     REGISTRY_STAFF_PORTAL_API_MINIO_SECURE: '{{ .Values.global.minioSecure }}'
-    REGISTRY_STAFF_PORTAL_API_MINIO_BUCKET_NAME: '{{ tpl .Values.global.defaultBucketName $ }}'
+    # Record images (incl. db-seed uploads) live in imageBucketName; this must
+    # match so staff-portal presigned record-image URLs resolve.
+    REGISTRY_STAFF_PORTAL_API_MINIO_BUCKET_NAME: '{{ tpl .Values.global.imageBucketName $ }}'
     REGISTRY_STAFF_PORTAL_API_TEMPLATE_BUCKET_NAME: '{{ tpl .Values.global.templateBucketName $ }}'
 
     # OpenG2P Audit Manager integration. No-op unless both AUDIT_ENABLED=true

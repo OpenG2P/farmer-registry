@@ -6,12 +6,23 @@ set -e
 #
 # Registry database:
 #   PGHOST, PGPORT, PGDATABASE, PGUSER, PGPASSWORD
-#   LOAD_SAMPLE_DATA — "true" to load sample data (default: "false")
+#   LOAD_SAMPLE_DATA — "true" to load sample data from openg2p-data (default: "false")
+#   LOAD_IMAGES      — "true" to upload profile images to MinIO (default: "false")
 #   LOAD_TEMPLATES   — "true" to upload templates to MinIO (default: "false")
+#   OPENG2P_DATA_DIR — cloned shared seed data (default: /openg2p-data)
 #   MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY — MinIO connection
 #   MINIO_SECURE     — "true" for HTTPS (default: "false")
 #   TEMPLATE_BUCKET_NAME — MinIO bucket (default: "template")
+#   IMAGE_BUCKET_NAME    — MinIO bucket for profile images (default: registrant-photos)
 #   TEMPLATES_DIR    — path to flat .j2 files (default: /seed/templates)
+#
+# Master-data database (geo reference data; the master-data service is a generic
+# commons service and ships no seed data, so geo — which is registry sample /
+# reference data — is loaded here into the master_data DB over the network):
+#   MD_PGHOST, MD_PGPORT, MD_PGDATABASE, MD_PGUSER, MD_PGPASSWORD
+#   LOAD_GEO_DATA — "true" to load the geo hierarchy into master_data (default:
+#                   "false"). Enable alongside LOAD_SAMPLE_DATA so the geo ids the
+#                   registry rows derive already resolve in master_data.
 #
 # AWE database (implementation extension data; optional):
 #   AWE_DB_SEED_ENABLED — "true" to seed the AWE Postgres database
@@ -21,13 +32,14 @@ set -e
 # ──────────────────────────────────────────────────────────────
 
 PGPORT="${PGPORT:-5432}"
+LOAD_GEO_DATA="${LOAD_GEO_DATA:-false}"
 LOAD_SAMPLE_DATA="${LOAD_SAMPLE_DATA:-false}"
+LOAD_IMAGES="${LOAD_IMAGES:-false}"
 LOAD_TEMPLATES="${LOAD_TEMPLATES:-false}"
 AWE_DB_SEED_ENABLED="${AWE_DB_SEED_ENABLED:-false}"
 
 SEED_DIR="/seed"
 META_DATA_DIR="${SEED_DIR}/meta_data"
-SAMPLE_DATA_DIR="${SEED_DIR}/sample_data"
 AWE_META_DATA_DIR="${SEED_DIR}/awe_meta_data"
 
 run_sql_files() {
@@ -84,22 +96,43 @@ echo "============================================="
 echo " OpenG2P Registry DB Seed"
 echo " Extension : ${EXTENSION_FOLDER:-unknown}"
 echo " Registry DB : ${PGDATABASE}@${PGHOST}:${PGPORT}"
+echo " Master DB   : ${MD_PGDATABASE:-unset}@${MD_PGHOST:-unset}:${MD_PGPORT:-5432}"
 echo " AWE DB seed : ${AWE_DB_SEED_ENABLED}"
+echo " Geo data    : ${LOAD_GEO_DATA}"
 echo " Sample data : ${LOAD_SAMPLE_DATA}"
+echo " Images      : ${LOAD_IMAGES}"
 echo " Templates   : ${LOAD_TEMPLATES}"
 echo "============================================="
 
 # 1. Registry meta_data (includes awe-integration mappings under meta_data/)
 run_sql_files "$META_DATA_DIR" "meta-data"
 
-# 2. Optionally run sample data scripts
+# 2. Optionally load geo reference data into the master_data DB. Must run before
+#    sample data so the geo ids derived by load_sample_data.py already resolve.
+if [ "$LOAD_GEO_DATA" = "true" ]; then
+  echo "[db-seed] Loading geo data into master_data ..."
+  python3 /seed/load_geo_data.py
+else
+  echo "[db-seed] Skipping geo data (LOAD_GEO_DATA=${LOAD_GEO_DATA})."
+fi
+
+# 3. Optionally load sample data from openg2p-data (CSV + farmer sub-table JSON)
 if [ "$LOAD_SAMPLE_DATA" = "true" ]; then
-  run_sql_files "$SAMPLE_DATA_DIR" "sample data"
+  echo "[db-seed] Loading sample data from openg2p-data ..."
+  python3 /seed/load_sample_data.py
 else
   echo "[db-seed] Skipping sample data (LOAD_SAMPLE_DATA=${LOAD_SAMPLE_DATA})."
 fi
 
-# 3. Optionally upload Jinja templates to MinIO (object key = filename)
+# 4. Optionally upload profile images to MinIO
+if [ "$LOAD_IMAGES" = "true" ]; then
+  echo "[db-seed] Uploading profile images to MinIO ..."
+  python3 /seed/upload_images.py
+else
+  echo "[db-seed] Skipping image upload (LOAD_IMAGES=${LOAD_IMAGES})."
+fi
+
+# 5. Optionally upload Jinja templates to MinIO (object key = filename)
 if [ "$LOAD_TEMPLATES" = "true" ]; then
   echo "[db-seed] Uploading templates to MinIO ..."
   python3 /seed/upload_templates.py
@@ -107,7 +140,7 @@ else
   echo "[db-seed] Skipping template upload (LOAD_TEMPLATES=${LOAD_TEMPLATES})."
 fi
 
-# 4. Optionally seed AWE database (policies, stages, callback_secret)
+# 6. Optionally seed AWE database (policies, stages, callback_secret)
 if [ "$AWE_DB_SEED_ENABLED" = "true" ]; then
   if [ -z "$AWE_PGDATABASE" ] || [ -z "$AWE_PGHOST" ]; then
     echo "[db-seed] AWE_DB_SEED_ENABLED but AWE DB env incomplete — skipping AWE seed."
