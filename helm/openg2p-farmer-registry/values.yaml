@@ -99,49 +99,45 @@ global:
   auditAnonymousFailures: true
 
   # ---------------------------------------------------------------------------
-  # AWE (Approval Workflow Engine) — installed as part of the Registry platform
-  # via the openg2p-awe subchart. These globals OVERRIDE the awe chart's own
-  # defaults so AWE's resources do NOT collide with the registry's.
+  # AWE (Approval Workflow Engine) — NO LONGER installed by this chart. AWE is
+  # deployed ONCE per environment by commons-services. This registry CONSUMES
+  # that shared instance: it calls AWE's API at aweBaseUrl and registers its own
+  # per-registry callback secret into the shared AWE database (via db-seed + the
+  # awe-callback-hmac-secret template).
   #
-  # IMPORTANT: AWE's chart defaults its DB name / secret to just `<release>`,
-  # which is IDENTICAL to registryDB / registryDBSecret above. Left unchanged,
-  # AWE's postgres-init would create a database and Secret with the same names
-  # as the registry's, clashing on install. We namespace everything with an
-  # `_awe` / `-awe` suffix so the two coexist under one release.
+  # The DB globals below must match the fixed contract commons-services' AWE
+  # exposes (global.aweDB / aweDBUser / aweDBSecret / aweDBUserPasswordKey) so
+  # db-seed can insert this registry's callback_secret row into the shared AWE
+  # DB. The DB-user Secret (`awe-db-user`) is created by commons-services in the
+  # same namespace, so this registry can read it.
   # ---------------------------------------------------------------------------
-  aweHostname: 'awe-{{ .Release.Name }}.{{ .Release.Namespace }}.openg2p.org'
-  aweDB: '{{ printf "%s_awe" .Release.Name | replace "-" "_" }}'
+  # Shared AWE hostname (matches commons-services' awe.<baseDomain>).
+  aweHostname: 'awe.{{ .Release.Namespace }}.openg2p.org'
+  aweDB: awe
   aweDBPort: 5432
-  aweDBUser: '{{ printf "%s_awe_user" .Release.Name | replace "-" "_" }}'
-  aweDBSecret: '{{ .Release.Name }}-awe'
-  aweDBUserPasswordKey: '{{ .Release.Name }}-awe-db-user'
+  aweDBUser: awe_user
+  aweDBSecret: awe-db-user
+  aweDBUserPasswordKey: awe-db-user-password
 
-  # Staff-portal-api AWE client + db-seed AWE database seeding
+  # Staff-portal-api AWE client + db-seed callback-secret registration
   aweEnabled: true
   aweBaseUrl: 'https://{{ tpl .Values.global.aweHostname $ }}'
-  # Callback-secret id — per-release so the id the staff-portal-api presents
+  # Callback-secret id — per-registry so the id the staff-portal-api presents
   # (REGISTRY_STAFF_PORTAL_API_AWE_CALLBACK_SECRET_ID) and the row db-seed
-  # inserts into the AWE `callback_secret` table are unique per registry
-  # instance. The extension SQL (awe_meta_data/40_callback_secret.sql.tpl)
+  # inserts into the shared AWE `callback_secret` table are unique to THIS
+  # registry instance. The extension SQL (awe_meta_data/40_callback_secret.sql.tpl)
   # reads this via the AWE_CALLBACK_SECRET_ID env passed by the db-seed Job.
   aweCallbackSecretId: '{{ .Release.Name }}'
   aweHttpTimeoutSeconds: 30
   aweWebhookTimestampToleranceSeconds: 300
   aweCallbackHmacSecretName: '{{ .Release.Name }}-awe-callback-hmac'
   aweCallbackHmacSecretKey: 'hmac-secret'
+  # NOTE: despite the name, this is the initial Keycloak password for the seeded
+  # demo staff users below (keycloak-init), not an AWE resource. Kept here.
   aweApproverUserPassword: 'Changeme123!'
-  # AWE subchart runs under the same Helm release (service: <release>-awe)
-  aweReleaseName: '{{ .Release.Name }}'
-
-  # AWE admin Keycloak clients — release-scoped so two registry instances in
-  # one namespace each get their own clients + client-secret Secret inside the
-  # shared `staff` realm. The openg2p-awe subchart defaults these to fixed
-  # names (awe-admin-portal / awe-admin-resolver); we override both the globals
-  # (consumed by the AWE backend config + deployment) AND the keycloak-init
-  # realm block below so the produced clients/secret match these names.
-  aweAdminPortalClientId: '{{ .Release.Name }}-awe-admin-portal'
-  aweAdminResolverClientId: '{{ .Release.Name }}-awe-admin-resolver'
-  aweAdminResolverSecretName: '{{ .Release.Name }}-awe-admin-resolver'
+  # Helm release that hosts the shared AWE — its Service is <aweReleaseName>-awe.
+  # Used by db-seed to wait for the AWE API before seeding the callback secret.
+  aweReleaseName: commons-services
 
 # Logging is handled cluster-wide by OpenTelemetry + Grafana Loki (deployed by
 # the platform's infra automation). The OTel agent DaemonSet tails every pod's
@@ -1260,47 +1256,7 @@ idgenerator:
 # Keycloak clients, their client-secret Secret, and the role-mappings unique
 # per registry instance in the shared `staff` realm.
 # ---------------------------------------------------------------------------
-openg2p-awe:
-  enabled: true
-  postgres-init:
-    enabled: true
-    nameOverride: awe-pg-init
-  keycloak-init:
-    enabled: true
-    nameOverride: awe-kc-init
-    # Override the subchart's hardcoded realm clients with release-scoped IDs.
-    # Helm replaces (not merges) list values, so the full client/user set is
-    # reproduced here. Must equal the global.aweAdmin* names above.
-    realms:
-      staff:
-        clients:
-          - clientId: '{{ .Release.Name }}-awe-admin-portal'
-            name: AWE Admin Portal
-            description: OIDC client used by AWE's bundled admin SPA for policy authors.
-            # SPA ⇒ public client with PKCE; no client_secret Secret is created.
-            publicClient: true
-            redirectUris:
-              - 'https://{{ tpl .Values.global.aweHostname $ }}/*'
-            webOrigins: ["+"]
-            clientRoles:
-              - "AWE_ADMIN"
-              - "AWE_VIEWER"
-          - clientId: '{{ .Release.Name }}-awe-admin-resolver'
-            name: AWE Admin Resolver (service account)
-            description: S2S client used by AWE to resolve Keycloak role/group members.
-        users:
-          # `admin` is provisioned by the commons layer; grant it AWE_ADMIN on
-          # this release's portal client so operators can log into the SPA.
-          - username: admin
-            clientRoleMappings:
-              '{{ .Release.Name }}-awe-admin-portal':
-                - "AWE_ADMIN"
-          # Service-account user auto-created by Keycloak for the resolver
-          # client (named service-account-<clientId>); grant the realm-management
-          # reads AWE needs for role/group approver-rule resolution.
-          - username: 'service-account-{{ .Release.Name }}-awe-admin-resolver'
-            clientRoleMappings:
-              realm-management:
-                - "view-users"
-                - "view-clients"
-                - "query-groups"
+# AWE is installed ONCE per environment by commons-services (shared instance).
+# This registry no longer bundles the openg2p-awe subchart or provisions AWE's
+# Keycloak clients — commons-services owns those. See the AWE globals block above
+# for how this registry consumes the shared AWE and registers its callback secret.

@@ -61,10 +61,9 @@ dependencies:
     version: 1.1.1
     repository: https://openg2p.github.io/openg2p-helm
     condition: keycloak-init.enabled
-  - name: openg2p-awe
-    version: 1.0.0
-    repository: https://openg2p.github.io/openg2p-helm
-    condition: openg2p-awe.enabled
+  # AWE is no longer bundled here — it is installed once per environment by
+  # commons-services. This registry consumes that shared instance (see the AWE
+  # globals in values.yaml).
 
 # Rancher catalog branding
 annotations:
