@@ -78,16 +78,16 @@ global:
   # Partner-key crypto backend: partner-mgmt | keymanager | local
   registryCryptoBackend: partner-mgmt
   # Partner Management partner-api — source of partner public keys.
-  partnerManagementApiUrl: 'http://partner-management-partner-api:8000'
+  partnerManagementApiUrl: 'http://partner-management-partner-api:80'
   # Consent Manager partner-api base URL — the /validate PDP endpoint.
-  consentManagerUrl: 'http://consent-manager-partner-api:8000'
+  consentManagerUrl: 'http://consent-manager-partner-api:80'
   consentManagerTimeoutSeconds: 5
   # Used only by the sanity e2e (to seed the shared test partner):
   #  * PM staff-portal-api (onboard + approve the partner key)
   #  * CM staff-portal-api (create the partner binding + policy)
   #  * the CM Keycloak client that holds the CONSENT_MANAGER_ADMIN role
-  partnerManagementAdminApiUrl: 'http://partner-management-staff-portal-api:8000'
-  consentManagerStaffUrl: 'http://consent-manager-api:8000'
+  partnerManagementAdminApiUrl: 'http://partner-management-staff-portal-api:80'
+  consentManagerStaffUrl: 'http://consent-manager-api:80'
   consentManagerAuthClientId: 'consent-manager'
   # OIDC client ID — per-release; MUST equal the clientId in keycloak-init.realms below.
   authClientId: '{{ .Release.Name }}-staff-portal'
