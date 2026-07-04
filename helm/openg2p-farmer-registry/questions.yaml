@@ -49,6 +49,27 @@ questions:
   label: Partner API
   group: General
 
+- variable: global.partnerSignatureValidationEnabled
+  description: Verify the DCI request signature against Partner Management keys (Partner API). Turn ON for production.
+  type: boolean
+  default: false
+  label: Partner API - Verify Partner Signature
+  group: General
+
+- variable: global.consentEnforcementEnabled
+  description: Enforce consent via the Consent Manager before returning data (Partner API), clamping fields to consented scopes. Requires a reachable Consent Manager. Turn ON for production.
+  type: boolean
+  default: false
+  label: Partner API - Enforce Consent
+  group: General
+
+- variable: global.consentManagerUrl
+  description: Consent Manager partner-api base URL (the /validate PDP endpoint) used when consent enforcement is enabled.
+  type: string
+  default: 'http://consent-manager-partner-api:8000'
+  label: Consent Manager URL
+  group: General
+
 - variable: benePortalApi.enabled
   description: Install Beneficiary Portal API
   type: boolean

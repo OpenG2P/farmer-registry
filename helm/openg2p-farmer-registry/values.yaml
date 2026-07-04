@@ -60,6 +60,28 @@ global:
   # Per-release keymanager app id (uppercased Release.Name) so signature
   # scopes don't collide across registry instances in the same environment.
   registryKeymanagerAppId: '{{ .Release.Name | upper }}'
+
+  # ------------------------------------------------------------------
+  # Partner signature verification + Consent Manager (PDP) integration
+  # ------------------------------------------------------------------
+  # The partner-api (a PEP) verifies the DCI envelope signature against partner
+  # public keys served by Partner Management (crypto backend "partner-mgmt"),
+  # and enforces consent by calling the Consent Manager /validate before
+  # returning data — clamping the response to the effective data scopes.
+  #
+  # Two INDEPENDENT kill-switches. Defaulted OFF here so a fresh farmer-registry
+  # install works before CM/PM are wired; turn BOTH ON for production — they
+  # govern real PII egress. When OFF, the bypass is logged and stamped into the
+  # DCI response header meta (signature_validation / consent_enforcement).
+  partnerSignatureValidationEnabled: false
+  consentEnforcementEnabled: false
+  # Partner-key crypto backend: partner-mgmt | keymanager | local
+  registryCryptoBackend: partner-mgmt
+  # Partner Management partner-api — source of partner public keys.
+  partnerManagementApiUrl: 'http://partner-management-partner-api:8000'
+  # Consent Manager partner-api base URL — the /validate PDP endpoint.
+  consentManagerUrl: 'http://consent-manager-partner-api:8000'
+  consentManagerTimeoutSeconds: 5
   # OIDC client ID — per-release; MUST equal the clientId in keycloak-init.realms below.
   authClientId: '{{ .Release.Name }}-staff-portal'
   # K8s Secret name holding the client password (keycloak-init names the
@@ -318,6 +340,15 @@ partnerApi:
     REGISTRY_PARTNER_API_KEYMANAGER_AUTH_CLIENT_ID: '{{ tpl .Values.global.authClientId $ }}'
     REGISTRY_PARTNER_API_KEYMANAGER_SIGN_APP_ID: '{{ tpl .Values.global.registryKeymanagerAppId $ }}'
     REGISTRY_PARTNER_API_KEYMANAGER_SIGN_REF_ID: ""
+
+    # Partner signature verification (transport) + Consent Manager enforcement.
+    # Both default OFF (global.*Enabled) — enable for production PII egress.
+    REGISTRY_PARTNER_API_SIGNATURE_VALIDATION_ENABLED: '{{ .Values.global.partnerSignatureValidationEnabled }}'
+    REGISTRY_PARTNER_API_CONSENT_ENFORCEMENT_ENABLED: '{{ .Values.global.consentEnforcementEnabled }}'
+    REGISTRY_PARTNER_API_CRYPTO_BACKEND: '{{ .Values.global.registryCryptoBackend }}'
+    REGISTRY_PARTNER_API_PARTNER_MGMT_API_URL: '{{ tpl .Values.global.partnerManagementApiUrl $ }}'
+    REGISTRY_PARTNER_API_CONSENT_MANAGER_URL: '{{ tpl .Values.global.consentManagerUrl $ }}'
+    REGISTRY_PARTNER_API_CONSENT_MANAGER_TIMEOUT: '{{ .Values.global.consentManagerTimeoutSeconds }}'
 
     REGISTRY_PARTNER_API_MINIO_ENDPOINT: '{{ tpl .Values.global.minioHost $ }}'
     REGISTRY_PARTNER_API_MINIO_SECURE: '{{ .Values.global.minioSecure }}'
