@@ -82,6 +82,13 @@ global:
   # Consent Manager partner-api base URL — the /validate PDP endpoint.
   consentManagerUrl: 'http://consent-manager-partner-api:8000'
   consentManagerTimeoutSeconds: 5
+  # Used only by the sanity e2e (to seed the shared test partner):
+  #  * PM staff-portal-api (onboard + approve the partner key)
+  #  * CM staff-portal-api (create the partner binding + policy)
+  #  * the CM Keycloak client that holds the CONSENT_MANAGER_ADMIN role
+  partnerManagementAdminApiUrl: 'http://partner-management-staff-portal-api:8000'
+  consentManagerStaffUrl: 'http://consent-manager-api:8000'
+  consentManagerAuthClientId: 'consent-manager'
   # OIDC client ID — per-release; MUST equal the clientId in keycloak-init.realms below.
   authClientId: '{{ .Release.Name }}-staff-portal'
   # K8s Secret name holding the client password (keycloak-init names the
@@ -1291,3 +1298,50 @@ idgenerator:
 # This registry no longer bundles the openg2p-awe subchart or provisions AWE's
 # Keycloak clients — commons-services owns those. See the AWE globals block above
 # for how this registry consumes the shared AWE and registers its callback secret.
+
+# ---------------------------------------------------------------------------
+# Sanity — in-cluster smoke + DCI/consent e2e for the partner-api.
+# ---------------------------------------------------------------------------
+# Runs automatically on every install/upgrade as a post-install/upgrade hook.
+#   runE2e=false (default) → smoke only (partner-api liveness + DCI route). Needs
+#     nothing else — no PM, no CM, no auth, no data created.
+#   runE2e=true → also the signed DCI search round-trip. Seeds the shared sanity
+#     partner into Partner Management (key) and the Consent Manager (binding +
+#     policy) first, then signs a DCI envelope + consent JWS and asserts the
+#     response is permitted and clamped. Needs reachable PM + CM + the seed
+#     clients' Keycloak roles (partner_manager on PM, CONSENT_MANAGER_ADMIN on CM),
+#     and the enforcement switches ON to exercise consent (global.*Enabled).
+sanity:
+  enabled: true
+  image:
+    repository: openg2p/openg2p-farmer-registry-sanity
+    tag: develop
+    pullPolicy: Always
+  # In-cluster partner-api Service URL (no ingress path prefix), :80.
+  partnerBaseUrl: 'http://{{ .Release.Name }}-partner-api'
+  verifyTls: false
+  runE2e: false
+  # false (default) → the Job exits 0 even if tests fail, so a sanity failure
+  #   never fails the install/upgrade (read the pod logs). true → gate the deploy.
+  failOnError: false
+  readinessTimeout: 180
+  # The consent object's audience (== the CM binding audience) + the registry's
+  # controller id (== data_controller). Kept stable so the binding is reused.
+  cmAudience: FR_SANITY_PARTNER
+  controllerId: fr-sanity-controller
+  # DCI envelope sender id — PARTNER_<UPPER> must equal the PM partner reference
+  # (PARTNER_CM_SANITY), i.e. sender "cm_sanity".
+  dciSenderId: cm_sanity
+  regType: Farmer
+  regRecordType: 'spdci-extensions-dci:Farmer'
+  searchText: sanity
+  # Scopes the seeded CM policy allows + the consent object requests. The clamp
+  # is asserted as a strict subset, so this bounds what a record may return.
+  dataScopes: "first_name,last_name,birth_date,gender"
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi

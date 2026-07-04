@@ -1,0 +1,71 @@
+name: Build Sanity Docker Image
+
+# In-cluster sanity suite for the partner-api (smoke + DCI/consent e2e).
+# The image tag equals the current branch name (master/main -> develop).
+on:
+  push:
+    branches:
+      - "**"
+    tags-ignore:
+      - '**'
+    paths:
+      - 'test/sanity/**'
+      - 'docker/sanity/**'
+      - '.github/workflows/docker-build-sanity.yml'
+  workflow_dispatch:
+
+env:
+  NAMESPACE: ${{ secrets.docker_hub_organisation || 'openg2p' }}
+  REGISTRY: docker.io
+
+jobs:
+  build-sanity:
+    name: Build Farmer Registry Sanity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract branch name
+        shell: bash
+        run: |
+          BRANCH_NAME=$(echo ${{ github.ref }} | sed -e 's,.*/\(.*\),\1,')
+          VERSION=$BRANCH_NAME
+          if [[ $BRANCH_NAME == master || $BRANCH_NAME == main ]]; then
+            VERSION=develop
+          fi
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "IMAGE_ID=${{ env.NAMESPACE }}/openg2p-farmer-registry-sanity" >> $GITHUB_ENV
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/sanity/Dockerfile
+          push: false
+          tags: ${{ env.IMAGE_ID }}:${{ env.VERSION }}
+          cache-from: type=gha,scope=sanity
+          cache-to: type=gha,mode=max,scope=sanity
+
+      - name: Login to Docker Hub
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.docker_hub_actor }}
+          password: ${{ secrets.docker_hub_token }}
+
+      - name: Push Docker image
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/sanity/Dockerfile
+          push: true
+          tags: ${{ env.IMAGE_ID }}:${{ env.VERSION }}
+          cache-from: type=gha,scope=sanity
+          cache-to: type=gha,mode=max,scope=sanity

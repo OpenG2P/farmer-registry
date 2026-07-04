@@ -237,3 +237,58 @@ Render Env values section
 {{- $envVars := merge (deepCopy .Values.envVars) (deepCopy .Values.envVarsFrom) -}}
 {{- include "staffPortalUi.baseEnvVars" (dict "envVars" $envVars "context" $) }}
 {{- end -}}
+
+{{/*
+Sanity suite env — shared by the pm-seed, cm-seed, and test Jobs.
+*/}}
+{{- define "farmerRegistrySanity.env" -}}
+- name: SANITY_PARTNER_BASE_URL
+  value: {{ tpl .Values.sanity.partnerBaseUrl $ | quote }}
+- name: SANITY_VERIFY_TLS
+  value: {{ .Values.sanity.verifyTls | quote }}
+- name: SANITY_RUN_E2E
+  value: {{ .Values.sanity.runE2e | quote }}
+- name: SANITY_FAIL_ON_ERROR
+  value: {{ .Values.sanity.failOnError | quote }}
+- name: SANITY_READINESS_TIMEOUT
+  value: {{ .Values.sanity.readinessTimeout | quote }}
+- name: SANITY_CONTROLLER_ID
+  value: {{ .Values.sanity.controllerId | quote }}
+- name: SANITY_CM_AUDIENCE
+  value: {{ .Values.sanity.cmAudience | quote }}
+- name: SANITY_DCI_SENDER_ID
+  value: {{ .Values.sanity.dciSenderId | quote }}
+- name: SANITY_DCI_RECEIVER_ID
+  value: {{ .Release.Name | quote }}
+- name: SANITY_DCI_REG_TYPE
+  value: {{ .Values.sanity.regType | quote }}
+- name: SANITY_DCI_REG_RECORD_TYPE
+  value: {{ .Values.sanity.regRecordType | quote }}
+- name: SANITY_DCI_SEARCH_TEXT
+  value: {{ .Values.sanity.searchText | quote }}
+- name: SANITY_DATA_SCOPES
+  value: {{ .Values.sanity.dataScopes | quote }}
+# Partner Management — key servability check + admin seed (staff-portal-api).
+- name: SANITY_PM_PARTNER_API_URL
+  value: {{ tpl .Values.global.partnerManagementApiUrl $ | quote }}
+- name: SANITY_PM_ADMIN_URL
+  value: {{ tpl .Values.global.partnerManagementAdminApiUrl $ | quote }}
+# Consent Manager — staff-portal-api (binding+policy seed) + admin token.
+- name: SANITY_CM_STAFF_URL
+  value: {{ tpl .Values.global.consentManagerStaffUrl $ | quote }}
+- name: SANITY_CM_AUTH_ENABLED
+  value: "true"
+- name: SANITY_CM_TOKEN_URL
+  value: "{{ tpl .Values.global.keycloakIssuerUrl $ }}/protocol/openid-connect/token"
+- name: SANITY_CM_CLIENT_ID
+  value: {{ tpl .Values.global.consentManagerAuthClientId $ | quote }}
+# The CM Keycloak client's secret. Must hold CONSENT_MANAGER_ADMIN (for the CM
+# binding) and partner_manager (for the PM key seed — pm_seed falls back to
+# these creds). Optional: absent → the e2e seed is skipped, not failed.
+- name: SANITY_CM_CLIENT_SECRET
+  valueFrom:
+    secretKeyRef:
+      name: {{ tpl .Values.global.consentManagerAuthClientId $ | quote }}
+      key: client_secret
+      optional: true
+{{- end -}}
