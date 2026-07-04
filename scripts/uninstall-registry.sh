@@ -11,7 +11,8 @@
 #   1. helm uninstall <release>            (registry workloads, services,
 #                                           helm-owned secrets & configmaps)
 #   2. Delete leftover Jobs + their Pods   (helm hook jobs like db-seed,
-#                                           keycloak-init, postgres-init
+#                                           keycloak-init, postgres-init, and the
+#                                           sanity jobs (pm-seed, cm-seed, sanity)
 #                                           keep themselves around via
 #                                           hook-delete-policy: before-hook-creation)
 #   3. Sweep leftover Secrets/ConfigMaps   (label: app.kubernetes.io/instance)
@@ -25,6 +26,13 @@
 #   6. Delete PVCs by label                (app.kubernetes.io/instance)
 #   7. Delete PVs still bound to those PVCs
 #      (typically `Released` PVs created with reclaimPolicy=Retain)
+#
+# NOT removed (by design): the sanity e2e seeds a SHARED, persistent test partner
+# into Partner Management (PARTNER_CM_SANITY key) and a binding+policy into the
+# Consent Manager (FR_SANITY_PARTNER). Those live in PM's / CM's own databases —
+# not in this registry's release or DBs — and are intentionally left in place:
+# PARTNER_CM_SANITY is shared with the Consent Manager's own sanity, and CM
+# partner-delete is soft (audit integrity). Remove them via PM/CM if desired.
 #
 # Requires: kubectl (cluster admin), helm, bash 4+.
 #
