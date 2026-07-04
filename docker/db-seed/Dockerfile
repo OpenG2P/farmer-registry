@@ -29,7 +29,7 @@ ENV GIT_COMMIT=${GIT_COMMIT} \
     EXTENSION_FOLDER=${EXTENSION_FOLDER} \
     OPENG2P_DATA_DIR=/openg2p-data
 
-RUN apk add --no-cache python3 py3-pip git gettext
+RUN apk add --no-cache python3 py3-pip py3-psycopg2 git gettext
 
 COPY docker/db-seed/requirements.txt /tmp/requirements.txt
 RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt && \

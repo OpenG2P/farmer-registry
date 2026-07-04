@@ -1,2 +1,6 @@
 minio==7.2.15
-psycopg2-binary==2.9.9
+# psycopg2 is installed from the Alpine package `py3-psycopg2` in the Dockerfile
+# (apk), NOT via pip. On postgres:16-alpine (musl + Python 3.14) there is no
+# psycopg2 / psycopg2-binary wheel, so pip would try to compile from source and
+# fail with "cc: No such file or directory". The apk package is prebuilt against
+# the system libpq — no compiler needed.
