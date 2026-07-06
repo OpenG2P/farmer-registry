@@ -77,14 +77,14 @@ questions:
 - variable: global.partnerManagementApiUrl
   description: Partner Management partner-api base URL — source of partner public keys used to verify DCI signatures and consent objects.
   type: string
-  default: 'http://partner-management-partner-api:80'
+  default: 'http://commons-services-pm-partner-api'
   label: Partner Management URL
   group: Consent & Partner API
 
 - variable: global.consentManagerUrl
   description: Consent Manager partner-api base URL (the /validate PDP endpoint) used when consent enforcement is enabled.
   type: string
-  default: 'http://consent-manager-partner-api:80'
+  default: 'http://consent-manager-partner-api'
   label: Consent Manager URL
   group: Consent & Partner API
 
@@ -293,7 +293,7 @@ questions:
 - variable: global.consentManagerStaffUrl
   description: Consent Manager staff-portal-api base URL — used only by the sanity e2e to seed the test partner's binding + policy.
   type: string
-  default: 'http://consent-manager-api:80'
+  default: 'http://consent-manager-api'
   label: Consent Manager Staff URL (e2e seed)
   group: Sanity
   show_if: sanity.runE2e=true
@@ -301,7 +301,7 @@ questions:
 - variable: global.partnerManagementAdminApiUrl
   description: Partner Management staff-portal-api base URL — used only by the sanity e2e to onboard + approve the test partner's key.
   type: string
-  default: 'http://partner-management-staff-portal-api:80'
+  default: 'http://commons-services-pm-staff-portal-api'
   label: Partner Management Admin URL (e2e seed)
   group: Sanity
   show_if: sanity.runE2e=true
