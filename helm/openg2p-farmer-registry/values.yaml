@@ -91,6 +91,11 @@ global:
   partnerManagementAdminApiUrl: 'http://commons-services-pm-staff-portal-api'
   consentManagerStaffUrl: 'http://consent-manager-api'
   consentManagerAuthClientId: 'consent-manager'
+  # Keycloak client the sanity seed authenticates AS to call PM's admin API — it
+  # holds PM's `partner_manager` role. PM provisions it as `<pm-release>-staff-portal`
+  # with its secret in a Secret of the same name (key client_secret). In the
+  # commons install that is `commons-services-staff-portal` (matches g2p-bridge).
+  pmSeedClientId: 'commons-services-staff-portal'
   # OIDC client ID — per-release; MUST equal the clientId in keycloak-init.realms below.
   authClientId: '{{ .Release.Name }}-staff-portal'
   # K8s Secret name holding the client password (keycloak-init names the
