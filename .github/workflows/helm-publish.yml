@@ -31,6 +31,14 @@ on:
         required: false
         type: string
 
+# Serialise this repo's publishes so a burst of commits doesn't race its own
+# runs on the shared openg2p-helm gh-pages branch. (Cross-repo races with other
+# services publishing to the same branch are handled by the rebase-pull in the
+# commit step below.)
+concurrency:
+  group: helm-publish-gh-pages
+  cancel-in-progress: false
+
 jobs:
   generate-charts:
     runs-on: ubuntu-latest
@@ -192,4 +200,7 @@ jobs:
           default_author: user_info
           message: 'added farmer-registry helm charts for publish openg2p/farmer-registry@${{ github.sha }}'
           add: './*.tgz ./index.yaml rancher/index.yaml'
+          # Rebase onto the latest gh-pages before pushing so a concurrent publish
+          # from ANOTHER repo doesn't cause a non-fast-forward rejection.
+          pull: '--rebase --autostash'
         if: env.SKIP != 'TRUE'
