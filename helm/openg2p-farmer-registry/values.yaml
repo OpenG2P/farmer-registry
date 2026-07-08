@@ -81,15 +81,16 @@ global:
   # part of commons-services (service name commons-services-pm-*), matching the
   # g2p-bridge chart. Port 80 is implicit (bare hostname).
   partnerManagementApiUrl: 'http://commons-services-pm-partner-api'
-  # Consent Manager partner-api base URL — the /validate PDP endpoint.
-  consentManagerUrl: 'http://consent-manager-partner-api'
+  # Consent Manager partner-api base URL — the /validate PDP endpoint. CM is now
+  # part of commons-services (service name commons-services-cm-*), matching PM.
+  consentManagerUrl: 'http://commons-services-cm-partner-api'
   consentManagerTimeoutSeconds: 5
   # Used only by the sanity e2e (to seed the shared test partner):
   #  * PM staff-portal-api (onboard + approve the partner key)
   #  * CM staff-portal-api (create the partner binding + policy)
   #  * the CM Keycloak client that holds the CONSENT_MANAGER_ADMIN role
   partnerManagementAdminApiUrl: 'http://commons-services-pm-staff-portal-api'
-  consentManagerStaffUrl: 'http://consent-manager-api'
+  consentManagerStaffUrl: 'http://commons-services-cm-api'
   consentManagerAuthClientId: 'consent-manager'
   # Keycloak client the sanity seed authenticates AS to call PM's admin API — it
   # holds PM's `partner_manager` role. PM provisions it as `<pm-release>-staff-portal`

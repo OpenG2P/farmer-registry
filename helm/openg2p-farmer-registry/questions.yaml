@@ -84,7 +84,7 @@ questions:
 - variable: global.consentManagerUrl
   description: Consent Manager partner-api base URL (the /validate PDP endpoint) used when consent enforcement is enabled.
   type: string
-  default: 'http://consent-manager-partner-api'
+  default: 'http://commons-services-cm-partner-api'
   label: Consent Manager URL
   group: Consent & Partner API
 
@@ -293,7 +293,7 @@ questions:
 - variable: global.consentManagerStaffUrl
   description: Consent Manager staff-portal-api base URL — used only by the sanity e2e to seed the test partner's binding + policy.
   type: string
-  default: 'http://consent-manager-api'
+  default: 'http://commons-services-cm-api'
   label: Consent Manager Staff URL (e2e seed)
   group: Sanity
   show_if: sanity.runE2e=true
