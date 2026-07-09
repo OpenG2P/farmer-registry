@@ -205,15 +205,16 @@ dbSeed:
     pullPolicy: Always
 
   # DB Seed runs as a one-shot Helm post-install/post-upgrade hook Job.
-  # It's just psql replaying SQL scripts — minimal footprint, but the
-  # configuration meta-data load can briefly spike memory parsing larger
-  # files (especially variant extensions with sample data). Limit raised
-  # to 256Mi to safely cover larger seed SQL bundles; request 64Mi reflects
-  # the tiny psql baseline.
+  # It's just psql replaying SQL scripts plus a one-shot python upload of the
+  # sample images to MinIO — minimal footprint. Request 128Mi covers the psql
+  # + upload baseline; the 512Mi limit is a generous runaway cap for larger
+  # seed bundles (no cpu limit — see staffPortalApi rationale).
   resources:
     requests:
       cpu: 50m
-      memory: 64Mi
+      memory: 128Mi
+    limits:
+      memory: 512Mi
 
 # ---------------------------------------------------------------------------
 # IAM registration — self-registers this registry into the IAM staff portal.
@@ -244,10 +245,15 @@ iamRegister:
   # Internal retry attempts (×5s) while the Keycloak client / IAM finish coming up.
   tokenMaxAttempts: 30
   registerMaxAttempts: 10
+  # Tiny one-shot hook Job (token fetch + IAM self-register). Request 64Mi
+  # covers the baseline; 128Mi limit is a generous cap (no cpu limit — see
+  # staffPortalApi rationale).
   resources:
     requests:
       cpu: 25m
-      memory: 32Mi
+      memory: 64Mi
+    limits:
+      memory: 128Mi
 
 postgres-init:
   enabled: true
@@ -275,12 +281,17 @@ partnerApi:
   hostname: 'partner-{{ tpl .Values.global.registryHostname $ }}'
 
   replicaCount: 1
+  # HPA enabled: with 3 workers per pod (below), scale is horizontal. CPU-based
+  # only — memory-based HPA is disabled (null target) because Python RSS does
+  # not shrink after a spike, so a memory target would scale up and never scale
+  # back down. Raise minReplicas to 2+ for HA in production; tune targetCPU and
+  # maxReplicas against a load test.
   autoscaling:
-    enabled: false
+    enabled: true
     minReplicas: 1
-    maxReplicas: 10
-    targetCPUUtilizationPercentage: 80
-    targetMemoryUtilizationPercentage: 80
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: null
   updateStrategy:
     type: RollingUpdate
   serviceAccount:
@@ -332,6 +343,11 @@ partnerApi:
         credentialName: ""
 
   envVars:
+    # gunicorn/uvicorn worker count (overrides the image default). Fewer workers
+    # = smaller, more predictable per-pod memory; scale horizontally via the HPA
+    # above rather than many workers per pod. Bump this per-environment if
+    # concurrent blocking-DB throughput needs it — no image rebuild required.
+    PARTNER_NO_OF_WORKERS: "3"
     REGISTRY_PARTNER_API_DB_HOSTNAME: '{{ .Values.global.postgresqlHost }}'
     REGISTRY_PARTNER_API_DB_DBNAME: '{{ tpl .Values.global.registryDB $ }}'
     REGISTRY_PARTNER_API_DB_PORT: '{{ .Values.global.registryDBPort }}'
@@ -454,16 +470,19 @@ partnerApi:
 
   containerPort: 8000
 
-  # Partner API is a FastAPI process that handles partner ingestion calls.
-  # Memory profile is steady-state low (~150-200Mi idle), with significant
-  # spikes during bulk ingest of partner records (large multipart payloads,
-  # deserialised into Python objects, then chunked and queued via Celery).
-  # Limit raised to 1Gi to absorb peak ingest bursts (lesser value was causing
-  # OOM); request 256Mi gives the scheduler a realistic footprint to plan around.
+  # Partner API is a FastAPI process handling partner ingestion calls. Worker
+  # count is now 3 (PARTNER_NO_OF_WORKERS in envVars below), reduced from 8 to
+  # make memory predictable and shift scale to HPA (enabled above). Sizing
+  # mirrored from NSR (same platform/worker profile, measured there): ~500Mi
+  # estimated at 3 workers, with spikes during bulk ingest. Request 640Mi /
+  # 1.25Gi limit (no cpu limit — see staffPortalApi rationale). ESTIMATE for 3
+  # workers — verify with `kubectl top pod` after the first rollout.
   resources:
     requests:
       cpu: 50m
-      memory: 256Mi
+      memory: 640Mi
+    limits:
+      memory: 1280Mi
 
 benePortalApi:
   enabled: false
@@ -602,28 +621,33 @@ benePortalApi:
 
   containerPort: 8000
 
-  # Beneficiary Portal API is a FastAPI process serving the beneficiary
-  # self-service portal. Workload profile mirrors Partner API: low
-  # baseline, per-request bursts. Same envelope as Partner API (256Mi
-  # requested / 768Mi limit) for predictability across the three API pods.
-  # Disabled by default (enabled: false above) — sizing assumes it will
-  # be turned on in production deployments that surface a beneficiary UI.
+  # Beneficiary Portal API is a FastAPI process (same profile as Partner API)
+  # serving the beneficiary self-service portal. Disabled by default (enabled:
+  # false above); no live measurement, so it mirrors Partner API's 3-worker
+  # envelope (640Mi request / 1.25Gi limit). No cpu limit (see staffPortalApi).
   resources:
     requests:
       cpu: 50m
-      memory: 256Mi
+      memory: 640Mi
+    limits:
+      memory: 1280Mi
 
 staffPortalApi:
   enabled: true
   nameOverride: staff-portal-api
   hostname: 'staff-{{ tpl .Values.global.registryHostname $ }}'
   replicaCount: 1
+  # HPA enabled: with 3 workers per pod (below), scale is horizontal. CPU-based
+  # only — memory-based HPA is disabled (null target) because Python RSS does
+  # not shrink after a spike, so a memory target would scale up and never scale
+  # back down. Raise minReplicas to 2+ for HA in production; tune targetCPU and
+  # maxReplicas against a load test.
   autoscaling:
-    enabled: false
+    enabled: true
     minReplicas: 1
-    maxReplicas: 10
-    targetCPUUtilizationPercentage: 80
-    targetMemoryUtilizationPercentage: 80
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: null
   updateStrategy:
     type: RollingUpdate
   serviceAccount:
@@ -672,6 +696,11 @@ staffPortalApi:
         credentialName: ""
 
   envVars:
+    # gunicorn/uvicorn worker count (overrides the image default). Fewer workers
+    # = smaller, more predictable per-pod memory; scale horizontally via the HPA
+    # above rather than many workers per pod. Bump this per-environment if
+    # concurrent blocking-DB throughput needs it — no image rebuild required.
+    STAFF_PORTAL_NO_OF_WORKERS: "3"
     REGISTRY_STAFF_PORTAL_API_DB_HOSTNAME: '{{ .Values.global.postgresqlHost }}'
     REGISTRY_STAFF_PORTAL_API_DB_DBNAME: '{{ tpl .Values.global.registryDB $ }}'
     REGISTRY_STAFF_PORTAL_API_DB_PORT: '{{ .Values.global.registryDBPort }}'
@@ -779,16 +808,22 @@ staffPortalApi:
   containerPort: 8000
 
   # Staff Portal API is the primary read-write FastAPI for registry staff
-  # operations — handles registrant CRUD, lookup, search, intake validation,
-  # and MinIO pre-signed URL generation. Heavier than Partner API because
-  # search/listing endpoints can return larger result sets and the entire
-  # page of results is materialised as Python objects (typically 3-4x the
-  # JSON size). Limit raised to 1Gi to absorb large listing spikes safely;
-  # request 256Mi reflects steady-state baseline.
+  # operations (registrant CRUD, lookup, search, intake validation, MinIO
+  # pre-signed URLs). Worker count is now 3 (STAFF_PORTAL_NO_OF_WORKERS in
+  # envVars below), reduced from 8 to make memory predictable and shift scale
+  # to HPA (enabled above). Sizing mirrored from NSR (measured there): ~570Mi
+  # estimated at 3 workers; search/listing spikes as result pages materialise
+  # as Python objects. Request 768Mi / 1.5Gi limit — a GENEROUS runaway cap,
+  # NOT a right-size (no cpu limit: CPU is compressible, a cpu limit only
+  # throttles latency and never prevents OOM; memory limits protect the node
+  # from a single runaway pod). ESTIMATE for 3 workers — verify with
+  # `kubectl top pod` after the first rollout.
   resources:
     requests:
       cpu: 50m
-      memory: 256Mi
+      memory: 768Mi
+    limits:
+      memory: 1536Mi
 
 staffPortalUi:
   enabled: true
@@ -825,16 +860,17 @@ staffPortalUi:
 
   containerPort: 3000
 
-  # Staff Portal UI is a Next.js SSR app. Node + SSR rendering keeps RSS
-  # around 200-300Mi steady-state but Node's V8 heap can balloon on cold
-  # start (JIT warmup), large page pre-render, or many concurrent SSR
-  # requests. 512Mi proved tight under load — raised limit to 1Gi which
-  # matches typical Next.js production sizing. CPU is mostly idle between
-  # user actions — 50m request is enough; bursts handled by un-capped limit.
+  # Staff Portal UI is a Next.js SSR app. Node's V8 heap can balloon on cold
+  # start (JIT warmup), large page pre-render, or concurrent SSR. Sizing
+  # mirrored from NSR (~67Mi idle measured there): request 192Mi covers the
+  # baseline with headroom; 768Mi limit is a generous cap matching typical
+  # Next.js production sizing (no cpu limit — see staffPortalApi rationale).
   resources:
     requests:
       cpu: 50m
-      memory: 256Mi
+      memory: 192Mi
+    limits:
+      memory: 768Mi
 
   istio:
     enabled: true
@@ -936,15 +972,17 @@ celeryBeatProducer:
   # Celery Beat Producer is NOT just a scheduler in this chart — it also
   # does batch enqueueing (REGISTRY_CELERY_BEAT_BATCH_SIZE=2000,
   # NO_OF_TASKS_TO_PROCESS=4 above). Each tick pulls up to 2000 records,
-  # holds them in memory while creating up to 4 parallel task envelopes,
-  # and dispatches to Redis. Python record objects + SQLAlchemy session +
-  # Celery imports easily exceed 256Mi under load — observed OOM at that
-  # limit. 768Mi gives ~3x headroom over a fully-loaded tick. Lower the
-  # BATCH_SIZE or NO_OF_TASKS_TO_PROCESS knobs if you need to shrink this.
+  # holds them in memory while creating up to 4 parallel task envelopes, and
+  # dispatches to Redis. Sizing mirrored from NSR (~500Mi idle measured there):
+  # request 640Mi reflects the real footprint; 1.5Gi limit is a generous cap
+  # (no cpu limit — see staffPortalApi rationale). Lower BATCH_SIZE or
+  # NO_OF_TASKS_TO_PROCESS if you need to shrink the per-tick memory.
   resources:
     requests:
       cpu: 20m
-      memory: 256Mi
+      memory: 640Mi
+    limits:
+      memory: 1536Mi
 
   envVars:
     REGISTRY_CELERY_BEAT_DB_HOSTNAME: '{{ .Values.global.postgresqlHost }}'
@@ -1010,18 +1048,19 @@ celeryWorker:
 
   # Celery Worker is the largest variable-load component in the chart. It
   # processes async tasks (bulk partner ingest, data transformation,
-  # classification) — RSS can sit at ~200Mi idle but spike well past 1Gi
-  # when crunching large CSV ingests or running classification on big
-  # batches. Limit at 1.5Gi gives headroom for the worst observed peak
-  # plus the same per-tick batch shape as the beat producer; request
-  # 768Mi reserves enough that the scheduler doesn't over-pack workers
-  # onto a node. CPU request 100m (10% core) reflects active processing
-  # baseline; bursts allowed up to node capacity. If workloads grow,
-  # prefer horizontal scaling (replicaCount) before raising per-pod limits.
+  # classification) — memory spikes well past 1Gi when crunching large CSV
+  # ingests or classifying big batches (2000-row batches held in memory).
+  # Sizing mirrored from NSR (~600Mi idle measured there): request 1Gi reserves
+  # the real footprint so the scheduler doesn't over-pack workers onto a node;
+  # 2.5Gi limit is a generous runaway cap for the worst batch peak (no cpu
+  # limit — see staffPortalApi rationale). If ingests OOM at the cap, lower
+  # REGISTRY_CELERY_WORKERS_BATCH_SIZE or scale out replicaCount.
   resources:
     requests:
       cpu: 100m
-      memory: 768Mi
+      memory: 1Gi
+    limits:
+      memory: 2560Mi
 
   envVars:
     REGISTRY_CELERY_WORKERS_DB_HOSTNAME: '{{ .Values.global.postgresqlHost }}'

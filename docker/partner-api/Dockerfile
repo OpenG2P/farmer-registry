@@ -18,7 +18,9 @@ ENV PYTHONUNBUFFERED=1
 ENV PARTNER_WORKER_TYPE=gunicorn
 ENV PARTNER_HOST=0.0.0.0
 ENV PARTNER_PORT=8000
-ENV PARTNER_NO_OF_WORKERS=8
+# Default worker count kept low (3) for predictable memory; the Helm chart
+# overrides this per-deployment via PARTNER_NO_OF_WORKERS in envVars.
+ENV PARTNER_NO_OF_WORKERS=3
 
 # Use module path for migrate and Gunicorn WSGI app
 CMD python3 -m openg2p_registry_partner_api.main migrate; \

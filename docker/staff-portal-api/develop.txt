@@ -10,5 +10,5 @@ git://develop//https://github.com/openg2p/openg2p-fastapi-common#subdirectory=op
 # Core
 git://develop//https://github.com/openg2p/openg2p-iam-service#subdirectory=iam-core
 # Consolidated registry-platform repo — core + apis now live in subdirectories.
-git://v1.0.0//https://github.com/openg2p/registry-platform#subdirectory=core/openg2p-registry-core
-git://v1.0.0//https://github.com/openg2p/registry-platform#subdirectory=apis/openg2p-registry-staff-portal-api
+git://develop//https://github.com/openg2p/registry-platform#subdirectory=core/openg2p-registry-core
+git://develop//https://github.com/openg2p/registry-platform#subdirectory=apis/openg2p-registry-staff-portal-api
