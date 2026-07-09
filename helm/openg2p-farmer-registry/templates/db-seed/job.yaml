@@ -142,6 +142,8 @@ spec:
             {{- if .Values.global.aweEnabled }}
             - name: AWE_CALLBACK_SECRET_ID
               value: {{ tpl .Values.global.aweCallbackSecretId $ | quote }}
+            - name: AWE_CALLBACK_CALLER_SERVICE
+              value: {{ tpl .Values.global.aweDefaultCallbackUrl $ | quote }}
             - name: AWE_CALLBACK_HMAC_SECRET
               valueFrom:
                 secretKeyRef:
