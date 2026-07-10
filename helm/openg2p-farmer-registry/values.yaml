@@ -37,14 +37,14 @@ global:
   # file to match their actual base domain. NOTE: `minio.<basedomain>` is
   # the *Console* UI — do NOT point S3 clients at it.
   minioHost: 'minio-api.{{ .Release.Namespace }}.openg2p.org'
-  # MinIO buckets — per-release so two registry instances in the same
-  # namespace don't share object namespaces. The db-seed image auto-creates
-  # missing buckets on first run (see docker/db-seed/upload_templates.py).
-  defaultBucketName: '{{ .Release.Name }}-default'
-  templateBucketName: '{{ .Release.Name }}-template'
-  # Per-release so two registry instances in one namespace don't share the
-  # registrant-photos bucket (consumed by db-seed's image upload via tpl).
-  imageBucketName: '{{ .Release.Name }}-registrant-photos'
+  # MinIO buckets — hard-set to match DocumentBucket enum values used by
+  # the platform document handler (physical bucket name == enum value).
+  # Catalog rows store bucket as 'templates' / 'documents' / 'default'.
+  defaultBucketName: 'default'
+  templateBucketName: 'templates'
+  # Registrant photos / record images land in the documents bucket and are
+  # catalogued in g2p_registry_documents (see docker/db-seed/upload_images.py).
+  imageBucketName: 'documents'
   minioSecure: true
 
   # Security & Authentication
@@ -194,7 +194,7 @@ dbSeed:
   # Load sample/demo data into the registry (disabled by default)
   loadSampleData: true
   # Upload sample profile images (500 colored-initials avatars) to MinIO
-  # and update g2p_register_individuals.record_image_storage_id. Requires
+  # and update g2p_register_farmers.record_image_document_id. Requires
   # loadSampleData=true (individuals must exist first).
   loadImages: true
   # Upload flat Jinja templates from the db-seed image to MinIO after SQL seed
@@ -551,14 +551,7 @@ benePortalApi:
 
     REGISTRY_BENE_PORTAL_API_MINIO_ENDPOINT: '{{ tpl .Values.global.minioHost $ }}'
     REGISTRY_BENE_PORTAL_API_MINIO_SECURE: '{{ .Values.global.minioSecure }}'
-    # TODO: bene-portal-api is disabled by default for NSR, so this hardcoded
-    # bucket isn't biting today — but it (a) doesn't follow the per-release
-    # bucket naming the other components use (global.defaultBucketName /
-    # global.templateBucketName) and (b) uses the plural "templates" while
-    # the rest of the chart standardised on singular "template". When/if
-    # bene-portal is enabled, switch to:
-    #   '{{ tpl .Values.global.templateBucketName $ }}'
-    # so two registry instances in the same namespace don't share buckets.
+    # DocumentBucket.TEMPLATES hard-sets the physical bucket to "templates".
     REGISTRY_BENE_PORTAL_API_MINIO_BUCKET_NAME: "templates"
   envVarsFrom:
     REGISTRY_BENE_PORTAL_API_DB_PASSWORD:
