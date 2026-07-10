@@ -38,6 +38,26 @@
       "active": true
     },
     {
+      "permission_mnemonic": "verificationIntakeForm:create",
+      "permission_description": "verificationIntakeForm:create",
+      "active": true
+    },
+    {
+      "permission_mnemonic": "verificationIntakeForm:view",
+      "permission_description": "verificationIntakeForm:view",
+      "active": true
+    },
+    {
+      "permission_mnemonic": "verificationChangeRequest:view",
+      "permission_description": "verificationChangeRequest:view",
+      "active": true
+    },
+    {
+      "permission_mnemonic": "verificationChangeRequest:create",
+      "permission_description": "verificationChangeRequest:create",
+      "active": true
+    },
+    {
       "permission_mnemonic": "registerHistory:view",
       "permission_description": "registerHistory:view",
       "active": true
@@ -354,7 +374,6 @@
       "role_description": "Operations role - Handles initial data entry and submission of new records into the registry.",
       "active": true,
       "permissions": [
-        "intakeFormDefinition:edit",
         "intakeFormDefinition:view",
         "intakeSubmission:edit",
         "intakeSubmission:view"
@@ -365,10 +384,11 @@
       "role_description": "Operations role - Validates and verifies the accuracy of newly submitted intake records before further processing.",
       "active": true,
       "permissions": [
-        "intakeFormDefinition:edit",
         "intakeFormDefinition:view",
         "intakeSubmission:approve",
-        "intakeSubmission:view"
+        "intakeSubmission:view",
+        "verificationIntakeForm:create",
+        "verificationIntakeForm:view"
       ]
     },
     {
@@ -398,7 +418,9 @@
         "registerDefinition:view",
         "registerHistory:view",
         "registerSection:view",
-        "registerTab:view"
+        "registerTab:view",
+        "verificationChangeRequest:create",
+        "verificationChangeRequest:view"
       ]
     },
     {
@@ -413,7 +435,8 @@
         "registerHistory:view",
         "registerScore:view",
         "registerSection:view",
-        "registerTab:view"
+        "registerTab:view",
+        "verificationChangeRequest:view"
       ]
     },
     {
@@ -443,7 +466,11 @@
         "registerDefinition:view",
         "registerHistory:view",
         "registerSection:view",
-        "registerTab:view"
+        "registerTab:view",
+        "verificationChangeRequest:create",
+        "verificationChangeRequest:view",
+        "verificationIntakeForm:create",
+        "verificationIntakeForm:view"
       ]
     },
     {
@@ -555,8 +582,11 @@
         "ingestTemplate:create",
         "ingestTemplate:delete",
         "ingestTemplate:edit",
+        "ingestTemplate:view",
         "intakeFormDefinition:edit",
         "intakeFormDefinition:view",
+        "intakeSubmission:approve",
+        "intakeSubmission:edit",
         "intakeSubmission:view",
         "outgestTemplate:create",
         "outgestTemplate:delete",
@@ -590,7 +620,11 @@
         "registerTab:edit",
         "registerTab:view",
         "registryConfiguration:edit",
-        "registryConfiguration:view"
+        "registryConfiguration:view",
+        "verificationChangeRequest:create",
+        "verificationChangeRequest:view",
+        "verificationIntakeForm:create",
+        "verificationIntakeForm:view"
       ]
     }
   ]
