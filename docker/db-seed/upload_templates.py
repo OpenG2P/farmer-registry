@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+"""Upload Jinja templates to the TEMPLATES MinIO bucket.
+
+Object keys match g2p_registry_documents.document_store_id from the SQL seed
+(filename). Catalog rows are seeded separately with bucket='templates'.
+"""
+
 import os
 import sys
 from pathlib import Path
@@ -16,7 +22,8 @@ def env(name: str, default: str | None = None) -> str:
 
 def main() -> None:
     templates_dir = Path(os.environ.get("TEMPLATES_DIR", "/seed/templates"))
-    bucket_name = env("TEMPLATE_BUCKET_NAME", "template")
+    # Physical bucket must match DocumentBucket.TEMPLATES ("templates")
+    bucket_name = env("TEMPLATE_BUCKET_NAME", "templates")
     endpoint = env("MINIO_ENDPOINT")
     access_key = env("MINIO_ACCESS_KEY")
     secret_key = env("MINIO_SECRET_KEY")
@@ -39,6 +46,7 @@ def main() -> None:
 
     print(f"[db-seed] Uploading {len(template_files)} template(s) to s3://{bucket_name}/ ...")
     for path in template_files:
+        # Object key = filename = catalog document_store_id from SQL seed
         client.fput_object(bucket_name, path.name, str(path))
         print(f"[db-seed]   -> {path.name}")
 
