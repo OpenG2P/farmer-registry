@@ -49,7 +49,7 @@ jobs:
            "pins": [
              {"arg": "REGISTRY_PLATFORM_REF", "repo": "https://github.com/openg2p/registry-platform",      "ref": "develop"},
              {"arg": "FASTAPI_COMMON_REF",    "repo": "https://github.com/openg2p/openg2p-fastapi-common", "ref": "develop"},
-             {"arg": "IAM_CORE_REF",          "repo": "https://github.com/openg2p/openg2p-iam-service",    "ref": "develop"}
+             {"arg": "IAM_CORE_REF",          "repo": "https://github.com/openg2p/iam-service",    "ref": "develop"}
            ]},
 
           {"name": "partner-api",
@@ -58,7 +58,7 @@ jobs:
            "pins": [
              {"arg": "REGISTRY_PLATFORM_REF", "repo": "https://github.com/openg2p/registry-platform",      "ref": "develop"},
              {"arg": "FASTAPI_COMMON_REF",    "repo": "https://github.com/openg2p/openg2p-fastapi-common", "ref": "develop"},
-             {"arg": "IAM_CORE_REF",          "repo": "https://github.com/openg2p/openg2p-iam-service",    "ref": "develop"}
+             {"arg": "IAM_CORE_REF",          "repo": "https://github.com/openg2p/iam-service",    "ref": "develop"}
            ]},
 
           {"name": "celery",
@@ -67,7 +67,7 @@ jobs:
            "pins": [
              {"arg": "REGISTRY_PLATFORM_REF", "repo": "https://github.com/openg2p/registry-platform",      "ref": "develop"},
              {"arg": "FASTAPI_COMMON_REF",    "repo": "https://github.com/openg2p/openg2p-fastapi-common", "ref": "develop"},
-             {"arg": "IAM_CORE_REF",          "repo": "https://github.com/openg2p/openg2p-iam-service",    "ref": "develop"}
+             {"arg": "IAM_CORE_REF",          "repo": "https://github.com/openg2p/iam-service",    "ref": "develop"}
            ]},
 
           {"name": "db-seed",
