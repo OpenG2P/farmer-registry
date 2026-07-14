@@ -11,7 +11,7 @@ git://develop//https://github.com/openg2p/registry-platform#subdirectory=celery/
 git://develop//https://github.com/openg2p/registry-platform#subdirectory=celery/openg2p-registry-celery-workers
 
 # Domain specific
-git://develop//https://github.com/openg2p/openg2p-iam-service#subdirectory=iam-core
+git://develop//https://github.com/openg2p/iam-service#subdirectory=iam-core
 
 # Farmer extension — built from this repo's working tree (copied into local_deps/ by parse_service.py).
 ./farmer-extension
