@@ -51,8 +51,15 @@ RUN mkdir -p /seed/meta_data /seed/awe_meta_data /seed/templates && \
     done && \
     rm -rf /tmp/ext-src
 
-# Clone openg2p-data (shared demography CSV, images).
-RUN git clone --depth 1 -b ${OPENG2P_DATA_BRANCH} ${OPENG2P_DATA_REPO} /openg2p-data \
+# Fetch openg2p-data (shared demography CSV, images) by ref. Uses fetch+checkout
+# rather than `git clone -b` because OPENG2P_DATA_BRANCH may be a commit SHA: the
+# central pipeline resolves the pin (e.g. `2.0`) to a SHA before the build, and
+# `git clone -b` accepts only a branch/tag name — fetch+checkout takes either.
+RUN mkdir -p /openg2p-data && cd /openg2p-data \
+    && git init -q \
+    && git remote add origin ${OPENG2P_DATA_REPO} \
+    && git fetch -q --depth 1 origin ${OPENG2P_DATA_BRANCH} \
+    && git checkout -q FETCH_HEAD \
     && rm -rf /openg2p-data/.git
 
 COPY docker/db-seed/seed-data/ /seed/seed-data/
