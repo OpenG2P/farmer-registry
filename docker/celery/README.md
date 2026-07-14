@@ -1,4 +1,4 @@
-The single image works because we install both the worker code (celery-workers) and the producer code (celery-beat-producers) into the same Docker image (defined in celery-develop.txt).
+The single image works because we install both the worker code (celery-workers) and the producer code (celery-beat-producers) into the same Docker image (both are pip-installed in `docker/celery/Dockerfile`).
 
 Since both codebases are present, we simply tell Docker which application to load at startup using Environment Variables.
 
