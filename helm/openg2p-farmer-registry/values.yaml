@@ -1419,10 +1419,61 @@ sanity:
   dciSenderId: cm_sanity
   regType: Farmer
   regRecordType: 'spdci-extensions-dci:Farmer'
-  searchText: sanity
-  # Scopes the seeded CM policy allows + the consent object requests. The clamp
-  # is asserted as a strict subset, so this bounds what a record may return.
-  dataScopes: "first_name,last_name,birth_date,gender"
+  # Marker in the injected sanity farmer's search_text. The DCI search matches
+  # search_text with ILIKE '%<text>%', and this marker appears in no seeded
+  # sample data — so the e2e only ever matches its own record.
+  searchText: SANITYE2E
+  # Scopes the seeded CM policy allows + the consent object requests.
+  #
+  # These MUST be top-level keys of the register's outgoing DCI template
+  # (openg2p_farmer_to_dci.json.j2): clamping is a strict allow-list over the
+  # rendered record's top-level keys, so a scope naming anything else silently
+  # clamps every record to {}. The farmer template emits exactly six —
+  # farmer_personal_details, family_details, farm_details, machineries_details,
+  # registration_date, last_updated — and there is no sub-field granularity
+  # (farmer_personal_details carries birth_date and phone_number with it).
+  dataScopes: "farmer_personal_details"
+  # Scopes deliberately NOT consented to; the e2e asserts these never come back.
+  deniedScopes: "family_details,farm_details,machineries_details"
+  # The Farmer register (must match g2p_register_definitions.sql). Used to find
+  # the register's bound AWE change-request policy and to raise the CR.
+  farmerRegisterId: a1a4d25a-1cd4-4356-abac-985a0b3c6bcd
+  # UI coordinates the change-request payload carries. Optional — set if the
+  # deployment's metadata requires a specific tab/section.
+  crTabId: ""
+  crSectionId: ""
+  # AWE applies its decision via a webhook back to the registry, so the change
+  # lands asynchronously — how long the e2e waits for it.
+  aweSettleTimeout: 90
+  # Audit Manager exposes NO query API (ingest + health only), so the audit
+  # assertion reads its table directly. Defaults match the commons install;
+  # host falls back to global.postgresqlHost.
+  auditDbHost: ""
+  auditDbPort: 5432
+  auditDb: audit_manager
+  auditDbUser: audit_manager_user
+  auditDbSecret: audit-manager-db-user
+  auditDbUserPasswordKey: audit-manager-db-user-password
+  auditTimeout: 60
+  # Registry staff-portal-api — the change-request e2e logs in as REAL demo
+  # users via the password grant (the release's Keycloak client is a browser
+  # OIDC client with no service account). It reuses the users keycloak-init
+  # already provisions with global.aweApproverUserPassword.
+  staffBaseUrl: 'http://{{ .Release.Name }}-staff-portal-api'
+  # The suite provisions its OWN Keycloak user (sanity-data-seed Job) rather
+  # than borrowing the keycloak-init demo users: those are created with a
+  # TEMPORARY password, so Keycloak forces UPDATE_PASSWORD and a password grant
+  # fails with "Account is not fully set up". The seeded user gets a
+  # non-temporary password, so it can log in non-interactively. It is a TEST
+  # identity — delete the `sanity-e2e` user from the staff realm to remove it.
+  staffUsername: sanity-e2e
+  staffPassword: sanity-e2e-pass
+  # Roles granted to the test user on global.authClientId — these expand to the
+  # changeRequest:create / changeRequest:approve / register:view /
+  # registerHistory:view permissions the change-request flow needs.
+  staffRoles: "Operations Administrator,Technical Administrator"
+  # Safety bound on the approval stage-walk (the shipped policy has 2 stages).
+  maxApprovalRounds: 5
   resources:
     requests:
       cpu: 50m

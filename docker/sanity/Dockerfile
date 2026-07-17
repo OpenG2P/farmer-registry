@@ -1,7 +1,8 @@
 FROM python:3.12-slim-bookworm
 
 RUN pip install --no-cache-dir \
-    "pytest>=8" "httpx>=0.27" "cryptography>=42" "pyjwt>=2.8" "orjson>=3.9"
+    "pytest>=8" "httpx>=0.27" "cryptography>=42" "pyjwt>=2.8" "orjson>=3.9" \
+    "psycopg2-binary>=2.9"
 
 WORKDIR /app
 # Build context = repo root.

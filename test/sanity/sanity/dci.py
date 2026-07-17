@@ -9,6 +9,7 @@ registry / Consent Manager against the partner's Partner-Management key.
 import uuid
 from datetime import datetime, timedelta, timezone
 
+from . import fixtures
 from .signing import sign_consent_jws, sign_dci_envelope
 
 
@@ -18,7 +19,11 @@ def make_consent_claims(cfg) -> dict:
         "@context": "https://openg2p.org/contexts/consent_object.jsonld",
         "@type": "ConsentObject",
         "jti": uuid.uuid4().hex,
-        "subject_id": {"type": "national_id", "value": "FARMER_1234"},
+        # The injected sanity farmer. NOTE: the registry never passes subject_id
+        # to the Consent Manager and never filters rows by it — consent clamps
+        # which FIELDS are returned, not which ROWS. This value is therefore
+        # descriptive today, not enforced.
+        "subject_id": {"type": "national_id", "value": fixtures.FARMER_FOUNDATIONAL_ID},
         "data_controller": cfg.controller_id,
         "aud": cfg.cm_audience,
         "purpose": {"code": "share_farm_profile", "text": "FR sanity"},
