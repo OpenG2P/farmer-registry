@@ -7,17 +7,39 @@ at the start of every result set.
 ## Phase 0 — Preparation
 
 1. **Freeze versions** — chart version, image tags, git SHA, Postgres version.
-2. **Seed data** to the chosen tier (start at 10 M) per
+2. **Decide the consent/signature posture — and record it.** The chart now
+   defaults **on** (`global.partnerSignatureValidationEnabled: true`,
+   `global.consentEnforcementEnabled: true`), so out of the box **every DCI
+   search costs a Partner Management key fetch plus a Consent Manager
+   `/validate` round-trip** before it touches the register. Since DCI search is
+   ~10% of the workload, this materially changes partner-api latency — and it
+   makes the measurement partly a test of commons-services, not of the registry.
+
+   Pick one and keep it constant across the whole campaign:
+   - **Gates on** (default) — measures the real production path, including the
+     CM/PM hop. Requires commons-services deployed and sized; a slow CM shows up
+     as registry latency.
+   - **Gates off** — isolates registry+DB cost:
+     ```
+     --set global.partnerSignatureValidationEnabled=false \
+     --set global.consentEnforcementEnabled=false
+     ```
+     Note this returns records **unclamped** to any caller with no signature and
+     no consent, so **only do this on an environment holding synthetic data**
+     (which the seeding tier below is). Never on real registrant data.
+
+   Do not compare numbers taken under different postures.
+3. **Seed data** to the chosen tier (start at 10 M) per
    [`04-data-seeding.md`](04-data-seeding.md); `ANALYZE`; verify indexes; warm cache.
-3. **De-burst the DB node** — enable T3 Unlimited on the storage node, or move PG
+4. **De-burst the DB node** — enable T3 Unlimited on the storage node, or move PG
    to a non-burstable instance for the duration.
-4. **Stand up observability** — Prometheus/Grafana for pod+node CPU/mem;
+5. **Stand up observability** — Prometheus/Grafana for pod+node CPU/mem;
    `postgres_exporter` + `pg_stat_statements` on the storage node; Redis queue
    metrics. Confirm dashboards show live data.
-5. **Pin the pod under test** — `replicas: 1`, HPA off, `requests == limits` at
+6. **Pin the pod under test** — `replicas: 1`, HPA off, `requests == limits` at
    **1 vCPU / 4 GB**. Sweep gunicorn/uvicorn `NO_OF_WORKERS ∈ {1,2,4}` at a fixed
    moderate load and keep the value with best RPS-at-SLO; record it.
-6. **Deploy Locust** in-cluster (for per-pod/scaling) and/or on an external host
+7. **Deploy Locust** in-cluster (for per-pod/scaling) and/or on an external host
    (for end-to-end). Load the seed manifest. Validate one of each request type
    returns 2xx before load.
 

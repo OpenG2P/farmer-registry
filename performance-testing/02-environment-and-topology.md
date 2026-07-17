@@ -84,6 +84,10 @@ These topology facts change the original thought-process in concrete ways:
 ## Environment pinning checklist (record in every result set)
 
 - Chart version + image tags (registry images, `appVersion`), git SHA.
+- **Consent/signature posture** — `global.consentEnforcementEnabled` and
+  `global.partnerSignatureValidationEnabled` (both default **on**). With them on,
+  each DCI search includes a PM key fetch + CM `/validate` hop, so results are not
+  comparable with a gates-off run. See runbook Phase 0.
 - Node instance types + whether T3 Unlimited was enabled on storage.
 - Pod resource requests/limits and **gunicorn/uvicorn worker count**
   (the API Dockerfiles default to `NO_OF_WORKERS=8` — see workload model; this

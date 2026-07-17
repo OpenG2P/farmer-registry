@@ -69,12 +69,33 @@ global:
   # and enforces consent by calling the Consent Manager /validate before
   # returning data — clamping the response to the effective data scopes.
   #
-  # Two INDEPENDENT kill-switches. Defaulted OFF here so a fresh farmer-registry
-  # install works before CM/PM are wired; turn BOTH ON for production — they
-  # govern real PII egress. When OFF, the bypass is logged and stamped into the
-  # DCI response header meta (signature_validation / consent_enforcement).
-  partnerSignatureValidationEnabled: false
-  consentEnforcementEnabled: false
+  # Two INDEPENDENT kill-switches over real PII egress, defaulted ON to FAIL
+  # CLOSED — matching the registry platform's own defaults.
+  #
+  #   partnerSignatureValidationEnabled -> verify the DCI envelope signature
+  #                                        against the partner's key in Partner
+  #                                        Management.
+  #   consentEnforcementEnabled         -> call the Consent Manager /validate for
+  #                                        the request's consent object, and clamp
+  #                                        returned fields to the consented scopes.
+  #
+  # Turning either OFF is a deliberate, auditable choice, not a default:
+  #   * with signature validation off, the `signature` field is still required
+  #     but NEVER inspected — any string passes;
+  #   * with consent enforcement off, the Consent Manager is never called and
+  #     records are returned UNCLAMPED — every field the DCI template emits, to
+  #     any caller.
+  # Either bypass is logged and stamped into the DCI response header meta
+  # (signature_validation / consent_enforcement), which is the only outward
+  # signal that it is off.
+  #
+  # Legitimate reasons to disable: performance testing, or a bring-up install
+  # where commons-services (CM/PM) is not yet wired — the DCI search will reject
+  # requests until it is. Note the sanity e2e cannot meaningfully test data
+  # sharing with these off (it skips those assertions), but the e2e is itself
+  # off by default (sanity.runE2e), so a disabled install is unaffected.
+  partnerSignatureValidationEnabled: true
+  consentEnforcementEnabled: true
   # Partner-key crypto backend: partner-mgmt | keymanager | local
   registryCryptoBackend: partner-mgmt
   # Partner Management partner-api — source of partner public keys. PM is now
@@ -129,12 +150,14 @@ global:
 
   # OpenG2P Audit Manager integration
   # Both `auditEnabled=true` AND `auditManagerUrl` must be set for emission
-  # to actually happen. Defaults below mean "audit feature wired but turned
-  # off" — safe to ship; per-environment overrides flip it on.
-  # Wired into both staff-portal-api and partner-api (chart 4.1.x). Each
-  # service consumes these globals via its own envVars block below.
-  # Older service images that lack AuditMiddleware simply ignore the env
-  # vars — no error.
+  # to actually happen — and both are set below, so audit is ON by default.
+  # Audit Manager itself is NOT deployed by this chart: it is installed once
+  # per environment by commons-services, and the URL below points at it. If it
+  # is absent, emission fails silently (the middleware is fire-and-forget) —
+  # it does not break requests.
+  # Wired into both staff-portal-api and partner-api. Each service consumes
+  # these globals via its own envVars block below. Older service images that
+  # lack AuditMiddleware simply ignore the env vars — no error.
   auditEnabled: true
   auditManagerUrl: 'http://commons-services-auditmanager:80'
   # Set to false to skip auditing of rejected anonymous calls (401/403
