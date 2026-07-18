@@ -26,10 +26,19 @@ keycloak-init cannot declare — `sanity.keycloak_seed` turns it on via the admi
 API, so it is guaranteed rather than assumed.
 """
 
+import base64
+import json
 import uuid
 from datetime import datetime, timezone
 
 import httpx
+
+
+def _jwt_sub(token: str) -> str:
+    """The `sub` claim of a JWT, without verifying it (identity only)."""
+    payload = token.split(".")[1]
+    payload += "=" * (-len(payload) % 4)
+    return json.loads(base64.urlsafe_b64decode(payload)).get("sub", "")
 
 
 def fetch_token(cfg, username: str, password: str) -> str:
@@ -75,6 +84,8 @@ class StaffClient:
     def __init__(self, cfg, token: str, username: str = ""):
         self.cfg = cfg
         self.username = username
+        # The subject (Keycloak user id) that audit events are attributed to.
+        self.subject = _jwt_sub(token)
         csrf = uuid.uuid4().hex
         self._client = httpx.Client(
             base_url=cfg.staff_base_url,

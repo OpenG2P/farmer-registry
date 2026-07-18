@@ -9,24 +9,32 @@ The write path is asynchronous end-to-end: the registry middleware fires the
 event with `asyncio.create_task` (fire-and-forget), Audit Manager returns 202
 before enqueueing, and a consumer batch-writes from Kafka to Postgres. A
 read-after-write would race, so callers must poll — `wait_for` below does.
+
+**Events are keyed by actor, not resource.** The staff-portal-api audit
+middleware emits one event per HTTP request with `actor_id = <the user's sub>`
+and `source = /openg2p/registry-staff-portal-api`, but it does NOT populate
+`resource_id`/`action` (the controllers don't set `request.state.audit_*`). So
+the audit trail for the change-request flow is found by the sanity user's
+subject, not by the change-request id.
 """
 
 import time
 
 from . import db
 
-_RECENT = """
-SELECT type, action, outcome, resource_type, resource_id, actor_type, actor_id, occurred_at
+_BY_ACTOR = """
+SELECT source, type, outcome, occurred_at
   FROM "public"."audit_events"
  WHERE occurred_at >= %s
-   AND resource_id = %s
+   AND actor_id = %s
+   AND source LIKE %s
  ORDER BY occurred_at DESC
  LIMIT 50;
 """
 
 
-def wait_for(cfg, resource_id, since, timeout=None, interval=3):
-    """Poll audit_events for any event about `resource_id`.
+def wait_for(cfg, actor_id, since, source_like="%registry%", timeout=None, interval=3):
+    """Poll audit_events for any event attributed to `actor_id`.
 
     Returns the list of matching rows, or [] if none arrived within the timeout.
     """
@@ -34,7 +42,7 @@ def wait_for(cfg, resource_id, since, timeout=None, interval=3):
     rows = []
     while time.time() < deadline:
         try:
-            rows = db.query(cfg.audit_dsn, _RECENT, (since, str(resource_id)))
+            rows = db.query(cfg.audit_dsn, _BY_ACTOR, (since, str(actor_id), source_like))
         except Exception:  # noqa: BLE001 — table may not exist yet on a fresh install
             rows = []
         if rows:

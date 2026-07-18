@@ -88,48 +88,72 @@ def test_change_request_is_created_pending(cfg, change_request):
     )
 
 
-def _tasks_for(client, cr_id):
-    resp = client.list_my_tasks({"artifact_id": str(cr_id)})
-    body = (resp.get("response_body") or {}).get("response_payload") or resp
-    return body.get("tasks") or body.get("items") or []
+_OPEN_TASKS = """
+SELECT t.id AS task_id, t.stage_order, t.assignee
+  FROM "public"."approval_task" t
+  JOIN "public"."approval_request" r ON r.id = t.request_id
+ WHERE r.artifact_id = %s
+   AND t.status IN ('open', 'claimed')
+ ORDER BY t.stage_order;
+"""
+
+
+def _open_tasks(cfg, cr_id):
+    """Every OPEN task on the change request, across all assignees.
+
+    Read from the AWE DB rather than `list_my_tasks`, because the shipped policy
+    stages are mode='all' and include demo approvers (alex.carter / nina.patel)
+    besides the sanity user — so we must approve THEIR tasks too. The sanity user
+    holds the AWE admin role, so it may decide any of them.
+    """
+    return db.query(cfg.awe_dsn, _OPEN_TASKS, (str(cr_id),))
 
 
 @pytest.mark.e2e
 def test_approval_through_awe_applies_the_change(cfg, staff_client, change_request):
-    """Clear every stage the policy offers; the change must then be applied.
+    """Approve every task on the request until the change is applied.
 
-    Stages are walked by re-asking what tasks are outstanding rather than
-    assuming a stage count, so a one- or three-level policy needs no change
-    here. A later stage only becomes visible once the earlier one is cleared,
-    so each round waits briefly for AWE to advance the workflow.
+    Tasks are re-read each round rather than assuming a stage count, so a one-
+    or three-level policy needs no change here. A later stage only becomes
+    visible once the earlier one is cleared, so each round waits briefly for AWE
+    to advance the workflow. The sanity user holds AWE_ADMIN, so it approves
+    every task regardless of assignee — the shipped mode='all' stages require
+    the demo approvers' tasks to be decided too.
     """
     approved_any = False
     for _ in range(cfg.max_approval_rounds):
-        tasks = _tasks_for(staff_client, change_request)
+        if _field_value(cfg) == fixtures.CR_VALUE_UPDATED:
+            break
+        tasks = _open_tasks(cfg, change_request)
         if not tasks:
-            # Either nothing was ever offered, or every stage is now cleared.
+            # Either nothing was ever offered, or the next stage's tasks aren't
+            # created yet — wait once for them to appear.
             if approved_any:
                 break
-            if not _wait_until(lambda: _tasks_for(staff_client, change_request), timeout=30):
+            if not _wait_until(lambda: _open_tasks(cfg, change_request), timeout=30):
                 break
             continue
         for task in tasks:
             staff_client.submit_task_decision({
-                "task_id": task.get("task_id") or task.get("id"),
+                "task_id": task["task_id"],
                 "action": "approve",
-                "comment": "approved by sanity e2e",
+                "comment": f"approved by sanity e2e (assignee {task['assignee']})",
                 "artifact_id": str(change_request),
                 "artifact_type": "registry.change_request",
-                "current_stage": task.get("stage_order") or task.get("current_stage") or 1,
+                "current_stage": task["stage_order"] or 1,
             })
             approved_any = True
+        # Let AWE advance to the next stage (or apply the change) before re-reading.
+        _wait_until(
+            lambda: _field_value(cfg) == fixtures.CR_VALUE_UPDATED or _open_tasks(cfg, change_request),
+            timeout=30,
+        )
 
     if not approved_any:
         pytest.skip(
-            f"no AWE tasks were offered to '{cfg.staff_username}' for this change "
-            f"request. Either AWE is disabled (global.aweEnabled=false — then "
-            f"start_change_request_workflow silently no-ops), no policy is bound to "
-            f"the register, or the awe-seed Job did not register the approver rule."
+            f"no AWE tasks were created for this change request. Either AWE is "
+            f"disabled (global.aweEnabled=false — then start_change_request_workflow "
+            f"silently no-ops) or no policy is bound to the register."
         )
 
     # AWE applies the decision by POSTing an HMAC-signed webhook back to the
@@ -145,17 +169,28 @@ def test_approval_through_awe_applies_the_change(cfg, staff_client, change_reque
     )
 
 
+_HISTORY = (
+    'SELECT "history_record_id", "change_request_id" '
+    'FROM "public"."g2p_register_history_farmers" '
+    'WHERE "internal_record_id" = %s'
+)
+
+
 @pytest.mark.e2e
 def test_version_history_retains_the_previous_record(cfg, staff_client, change_request):
-    """Approval must write a history row; the previous value survives in the DB."""
-    rows = db.query(
-        cfg.registry_dsn,
-        'SELECT "history_record_id", "change_request_id" '
-        'FROM "public"."g2p_register_history_farmers" '
-        'WHERE "internal_record_id" = %s',
-        (fixtures.FARMER_INTERNAL_ID,),
-    )
-    assert rows, (
+    """Approval must write a history row; the previous value survives in the DB.
+
+    Polled, because the webhook that applies the change and writes history lands
+    asynchronously — the row can lag the `middle_name` update by a moment.
+    """
+    rows = []
+
+    def _has_history():
+        nonlocal rows
+        rows = db.query(cfg.registry_dsn, _HISTORY, (fixtures.FARMER_INTERNAL_ID,))
+        return bool(rows)
+
+    assert _wait_until(_has_history, timeout=cfg.awe_settle_timeout), (
         "no history row for the sanity farmer after approval — history is written by "
         "insert_into_register_history during approve, so its absence means the change "
         "was never applied through the approval path"
@@ -164,6 +199,7 @@ def test_version_history_retains_the_previous_record(cfg, staff_client, change_r
     versions = staff_client.get_number_of_versions({
         "register_id": cfg.farmer_register_id,
         "internal_record_id": fixtures.FARMER_INTERNAL_ID,
+        "tab_id": cfg.cr_tab_id,
     })
     body = (versions.get("response_body") or {}).get("response_payload") or versions
     count = body.get("number_of_versions") or body.get("count") or len(rows)
@@ -171,20 +207,22 @@ def test_version_history_retains_the_previous_record(cfg, staff_client, change_r
 
 
 @pytest.mark.e2e
-def test_audit_events_are_recorded(cfg, change_request):
-    """The change request must leave an audit trail in Audit Manager.
+def test_audit_events_are_recorded(cfg, staff_client, change_request):
+    """The change-request flow must leave an audit trail in Audit Manager.
 
-    Audit Manager has no query API, so this reads its table directly. The write
-    is fire-and-forget -> Kafka -> Postgres, so it polls rather than reading
-    once.
+    Audit Manager has no query API, so this reads its `audit_events` table. The
+    write is fire-and-forget -> Kafka -> Postgres, so it polls. The staff-portal-api
+    audit middleware keys events by the caller's `actor_id` (the user's sub) and
+    does not populate `resource_id`, so the trail for this flow is found by the
+    sanity user's subject — the create + approve calls all generate events.
     """
     if not cfg.audit_dsn:
         pytest.skip("audit DB not configured — cannot assert the audit trail")
 
     since = datetime.now(timezone.utc) - timedelta(hours=1)
-    rows = audit.wait_for(cfg, change_request, since)
+    rows = audit.wait_for(cfg, staff_client.subject, since)
     assert rows, (
-        f"no audit events for change request {change_request} within {cfg.audit_timeout}s. "
-        f"Audit is emitted fire-and-forget by the API middleware; check that "
-        f"auditEnabled=true and the Audit Manager URL is reachable."
+        f"no audit events for the sanity user ({staff_client.subject}) within "
+        f"{cfg.audit_timeout}s. Audit is emitted fire-and-forget by the API "
+        f"middleware; check that auditEnabled=true and the Audit Manager URL is reachable."
     )

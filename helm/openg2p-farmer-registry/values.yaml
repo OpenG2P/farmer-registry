@@ -1497,6 +1497,12 @@ sanity:
   staffRoles: "Operations Administrator,Technical Administrator"
   # Safety bound on the approval stage-walk (the shipped policy has 2 stages).
   maxApprovalRounds: 5
+  # AWE admin role granted to the sanity user (a client role on the shared AWE's
+  # awe-admin-portal client) so it can approve every task on the change request
+  # — the shipped policy stages are mode='all' and name demo approvers whose
+  # temporary passwords the suite cannot use.
+  aweAdminClientId: awe-admin-portal
+  aweAdminRole: AWE_ADMIN
   resources:
     requests:
       cpu: 50m

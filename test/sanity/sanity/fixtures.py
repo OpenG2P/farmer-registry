@@ -68,13 +68,22 @@ AWE_RULE_MARKER = "sanity-e2e"
 
 # Statements that remove everything the suite created. Not run automatically —
 # provided so an operator can clean an environment on demand.
+#
+# Registry rows are keyed on internal_record_id, not created_by: the farmer row
+# carries created_by='sanity-e2e' (set by our SQL), but the change-request and
+# history rows are stamped by the registry with the *user's display name*
+# ("Sanity E2E"), so internal_record_id is the one reliable marker across all
+# three tables.
 TEARDOWN_SQL = {
     "registry": [
-        f"DELETE FROM g2p_register_history_farmers WHERE created_by = '{CREATED_BY}';",
-        f"DELETE FROM g2p_register_change_requests WHERE created_by = '{CREATED_BY}';",
-        f"DELETE FROM g2p_register_farmers WHERE created_by = '{CREATED_BY}';",
+        f"DELETE FROM g2p_register_history_farmers WHERE internal_record_id = '{FARMER_INTERNAL_ID}';",
+        f"DELETE FROM g2p_register_change_requests WHERE internal_record_id = '{FARMER_INTERNAL_ID}';",
+        f"DELETE FROM g2p_register_farmers WHERE internal_record_id = '{FARMER_INTERNAL_ID}';",
     ],
     "awe": [
+        # Orphaned approval requests/tasks for the sanity farmer's change requests
+        # (run BEFORE the registry deletes, while the CR ids are still resolvable),
+        # then the approver rule the suite added.
         f"DELETE FROM approver_rule WHERE rule_value::text LIKE '%{AWE_RULE_MARKER}%';",
     ],
     # Keycloak (admin API, not SQL): delete user STAFF_USERNAME from the staff realm.

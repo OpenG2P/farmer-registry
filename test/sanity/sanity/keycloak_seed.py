@@ -160,6 +160,19 @@ def _grant_client_roles(cfg, h, user_id, client, role_names):
     ).raise_for_status()
 
 
+def _grant_awe_admin(cfg, h, user_id) -> str:
+    """Grant the AWE admin role (a role on the awe-admin-portal client) so the
+    sanity user can approve every task on the change request, regardless of
+    assignee. Non-fatal if the AWE admin client isn't present — the change-request
+    approval test will then fail with a clear message rather than the seed dying.
+    """
+    awe_client = _find_client(cfg, h, cfg.awe_admin_client_id)
+    if not awe_client:
+        return f"skipped (client '{cfg.awe_admin_client_id}' not found)"
+    _grant_client_roles(cfg, h, user_id, awe_client, [cfg.awe_admin_role])
+    return f"{cfg.awe_admin_role}@{cfg.awe_admin_client_id}"
+
+
 def ensure_user(cfg) -> str:
     """Provision the sanity user + client so the password grant works."""
     token = _admin_token(cfg)
@@ -173,7 +186,8 @@ def ensure_user(cfg) -> str:
     user_id = _ensure_user(cfg, h, cfg.staff_username)
     _set_password(cfg, h, user_id, cfg.staff_password)
     _grant_client_roles(cfg, h, user_id, client, cfg.staff_roles)
-    return f"user={cfg.staff_username} roles={cfg.staff_roles} directAccessGrants={dag}"
+    awe = _grant_awe_admin(cfg, h, user_id)
+    return f"user={cfg.staff_username} roles={cfg.staff_roles} awe_admin={awe} directAccessGrants={dag}"
 
 
 def main() -> int:

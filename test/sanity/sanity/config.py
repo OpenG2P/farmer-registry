@@ -97,6 +97,14 @@ class Config:
     keycloak_realm: str = "staff"
     keycloak_admin_user: str = "admin"
     keycloak_admin_password: str = ""
+    # AWE admin role, granted to the sanity user so it can approve EVERY task on
+    # the change request — not just its own. The shipped policy stages use
+    # mode='all' and name demo approvers (alex.carter / nina.patel) whose
+    # temporary passwords the suite can't log in with; AWE lets a caller holding
+    # this role decide any task regardless of assignee, so one identity clears
+    # the whole workflow. It is a CLIENT role on the awe-admin-portal client.
+    awe_admin_client_id: str = "awe-admin-portal"
+    awe_admin_role: str = "AWE_ADMIN"
     # Register the CR is raised against (Farmer), and the UI coordinates the
     # change-request payload requires.
     farmer_register_id: str = "a1a4d25a-1cd4-4356-abac-985a0b3c6bcd"
@@ -156,6 +164,8 @@ class Config:
             keycloak_realm=os.environ.get("SANITY_KEYCLOAK_REALM") or "staff",
             keycloak_admin_user=os.environ.get("SANITY_KEYCLOAK_ADMIN_USER") or "admin",
             keycloak_admin_password=os.environ.get("SANITY_KEYCLOAK_ADMIN_PASSWORD", ""),
+            awe_admin_client_id=os.environ.get("SANITY_AWE_ADMIN_CLIENT_ID") or "awe-admin-portal",
+            awe_admin_role=os.environ.get("SANITY_AWE_ADMIN_ROLE") or "AWE_ADMIN",
             farmer_register_id=(
                 os.environ.get("SANITY_FARMER_REGISTER_ID")
                 or "a1a4d25a-1cd4-4356-abac-985a0b3c6bcd"

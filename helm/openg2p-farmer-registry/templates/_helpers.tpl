@@ -323,6 +323,14 @@ Sanity suite env — shared by the pm-seed, cm-seed, and test Jobs.
       name: {{ tpl (index .Values "keycloak-init" "keycloak" "existingSecret") $ | quote }}
       key: {{ (index .Values "keycloak-init" "keycloak" "existingSecretKey") | quote }}
       optional: true
+# AWE admin role granted to the sanity user so it can approve every task on the
+# change request (the shipped policy stages are mode='all' with demo approvers
+# whose temporary passwords the suite can't use). It is a client role on the
+# awe-admin-portal client, provisioned by the shared AWE's keycloak-init.
+- name: SANITY_AWE_ADMIN_CLIENT_ID
+  value: {{ .Values.sanity.aweAdminClientId | quote }}
+- name: SANITY_AWE_ADMIN_ROLE
+  value: {{ .Values.sanity.aweAdminRole | quote }}
 # Registry DB — inject the sanity farmer, and read it back to assert the change
 # request was applied and that version history was written.
 - name: SANITY_REGISTRY_PGHOST
