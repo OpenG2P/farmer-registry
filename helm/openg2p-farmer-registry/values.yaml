@@ -1442,10 +1442,13 @@ sanity:
   dciSenderId: cm_sanity
   regType: Farmer
   regRecordType: 'spdci-extensions-dci:Farmer'
-  # Marker in the injected sanity farmer's search_text. The DCI search matches
-  # search_text with ILIKE '%<text>%', and this marker appears in no seeded
-  # sample data — so the e2e only ever matches its own record.
-  searchText: SANITYE2E
+  # What the DCI search matches on (ILIKE '%<text>%' against search_text). This
+  # MUST be the sanity farmer's functional_record_id, NOT the SANITYE2E marker:
+  # the change-request test runs first and its approval regenerates search_text
+  # from the record's real columns, dropping the manually-stuffed marker. The
+  # functional_record_id is a genuine search-text field, so it survives — and it
+  # appears in no seeded sample data, so the e2e only ever matches its own record.
+  searchText: SANITY-FARMER-0001
   # Scopes the seeded CM policy allows + the consent object requests.
   #
   # These MUST be top-level keys of the register's outgoing DCI template
