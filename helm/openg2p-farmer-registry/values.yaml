@@ -1475,8 +1475,11 @@ sanity:
   auditDbPort: 5432
   auditDb: audit_manager
   auditDbUser: audit_manager_user
-  auditDbSecret: audit-manager-db-user
-  auditDbUserPasswordKey: audit-manager-db-user-password
+  # Audit Manager's DB password Secret (created by commons-services). NB: the
+  # secret is named `audit-manager` and the key is `audit-manager-db-user` —
+  # matching what the auditmanager deployment itself mounts.
+  auditDbSecret: audit-manager
+  auditDbUserPasswordKey: audit-manager-db-user
   auditTimeout: 60
   # Registry staff-portal-api — the change-request e2e logs in as REAL demo
   # users via the password grant (the release's Keycloak client is a browser
