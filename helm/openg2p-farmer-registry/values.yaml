@@ -321,7 +321,7 @@ partnerApi:
   # back down. Raise minReplicas to 2+ for HA in production; tune targetCPU and
   # maxReplicas against a load test.
   autoscaling:
-    enabled: true
+    enabled: false
     minReplicas: 1
     maxReplicas: 5
     targetCPUUtilizationPercentage: 70
@@ -677,7 +677,7 @@ staffPortalApi:
   # back down. Raise minReplicas to 2+ for HA in production; tune targetCPU and
   # maxReplicas against a load test.
   autoscaling:
-    enabled: true
+    enabled: false
     minReplicas: 1
     maxReplicas: 5
     targetCPUUtilizationPercentage: 70
@@ -1500,6 +1500,9 @@ sanity:
   staffRoles: "Operations Administrator,Technical Administrator"
   # Safety bound on the approval stage-walk (the shipped policy has 2 stages).
   maxApprovalRounds: 5
+  # How long the change-request test keeps retrying the first permission-gated
+  # call while the registry's permission path warms up just after install.
+  authReadyTimeout: 120
   # AWE admin role granted to the sanity user (a client role on the shared AWE's
   # awe-admin-portal client) so it can approve every task on the change request
   # — the shipped policy stages are mode='all' and name demo approvers whose

@@ -72,7 +72,23 @@ def change_request(cfg, staff_client, farmer_seeded, awe_approver):
             }
         ],
     }
-    resp = staff_client.create_change_request(payload)
+    # Just after a fresh install the registry's permission resolution can lag
+    # staff-portal-api readiness: a valid token briefly resolves to no
+    # permissions, so create_change_request returns 403. Retry with a fresh
+    # token until authorization is ready (or the timeout elapses). Once the
+    # create succeeds the same staff_client token is good for the later
+    # permission-gated calls (e.g. get_number_of_versions).
+    deadline = time.time() + cfg.auth_ready_timeout
+    while True:
+        try:
+            resp = staff_client.create_change_request(payload)
+            break
+        except AssertionError as exc:
+            if "-> 403" in str(exc) and time.time() < deadline:
+                time.sleep(5)
+                staff_client.relogin()
+                continue
+            raise
     body = (resp.get("response_body") or {}).get("response_payload") or resp
     cr_id = body.get("change_request_id") or body.get("id")
     assert cr_id, f"could not find change_request_id in response: {resp}"

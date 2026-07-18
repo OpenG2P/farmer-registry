@@ -104,6 +104,27 @@ class StaffClient:
     def login(cls, cfg, username: str, password: str) -> "StaffClient":
         return cls(cfg, fetch_token(cfg, username, password), username)
 
+    def relogin(self):
+        """Refresh the token in place — used to pick up role mappings that were
+        granted moments earlier, when the permission path is still warming up
+        just after install."""
+        token = fetch_token(self.cfg, self.username, self.cfg.staff_password)
+        self.subject = _jwt_sub(token)
+        old = self._client
+        csrf = uuid.uuid4().hex
+        self._client = httpx.Client(
+            base_url=self.cfg.staff_base_url,
+            verify=self.cfg.verify_tls,
+            timeout=60,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf,
+            },
+            cookies={"X-CSRF-Token": csrf},
+        )
+        old.close()
+
     def close(self):
         self._client.close()
 

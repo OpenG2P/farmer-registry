@@ -114,6 +114,9 @@ class Config:
     awe_settle_timeout: int = 90
     # Safety bound on the stage-walk loop (a policy has far fewer stages).
     max_approval_rounds: int = 5
+    # How long to keep retrying the first permission-gated call (create change
+    # request) while the registry's permission path warms up after install.
+    auth_ready_timeout: int = 120
 
     # ── Databases (see sanity/db.py for why each is needed) ──────────────────
     registry_dsn: Optional[dict] = None
@@ -174,6 +177,7 @@ class Config:
             cr_section_id=os.environ.get("SANITY_CR_SECTION_ID") or "farmer_farmer_personal_identification_section_01",
             awe_settle_timeout=int(os.environ.get("SANITY_AWE_SETTLE_TIMEOUT", "90")),
             max_approval_rounds=int(os.environ.get("SANITY_MAX_APPROVAL_ROUNDS", "5")),
+            auth_ready_timeout=int(os.environ.get("SANITY_AUTH_READY_TIMEOUT", "120")),
             registry_dsn=_dsn(
                 os.environ.get("SANITY_REGISTRY_PGHOST"), os.environ.get("SANITY_REGISTRY_PGPORT"),
                 os.environ.get("SANITY_REGISTRY_PGDATABASE"), os.environ.get("SANITY_REGISTRY_PGUSER"),

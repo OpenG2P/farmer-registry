@@ -278,6 +278,8 @@ Sanity suite env — shared by the pm-seed, cm-seed, and test Jobs.
   value: {{ .Values.sanity.crSectionId | quote }}
 - name: SANITY_AWE_SETTLE_TIMEOUT
   value: {{ .Values.sanity.aweSettleTimeout | quote }}
+- name: SANITY_AUTH_READY_TIMEOUT
+  value: {{ .Values.sanity.authReadyTimeout | quote }}
 - name: SANITY_AUDIT_TIMEOUT
   value: {{ .Values.sanity.auditTimeout | quote }}
 # Registry staff-portal-api — the change-request e2e logs in as REAL demo users

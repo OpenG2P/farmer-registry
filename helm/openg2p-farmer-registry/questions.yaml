@@ -284,7 +284,7 @@ questions:
   group: Sanity
 
 - variable: sanity.runE2e
-  description: Also run the full signed DCI + consent e2e. Seeds a shared test partner into Partner Management (key) and the Consent Manager (binding + policy), then asserts a signed search is permitted and field-clamped. Needs reachable PM + CM and the enforcement switches ON.
+  description: Also run the full e2e. (1) Signed DCI + consent search — asserts a permitted, field-clamped result and that missing consent / bad signature are rejected. (2) Change request → AWE approval → applied change → version history → audit. This seeds test fixtures (a Keycloak user, a test farmer, a Partner Management key, a Consent Manager binding) and leaves them in place for inspection. Needs reachable PM, CM, AWE, Keycloak admin and the DBs, the enforcement switches ON, and the AWE issuer set to the external Keycloak URL. OFF by default; enable only on test environments.
   type: boolean
   default: false
   label: Sanity - Run Full E2E
