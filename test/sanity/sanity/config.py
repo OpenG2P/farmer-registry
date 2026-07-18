@@ -100,8 +100,8 @@ class Config:
     # Register the CR is raised against (Farmer), and the UI coordinates the
     # change-request payload requires.
     farmer_register_id: str = "a1a4d25a-1cd4-4356-abac-985a0b3c6bcd"
-    cr_tab_id: str = ""
-    cr_section_id: str = ""
+    cr_tab_id: str = "farmer_farmer_tab"
+    cr_section_id: str = "farmer_farmer_personal_identification_section_01"
     # How long to wait for AWE's decision webhook to be applied by the registry.
     awe_settle_timeout: int = 90
     # Safety bound on the stage-walk loop (a policy has far fewer stages).
@@ -130,7 +130,7 @@ class Config:
             dci_receiver_id=os.environ.get("SANITY_DCI_RECEIVER_ID") or "farmer-registry",
             reg_type=os.environ.get("SANITY_DCI_REG_TYPE") or "Farmer",
             reg_record_type=os.environ.get("SANITY_DCI_REG_RECORD_TYPE") or "spdci-extensions-dci:Farmer",
-            search_text=os.environ.get("SANITY_DCI_SEARCH_TEXT") or "SANITYE2E",
+            search_text=os.environ.get("SANITY_DCI_SEARCH_TEXT") or "SANITY-FARMER-0001",
             cm_staff_url=(os.environ.get("SANITY_CM_STAFF_URL") or "").rstrip("/"),
             cm_audience=os.environ.get("SANITY_CM_AUDIENCE") or "FR_SANITY_PARTNER",
             controller_id=os.environ.get("SANITY_CONTROLLER_ID") or "fr-sanity-controller",
@@ -160,8 +160,8 @@ class Config:
                 os.environ.get("SANITY_FARMER_REGISTER_ID")
                 or "a1a4d25a-1cd4-4356-abac-985a0b3c6bcd"
             ),
-            cr_tab_id=os.environ.get("SANITY_CR_TAB_ID", ""),
-            cr_section_id=os.environ.get("SANITY_CR_SECTION_ID", ""),
+            cr_tab_id=os.environ.get("SANITY_CR_TAB_ID") or "farmer_farmer_tab",
+            cr_section_id=os.environ.get("SANITY_CR_SECTION_ID") or "farmer_farmer_personal_identification_section_01",
             awe_settle_timeout=int(os.environ.get("SANITY_AWE_SETTLE_TIMEOUT", "90")),
             max_approval_rounds=int(os.environ.get("SANITY_MAX_APPROVAL_ROUNDS", "5")),
             registry_dsn=_dsn(

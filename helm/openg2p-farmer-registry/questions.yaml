@@ -50,16 +50,16 @@ questions:
   group: General
 
 - variable: global.partnerSignatureValidationEnabled
-  description: Verify the DCI request signature against Partner Management keys (Partner API). Turn ON for production.
+  description: Verify the DCI request signature against Partner Management keys (Partner API). ON by default (fail-closed). Turn OFF only for testing or bring-up before Partner Management is wired — doing so accepts unsigned requests.
   type: boolean
-  default: false
+  default: true
   label: Verify Partner Signature
   group: Consent & Partner API
 
 - variable: global.consentEnforcementEnabled
-  description: Enforce consent via the Consent Manager before returning data (Partner API), clamping fields to consented scopes. Requires a reachable Consent Manager. Turn ON for production.
+  description: Enforce consent via the Consent Manager before returning data (Partner API), clamping fields to consented scopes. Requires a reachable Consent Manager. ON by default (fail-closed). Turn OFF only for testing or bring-up — doing so returns records unclamped to any caller.
   type: boolean
-  default: false
+  default: true
   label: Enforce Consent
   group: Consent & Partner API
 

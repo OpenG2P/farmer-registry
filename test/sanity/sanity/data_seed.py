@@ -25,21 +25,21 @@ _COLUMNS = [
     "record_name", "created_by", "created_at",
     "last_approved_at", "last_approved_by",
     "search_text", "record_status",
-    "foundational_id", "first_name", "middle_name", "last_name", "given_name",
+    "foundational_id", "first_name", "last_name", "given_name",
     "gender", "birth_date", "marital_status", "education_level",
-    "language_code", "registration_date", "occupation",
+    "language_code", "registration_date", "middle_name",
 ]
 
 # Re-runnable: a second install/upgrade updates the row rather than colliding on
-# the primary key, and resets `occupation` so the change-request test starts
-# from a known value every time.
+# the primary key, and resets the change-request field (middle_name) and
+# search_text so every run starts from a known state.
 _UPSERT = f"""
 INSERT INTO "public"."g2p_register_farmers" ({", ".join(f'"{c}"' for c in _COLUMNS)})
 VALUES ({", ".join(["%s"] * len(_COLUMNS))})
 ON CONFLICT ("internal_record_id") DO UPDATE SET
     "search_text"   = EXCLUDED."search_text",
     "record_status" = EXCLUDED."record_status",
-    "occupation"    = EXCLUDED."occupation",
+    "middle_name"   = EXCLUDED."middle_name",
     "first_name"    = EXCLUDED."first_name",
     "last_name"     = EXCLUDED."last_name",
     "birth_date"    = EXCLUDED."birth_date",
@@ -66,7 +66,7 @@ def _row():
         full_name, fixtures.CREATED_BY, _CREATED_AT,
         _CREATED_AT, fixtures.CREATED_BY,
         search_text, "ACTIVE",
-        fixtures.FARMER_FOUNDATIONAL_ID, f["first_name"], f["middle_name"],
+        fixtures.FARMER_FOUNDATIONAL_ID, f["first_name"],
         f["last_name"], full_name,
         f["gender"], f["birth_date"], f["marital_status"], f["education_level"],
         f["language_code"], _CREATED_AT, fixtures.CR_VALUE_INITIAL,

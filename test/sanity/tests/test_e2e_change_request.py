@@ -67,7 +67,7 @@ def change_request(cfg, staff_client, farmer_seeded, awe_approver):
         "change_payload": [
             {
                 "internal_record_id": fixtures.FARMER_INTERNAL_ID,
-                "edit_action": "EDIT",
+                "edit_action": "UPDATE",
                 fixtures.CR_FIELD: fixtures.CR_VALUE_UPDATED,
             }
         ],

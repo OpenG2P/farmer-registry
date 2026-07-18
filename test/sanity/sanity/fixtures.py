@@ -35,13 +35,21 @@ FARMER = {
     "language_code": "en",
 }
 
-# The field the change-request test edits, and the value it edits it to. Chosen
-# because it is a plain scalar on the farmer register with no downstream
-# validation, and it is NOT part of search_text (so the edit cannot alter which
-# records the DCI search matches).
-CR_FIELD = "occupation"
-CR_VALUE_INITIAL = "SANITY-BEFORE"
-CR_VALUE_UPDATED = "SANITY-AFTER"
+# The field the change-request test edits. `middle_name` is a free-text field
+# that lives in a real, editable UI section (farmer personal-identification), so
+# the change-request API accepts it — and the DCI test does not assert it, so
+# changing it cannot break the data-sharing assertions.
+CR_FIELD = "middle_name"
+CR_VALUE_INITIAL = "SANITYMID"
+CR_VALUE_UPDATED = "SANITYMOD"
+
+# The DCI search matches on `search_text`. Approving a change request updates the
+# record through the ORM, which REGENERATES search_text from the record's fields
+# and so drops any value not derived from a real column (the manual marker). The
+# functional_record_id IS a search-text field, so searching for it survives an
+# approved change request — which is why the DCI search targets it, not the
+# manual marker.
+SEARCH_TOKEN = FARMER_FUNCTIONAL_ID
 
 # The suite's OWN Keycloak identity, provisioned by sanity.keycloak_seed with a
 # NON-temporary password. The shipped demo users cannot be used: keycloak-init
