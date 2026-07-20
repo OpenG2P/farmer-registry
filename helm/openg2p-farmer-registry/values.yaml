@@ -44,7 +44,7 @@ global:
   templateBucketName: 'templates'
   # Registrant photos / record images land in the documents bucket and are
   # catalogued in g2p_registry_documents (see docker/db-seed/upload_images.py).
-  imageBucketName: 'documents'
+  documentsBucketName: 'documents'
   minioSecure: true
 
   # Security & Authentication
@@ -383,8 +383,8 @@ partnerApi:
 
     REGISTRY_PARTNER_API_MINIO_ENDPOINT: '{{ tpl .Values.global.minioHost $ }}'
     REGISTRY_PARTNER_API_MINIO_SECURE: '{{ .Values.global.minioSecure }}'
-    # Match imageBucketName so partner-served record-image URLs resolve.
-    REGISTRY_PARTNER_API_MINIO_BUCKET_NAME: '{{ tpl .Values.global.imageBucketName $ }}'
+    # Match documentsBucketName so partner-served record-image URLs resolve.
+    REGISTRY_PARTNER_API_MINIO_BUCKET_NAME: '{{ tpl .Values.global.documentsBucketName $ }}'
     REGISTRY_PARTNER_API_TEMPLATE_BUCKET_NAME: '{{ tpl .Values.global.templateBucketName $ }}'
 
     # OpenG2P Audit Manager integration. No-op unless both AUDIT_ENABLED=true
@@ -711,9 +711,9 @@ staffPortalApi:
     REGISTRY_STAFF_PORTAL_API_KEYCLOAK_CLIENT_ID: '{{ tpl .Values.global.authClientId $ }}'
     REGISTRY_STAFF_PORTAL_API_MINIO_ENDPOINT: '{{ tpl .Values.global.minioHost $ }}'
     REGISTRY_STAFF_PORTAL_API_MINIO_SECURE: '{{ .Values.global.minioSecure }}'
-    # Record images (incl. db-seed uploads) live in imageBucketName; this must
+    # Record images (incl. db-seed uploads) live in documentsBucketName; this must
     # match so staff-portal presigned record-image URLs resolve.
-    REGISTRY_STAFF_PORTAL_API_MINIO_BUCKET_NAME: '{{ tpl .Values.global.imageBucketName $ }}'
+    REGISTRY_STAFF_PORTAL_API_MINIO_BUCKET_NAME: '{{ tpl .Values.global.documentsBucketName $ }}'
     REGISTRY_STAFF_PORTAL_API_TEMPLATE_BUCKET_NAME: '{{ tpl .Values.global.templateBucketName $ }}'
 
     # OpenG2P Audit Manager integration. No-op unless both AUDIT_ENABLED=true
