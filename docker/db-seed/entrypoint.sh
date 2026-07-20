@@ -12,9 +12,8 @@ set -e
 #   OPENG2P_DATA_DIR — cloned shared seed data (default: /openg2p-data)
 #   MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY — MinIO connection
 #   MINIO_SECURE     — "true" for HTTPS (default: "false")
-#   TEMPLATE_BUCKET_NAME — MinIO bucket (default: "template")
-#   IMAGE_BUCKET_NAME    — MinIO bucket for profile images (default: registrant-photos)
-#   TEMPLATES_DIR    — path to flat .j2 files (default: /seed/templates)
+#   TEMPLATE_BUCKET_NAME, TEMPLATES_DIR — default bucket "templates" (DocumentBucket.TEMPLATES)
+#   IMAGE_BUCKET_NAME, IMAGES_DIR — default bucket "documents" (DocumentBucket.DOCUMENTS)
 #
 # Master-data database (geo reference data; the master-data service is a generic
 # commons service and ships no seed data, so geo — which is registry sample /

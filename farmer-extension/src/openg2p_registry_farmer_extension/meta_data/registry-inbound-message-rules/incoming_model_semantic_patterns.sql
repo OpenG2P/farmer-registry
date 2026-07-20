@@ -1,2 +1,19 @@
-INSERT INTO "public"."incoming_model_semantic_patterns" ("semantic_pattern_id","data_model_id","register_id","intake_form_id","pattern_for_register","pattern_for_intake_form","key_path_for_business_payload","raw_payload_enricher_class") VALUES
-('9e576feb-164c-43b4-a3fb-f8de9e6bb7ce','dbc08a31-10c6-4c48-9df3-ceb88fad8e20','a1a4d25a-1cd4-4356-abac-985a0b3c6bcd','a1a4d25a-1cd4-4356-abac-8782382649','$.body.message.search_response[0].data.reg_type=>^Farmer$','$.body.message.search_response[0].data.reg_record_type=>^Farmer$','$.body.message.search_response[0].data.reg_records[0]','G2PDciFarmerCreateEnricherService');
+INSERT INTO "public"."incoming_model_semantic_patterns" (
+    "semantic_pattern_id",
+    "data_model_id",
+    "register_id",
+    "intake_form_id",
+    "pattern_for_register",
+    "pattern_for_intake_form",
+    "key_path_for_business_payload",
+    "raw_payload_enricher_class"
+) VALUES (
+    '9e576feb-164c-43b4-a3fb-f8de9e6bb7ce',
+    'c331ba96-ac35-4014-9d13-4ef327f6b79b',
+    'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
+    'a1a4d25a-1cd4-4356-abac-8782382649',
+    '$.body.message.search_response[0].data.reg_type=>^Farmer$',
+    '$.body.message.search_response[0].data.reg_record_type=>^Farmer$',
+    '$.body.message.search_response[0].data.reg_records[0]',
+    'G2PDciFarmerCreateEnricherService'
+);
