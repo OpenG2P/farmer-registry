@@ -374,7 +374,6 @@
       "role_description": "Operations role - Handles initial data entry and submission of new records into the registry.",
       "active": true,
       "permissions": [
-        "intakeFormDefinition:edit",
         "intakeFormDefinition:view",
         "intakeSubmission:edit",
         "intakeSubmission:view"
@@ -385,7 +384,6 @@
       "role_description": "Operations role - Validates and verifies the accuracy of newly submitted intake records before further processing.",
       "active": true,
       "permissions": [
-        "intakeFormDefinition:edit",
         "intakeFormDefinition:view",
         "intakeSubmission:approve",
         "intakeSubmission:view",
@@ -400,9 +398,13 @@
       "permissions": [
         "changeRequest:create",
         "changeRequest:view",
+        "referenceData:view",
         "register:authenticate",
         "register:view",
-        "registerHistory:view"
+        "registerDefinition:view",
+        "registerHistory:view",
+        "registerSection:view",
+        "registerTab:view"
       ]
     },
     {
@@ -411,8 +413,12 @@
       "active": true,
       "permissions": [
         "changeRequest:view",
+        "referenceData:view",
         "register:view",
+        "registerDefinition:view",
         "registerHistory:view",
+        "registerSection:view",
+        "registerTab:view",
         "verificationChangeRequest:create",
         "verificationChangeRequest:view"
       ]
@@ -423,9 +429,13 @@
       "active": true,
       "permissions": [
         "changeRequest:view",
+        "referenceData:view",
         "register:view",
+        "registerDefinition:view",
         "registerHistory:view",
         "registerScore:view",
+        "registerSection:view",
+        "registerTab:view",
         "verificationChangeRequest:view"
       ]
     },
@@ -451,8 +461,12 @@
         "intakeSubmission:edit",
         "intakeSubmission:view",
         "outgoingMessage:view",
+        "referenceData:view",
         "register:view",
+        "registerDefinition:view",
         "registerHistory:view",
+        "registerSection:view",
+        "registerTab:view",
         "verificationChangeRequest:create",
         "verificationChangeRequest:view",
         "verificationIntakeForm:create",
@@ -569,6 +583,8 @@
         "ingestTemplate:delete",
         "ingestTemplate:edit",
         "ingestTemplate:view",
+        "intakeFormDefinition:edit",
+        "intakeFormDefinition:view",
         "intakeSubmission:approve",
         "intakeSubmission:edit",
         "intakeSubmission:view",

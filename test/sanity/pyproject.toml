@@ -9,11 +9,13 @@ dependencies = [
   "cryptography>=42",
   "pyjwt>=2.8",
   "orjson>=3.9",
+  "psycopg2-binary>=2.9",
 ]
 
 [tool.pytest.ini_options]
 markers = [
   "smoke: liveness/wiring checks that need no auth and create no data",
   "e2e: signed DCI search round-trip (seeds a persistent PM partner + CM binding)",
+  "cr: change request -> AWE approval -> version history -> audit",
 ]
 addopts = "-ra -q"

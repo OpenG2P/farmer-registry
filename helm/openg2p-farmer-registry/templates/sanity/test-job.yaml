@@ -13,7 +13,11 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
   annotations:
     helm.sh/hook: post-install,post-upgrade
-    helm.sh/hook-weight: "15"
+    # Runs LAST — after iam-register (weight 20). iam-register pushes this
+    # registry's roles→permissions catalog into the IAM service; until it has
+    # run, the change-request e2e's permission checks resolve to no permissions
+    # and fail with 403 "Insufficient resource_access roles". Must be > 20.
+    helm.sh/hook-weight: "25"
     # Keep the finished pod so its logs stay viewable; replaced next run.
     helm.sh/hook-delete-policy: before-hook-creation
 spec:

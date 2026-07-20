@@ -50,16 +50,16 @@ questions:
   group: General
 
 - variable: global.partnerSignatureValidationEnabled
-  description: Verify the DCI request signature against Partner Management keys (Partner API). Turn ON for production.
+  description: Verify the DCI request signature against Partner Management keys (Partner API). ON by default (fail-closed). Turn OFF only for testing or bring-up before Partner Management is wired — doing so accepts unsigned requests.
   type: boolean
-  default: false
+  default: true
   label: Verify Partner Signature
   group: Consent & Partner API
 
 - variable: global.consentEnforcementEnabled
-  description: Enforce consent via the Consent Manager before returning data (Partner API), clamping fields to consented scopes. Requires a reachable Consent Manager. Turn ON for production.
+  description: Enforce consent via the Consent Manager before returning data (Partner API), clamping fields to consented scopes. Requires a reachable Consent Manager. ON by default (fail-closed). Turn OFF only for testing or bring-up — doing so returns records unclamped to any caller.
   type: boolean
-  default: false
+  default: true
   label: Enforce Consent
   group: Consent & Partner API
 
@@ -284,7 +284,7 @@ questions:
   group: Sanity
 
 - variable: sanity.runE2e
-  description: Also run the full signed DCI + consent e2e. Seeds a shared test partner into Partner Management (key) and the Consent Manager (binding + policy), then asserts a signed search is permitted and field-clamped. Needs reachable PM + CM and the enforcement switches ON.
+  description: Also run the full e2e. (1) Signed DCI + consent search — asserts a permitted, field-clamped result and that missing consent / bad signature are rejected. (2) Change request → AWE approval → applied change → version history → audit. This seeds test fixtures (a Keycloak user, a test farmer, a Partner Management key, a Consent Manager binding) and leaves them in place for inspection. Needs reachable PM, CM, AWE, Keycloak admin and the DBs, the enforcement switches ON, and the AWE issuer set to the external Keycloak URL. OFF by default; enable only on test environments.
   type: boolean
   default: false
   label: Sanity - Run Full E2E
@@ -305,3 +305,8 @@ questions:
   label: Partner Management Admin URL (e2e seed)
   group: Sanity
   show_if: sanity.runE2e=true
+- variable: global.csrfEnabled
+  description: Enable double-submit CSRF validation on state-changing staff-portal-api requests. Set false for local/dev troubleshooting only.
+  type: boolean
+  label: CSRF Enabled
+  group: Security

@@ -12,26 +12,41 @@
 set -o pipefail
 cd /app
 
-# --- wait for the partner-api to answer /ping before running ---
+# --- wait for the registry APIs to be reachable before running ---
+# As a post-install Helm hook this Job can fire before the registry pods are
+# Ready, so we wait for BOTH the partner-api (DCI) and, for the e2e, the
+# staff-portal-api (change requests). Reachability is necessary but not
+# sufficient — the staff-portal-api permission path warms up a little after it
+# starts answering, so the change-request test additionally retries on 403.
 python - <<'PY'
 import os, sys, time
 import httpx
 
-base = (os.environ.get("SANITY_PARTNER_BASE_URL") or "").rstrip("/")
-if not base:
-    sys.exit(0)
 verify = (os.environ.get("SANITY_VERIFY_TLS", "true").lower() not in ("false", "0", "no"))
 deadline = time.time() + int(os.environ.get("SANITY_READINESS_TIMEOUT", "180"))
-url = base + "/ping"
-while time.time() < deadline:
-    try:
-        if httpx.get(url, timeout=10, verify=verify).status_code == 200:
-            print(f"[sanity] Farmer Registry partner-api ready at {url}")
-            sys.exit(0)
-    except Exception:
-        pass
-    time.sleep(5)
-print(f"[sanity] not ready after wait ({url}); running anyway")
+run_e2e = (os.environ.get("SANITY_RUN_E2E", "false").lower() in ("1", "true", "yes", "on"))
+
+# (label, url, "ready" predicate). staff-portal-api has no unauthenticated 200
+# endpoint, so any HTTP response (even 401/404) means it is up.
+targets = []
+partner = (os.environ.get("SANITY_PARTNER_BASE_URL") or "").rstrip("/")
+if partner:
+    targets.append(("partner-api", partner + "/ping", lambda r: r.status_code == 200))
+staff = (os.environ.get("SANITY_STAFF_BASE_URL") or "").rstrip("/")
+if run_e2e and staff:
+    targets.append(("staff-portal-api", staff + "/docs", lambda r: r.status_code < 500))
+
+for label, url, ready in targets:
+    while time.time() < deadline:
+        try:
+            if ready(httpx.get(url, timeout=10, verify=verify)):
+                print(f"[sanity] {label} ready at {url}")
+                break
+        except Exception:
+            pass
+        time.sleep(5)
+    else:
+        print(f"[sanity] {label} not ready after wait ({url}); running anyway")
 PY
 
 if [ "${SANITY_RUN_E2E}" = "true" ]; then

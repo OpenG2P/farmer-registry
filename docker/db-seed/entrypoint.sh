@@ -26,8 +26,9 @@ set -e
 # AWE database (implementation extension data; optional):
 #   AWE_DB_SEED_ENABLED — "true" to seed the AWE Postgres database
 #   AWE_PGHOST, AWE_PGPORT, AWE_PGDATABASE, AWE_PGUSER, AWE_PGPASSWORD
-#   AWE_CALLBACK_HMAC_SECRET — callback_secret row + registry staff API
-#   AWE_CALLBACK_SECRET_ID   — callback_secret row id (per-release; default "registry")
+#   AWE_CALLBACK_HMAC_SECRET    — callback_secret row + registry staff API
+#   AWE_CALLBACK_SECRET_ID        — callback_secret row id (per-release; default "registry")
+#   AWE_CALLBACK_CALLER_SERVICE   — full webhook URL for callback_secret.caller_service
 # ──────────────────────────────────────────────────────────────
 
 PGPORT="${PGPORT:-5432}"
@@ -80,15 +81,19 @@ run_callback_secret() {
     echo "[db-seed] AWE_CALLBACK_HMAC_SECRET unset — skipping callback_secret."
     return
   fi
+  if [ -z "$AWE_CALLBACK_CALLER_SERVICE" ]; then
+    echo "[db-seed] AWE_CALLBACK_CALLER_SERVICE unset — skipping callback_secret."
+    return
+  fi
   # Callback-secret row id — per registry instance. Passed by the db-seed Job
   # from the chart's global.aweCallbackSecretId; defaults to "registry" so the
   # image stays backward-compatible if the env is unset.
   AWE_CALLBACK_SECRET_ID="${AWE_CALLBACK_SECRET_ID:-registry}"
-  echo "[db-seed]   -> callback_secret (AWE DB, from template) id=${AWE_CALLBACK_SECRET_ID}"
-  export AWE_CALLBACK_HMAC_SECRET AWE_CALLBACK_SECRET_ID
+  echo "[db-seed]   -> callback_secret (AWE DB, from template) id=${AWE_CALLBACK_SECRET_ID} caller_service=${AWE_CALLBACK_CALLER_SERVICE}"
+  export AWE_CALLBACK_HMAC_SECRET AWE_CALLBACK_SECRET_ID AWE_CALLBACK_CALLER_SERVICE
   PGHOST="${AWE_PGHOST}" PGPORT="${AWE_PGPORT:-5432}" PGDATABASE="${AWE_PGDATABASE}" \
     PGUSER="${AWE_PGUSER}" PGPASSWORD="${AWE_PGPASSWORD}" \
-    envsubst '${AWE_CALLBACK_HMAC_SECRET} ${AWE_CALLBACK_SECRET_ID}' < "$tpl" | psql -v ON_ERROR_STOP=0 -f -
+    envsubst '${AWE_CALLBACK_HMAC_SECRET} ${AWE_CALLBACK_SECRET_ID} ${AWE_CALLBACK_CALLER_SERVICE}' < "$tpl" | psql -v ON_ERROR_STOP=0 -f -
 }
 
 echo "============================================="
