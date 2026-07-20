@@ -1,1 +1,11 @@
-INSERT INTO "public"."g2p_register_score_definitions" ("score_definition_id","register_id","score_type","contributing_attributes","score_config","is_enabled") VALUES ('e7269b21-f234-411a-bb4d-16ca8b5f3cd3','9055ab43-c85d-4833-bd00-ca657bb72644','POVERTY','["size_of_group","number_of_children"]','{"weights":{"size_of_group":0.45,"number_of_children":0.55}}','TRUE');
+INSERT INTO "public"."g2p_register_score_definitions" (
+    "score_definition_id",
+    "register_mnemonic",
+    "score_type",
+    "is_enabled"
+) VALUES (
+    'e7269b21-f234-411a-bb4d-16ca8b5f3cd3',
+    'Household',
+    'POVERTY',
+    'TRUE'
+);
