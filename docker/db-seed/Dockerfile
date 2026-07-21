@@ -10,7 +10,7 @@
 #
 # Build context = repo root (so farmer-extension/ and docker/db-seed/ are both
 # reachable).
-ARG RP_VERSION=develop
+ARG RP_VERSION=0.0.0-g2p-5383.272
 FROM openg2p/openg2p-registry-db-seed-base:${RP_VERSION}
 
 COPY farmer-extension/src/openg2p_registry_farmer_extension/meta_data/     /seed/meta_data/

@@ -5,7 +5,7 @@
 # farmer domain model; ENV defaults and the migrate+gunicorn CMD are inherited.
 #
 # Build context = repo root (so farmer-extension/ is reachable).
-ARG RP_VERSION=develop
+ARG RP_VERSION=0.0.0-g2p-5383.272
 FROM openg2p/openg2p-registry-partner-api-base:${RP_VERSION}
 
 COPY farmer-extension/ /app/farmer-extension/

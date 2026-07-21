@@ -12,7 +12,7 @@
 # released base version and stamps it as an org.openg2p.pin.RP_VERSION label.
 #
 # Build context = repo root (so farmer-extension/ is reachable).
-ARG RP_VERSION=develop
+ARG RP_VERSION=0.0.0-g2p-5383.272
 FROM openg2p/openg2p-registry-staff-portal-api-base:${RP_VERSION}
 
 COPY farmer-extension/ /app/farmer-extension/

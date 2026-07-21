@@ -7,7 +7,7 @@
 # runs as worker or beat, selected at runtime via CELERY_APP.
 #
 # Build context = repo root (so farmer-extension/ is reachable).
-ARG RP_VERSION=develop
+ARG RP_VERSION=0.0.0-g2p-5383.272
 FROM openg2p/openg2p-registry-celery-base:${RP_VERSION}
 
 COPY farmer-extension/ /app/farmer-extension/
