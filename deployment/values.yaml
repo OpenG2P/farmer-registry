@@ -1,0 +1,62 @@
+# Farmer Registry — Helm values overlay.
+#
+# The Helm chart itself now lives in and is published by the registry-platform
+# (openg2p-registry). Farmer Registry no longer owns a chart — it deploys the
+# shared chart with this overlay:
+#
+#     helm repo add openg2p https://openg2p.github.io/openg2p-helm
+#     helm install farmer-registry openg2p/openg2p-registry \
+#          -f deployment/values.yaml
+#
+# This file carries ONLY what is farmer-specific: the registry variant, the
+# farmer-built image repositories, and the sanity suite toggle. Everything else
+# (all templates, service wiring, keycloak/iam-register mechanism, db-seed
+# machinery, demo users, id-generator scaffolding) is inherited from the chart's
+# defaults. CI rewrites the image tags below to the freshly built version.
+
+global:
+  registryVariant: 'farmer-registry'
+  # Ingress host for this registry. Overrides the chart's generic default.
+  registryHostname: '{{ .Release.Name }}.{{ .Release.Namespace }}.openg2p.org'
+
+# ── Farmer-built images (FROM the registry-platform base images) ──
+staffPortalApi:
+  image:
+    repository: openg2p/openg2p-farmer-registry-staff-portal-api
+    tag: develop
+
+partnerApi:
+  image:
+    repository: openg2p/openg2p-farmer-registry-partner-api
+    tag: develop
+
+celeryWorker:
+  image:
+    repository: openg2p/openg2p-farmer-registry-celery
+    tag: develop
+
+celeryBeatProducer:
+  image:
+    repository: openg2p/openg2p-farmer-registry-celery
+    tag: develop
+
+dbSeed:
+  image:
+    repository: openg2p/openg2p-farmer-registry-db-seed
+    tag: develop
+
+# ── Farmer e2e sanity suite (test image + cases stay in this repo) ──
+sanity:
+  enabled: true
+  image:
+    repository: openg2p/openg2p-farmer-registry-sanity
+    tag: develop
+
+# staffPortalUi and benePortalApi are consumed as-is from the registry-platform
+# base images (chart defaults already point at openg2p/openg2p-registry-*), so
+# they are intentionally not overridden here.
+
+# NOTE: the farmer id-generator idTypes (farmer/household) and the demo keycloak
+# users the shipped AWE policy names are currently inherited from the chart
+# defaults. When the base chart's reference defaults are generalised, move those
+# farmer-specific values here.

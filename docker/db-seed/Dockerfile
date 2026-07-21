@@ -1,77 +1,19 @@
-# Farmer Registry DB-seed image.
+# Farmer Registry — DB-seed image.
 #
-# Postgres-client image that ships:
-#   - meta_data SQL from the farmer-extension (register definitions, schemas, etc.)
-#   - flat Jinja templates from the farmer-extension
-#   - farmer sub-table JSON (docker/db-seed/seed-data/)
-#   - openg2p-data repo (cloned at build time) with shared demography CSV + images
-# At container-run time it:
-#   - applies meta_data SQL against Postgres
-#   - optionally loads sample data (demography CSV + farmer JSON) via load_sample_data.py
-#   - optionally uploads profile images to MinIO via upload_images.py
-#   - optionally uploads Jinja templates to MinIO via upload_templates.py
+# Thin extension of the registry-platform db-seed base image. The base ships all
+# the generic seeding MACHINERY (entrypoint.sh, load/upload scripts, the shared
+# openg2p-data clone). This image adds ONLY farmer's seed content: the SQL
+# metadata, AWE metadata and Jinja templates carried by the farmer-extension,
+# plus the farmer sub-table sample JSON. The entrypoint (inherited) reads
+# /seed/* at container-run time; behaviour is toggled entirely via env from the
+# Helm Job.
 #
-# Build context = repo root (so that farmer-extension/ and docker/db-seed/ are
-# both reachable).
+# Build context = repo root (so farmer-extension/ and docker/db-seed/ are both
+# reachable).
+ARG RP_VERSION=develop
+FROM openg2p/openg2p-registry-db-seed-base:${RP_VERSION}
 
-ARG EXTENSION_FOLDER=farmer-extension
-
-FROM postgres:16-alpine
-
-ARG EXTENSION_FOLDER
-ARG GIT_COMMIT=dev
-ARG BUILD_TIME=dev
-ARG OPENG2P_DATA_REPO=https://github.com/openg2p/openg2p-data.git
-ARG OPENG2P_DATA_BRANCH=2.0
-
-ENV GIT_COMMIT=${GIT_COMMIT} \
-    BUILD_TIME=${BUILD_TIME} \
-    EXTENSION_FOLDER=${EXTENSION_FOLDER} \
-    OPENG2P_DATA_DIR=/openg2p-data
-
-RUN apk add --no-cache python3 py3-pip py3-psycopg2 git gettext
-
-COPY docker/db-seed/requirements.txt /tmp/requirements.txt
-RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements.txt && \
-    rm /tmp/requirements.txt
-
-# Copy meta-data SQL and flat templates from the extension source tree.
-# (sample_data/ no longer exists in the extension — data lives in openg2p-data.)
-COPY ${EXTENSION_FOLDER}/src/ /tmp/ext-src/
-
-RUN mkdir -p /seed/meta_data /seed/awe_meta_data /seed/templates && \
-    find /tmp/ext-src -maxdepth 2 -type d -name meta_data | while read d; do \
-      cp -r "$d"/* /seed/meta_data/ 2>/dev/null || true; \
-    done && \
-    find /tmp/ext-src -maxdepth 2 -type d -name awe_meta_data | while read d; do \
-      cp -r "$d"/* /seed/awe_meta_data/ 2>/dev/null || true; \
-    done && \
-    find /tmp/ext-src -maxdepth 2 -type d -name templates | while read d; do \
-      find "$d" -maxdepth 1 -type f -name '*.j2' -exec cp {} /seed/templates/ \; ; \
-    done && \
-    rm -rf /tmp/ext-src
-
-# Fetch openg2p-data (shared demography CSV, images) by ref. Uses fetch+checkout
-# rather than `git clone -b` because OPENG2P_DATA_BRANCH may be a commit SHA: the
-# central pipeline resolves the pin (e.g. `2.0`) to a SHA before the build, and
-# `git clone -b` accepts only a branch/tag name — fetch+checkout takes either.
-RUN mkdir -p /openg2p-data && cd /openg2p-data \
-    && git init -q \
-    && git remote add origin ${OPENG2P_DATA_REPO} \
-    && git fetch -q --depth 1 origin ${OPENG2P_DATA_BRANCH} \
-    && git checkout -q FETCH_HEAD \
-    && rm -rf /openg2p-data/.git
-
-COPY docker/db-seed/seed-data/ /seed/seed-data/
-COPY docker/db-seed/entrypoint.sh /seed/entrypoint.sh
-COPY docker/db-seed/upload_templates.py /seed/upload_templates.py
-COPY docker/db-seed/upload_images.py /seed/upload_images.py
-COPY docker/db-seed/load_sample_data.py /seed/load_sample_data.py
-COPY docker/db-seed/load_geo_data.py /seed/load_geo_data.py
-RUN chmod +x /seed/entrypoint.sh \
-             /seed/upload_templates.py \
-             /seed/upload_images.py \
-             /seed/load_sample_data.py \
-             /seed/load_geo_data.py
-
-ENTRYPOINT ["/seed/entrypoint.sh"]
+COPY farmer-extension/src/openg2p_registry_farmer_extension/meta_data/     /seed/meta_data/
+COPY farmer-extension/src/openg2p_registry_farmer_extension/awe_meta_data/ /seed/awe_meta_data/
+COPY farmer-extension/src/openg2p_registry_farmer_extension/templates/     /seed/templates/
+COPY docker/db-seed/seed-data/                                             /seed/seed-data/

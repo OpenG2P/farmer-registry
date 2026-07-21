@@ -1,20 +1,25 @@
-The single image works because we install both the worker code (celery-workers) and the producer code (celery-beat-producers) into the same Docker image (both are pip-installed in `docker/celery/Dockerfile`).
+Both celery codebases (celery-workers and celery-beat-producers), plus the
+`run_celery.py` startup wrapper, live in the registry-platform **base** image
+`openg2p/openg2p-registry-celery-base`. Farmer's `docker/celery/Dockerfile` only
+extends that base with the farmer domain model — it no longer installs celery
+itself.
 
-Since both codebases are present, we simply tell Docker which application to load at startup using Environment Variables.
+Because both codebases are present in the base, we select which application to
+run at startup via environment variables. `run_celery.py` (inherited from the
+base) reads them:
 
-In the Dockerfile, the command is dynamic:
+1. Run as a Worker (default):
 
-dockerfile
-CMD celery -A ${CELERY_APP} ${CELERY_OPTS}
-You switch modes by passing these environment variables at runtime (e.g., in your helm values.yaml or docker run command):
+   ```
+   CELERY_APP: openg2p_registry_celery_workers.main.celery_app
+   CELERY_OPTS: worker --loglevel=info
+   ```
 
-1. To Run as a Worker (Default)
-This is the default behavior if you don't provide any variables.
+2. Run as a Beat producer:
 
-CELERY_APP: openg2p_registry_celery_workers.main.celery_app
-CELERY_OPTS: worker --loglevel=info
-2. To Run as a Producer (Beat Scheduler)
-Override the variables to point to the producer app and enable the beat flag.
+   ```
+   CELERY_APP: openg2p_registry_celery_beat_producers.main.celery_app
+   CELERY_OPTS: worker --beat --loglevel=info --schedule=/tmp/celery-beat-schedule.db
+   ```
 
-CELERY_APP: openg2p_registry_celery_beat_producers.main.celery_app
-CELERY_OPTS: worker --beat --loglevel=info --schedule=/tmp/celery-beat-schedule.db
+These are set per-deployment in the Helm values (celeryWorker / celeryBeatProducer).
