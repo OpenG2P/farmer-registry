@@ -20,37 +20,37 @@ global:
   registryHostname: '{{ .Release.Name }}.{{ .Release.Namespace }}.openg2p.org'
 
 # ── Farmer-built images (FROM the registry-platform base images) ──
-staffPortalApi:
+staffApi:
   image:
     repository: openg2p/openg2p-farmer-registry-staff-portal-api
-    tag: develop
+    tag: 0.0.0-g2p-5383.118
 
 partnerApi:
   image:
     repository: openg2p/openg2p-farmer-registry-partner-api
-    tag: develop
+    tag: 0.0.0-g2p-5383.118
 
 celeryWorker:
   image:
     repository: openg2p/openg2p-farmer-registry-celery
-    tag: develop
+    tag: 0.0.0-g2p-5383.118
 
-celeryBeatProducer:
+celeryBeat:
   image:
     repository: openg2p/openg2p-farmer-registry-celery
-    tag: develop
+    tag: 0.0.0-g2p-5383.118
 
 dbSeed:
   image:
     repository: openg2p/openg2p-farmer-registry-db-seed
-    tag: develop
+    tag: 0.0.0-g2p-5383.118
 
 # ── Farmer e2e sanity suite (test image + cases stay in this repo) ──
 sanity:
   enabled: true
   image:
     repository: openg2p/openg2p-farmer-registry-sanity
-    tag: develop
+    tag: 0.0.0-g2p-5383.118
 
 # staffPortalUi and benePortalApi are consumed as-is from the registry-platform
 # base images (chart defaults already point at openg2p/openg2p-registry-*), so

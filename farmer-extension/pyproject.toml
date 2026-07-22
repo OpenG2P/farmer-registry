@@ -34,6 +34,3 @@ Repository = "https://github.com/OpenG2P/openg2p-registry-extension"
 [tool.hatch.version]
 path = "src/openg2p_registry_farmer_extension/__init__.py"
 
-# Import name mapping
-[tool.hatch.build.targets.wheel.sources]
-"src/openg2p_registry_farmer_extension" = "openg2p_registry_extensions"

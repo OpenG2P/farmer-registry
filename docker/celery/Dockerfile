@@ -8,7 +8,11 @@
 #
 # Build context = repo root (so farmer-extension/ is reachable).
 ARG RP_VERSION=0.0.0-g2p-5383.272
-FROM openg2p/openg2p-registry-celery-base:${RP_VERSION}
+FROM openg2p/openg2p-registry-celery:${RP_VERSION}
+
+# Option C: select farmer's domain model (coexists with the base image's
+# reference extension; env picks farmer, no uninstall needed).
+ENV REGISTRY_EXTENSION_MODULE=openg2p_registry_farmer_extension
 
 COPY farmer-extension/ /app/farmer-extension/
 RUN pip install --no-cache-dir /app/farmer-extension

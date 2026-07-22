@@ -11,7 +11,11 @@
 # Build context = repo root (so farmer-extension/ and docker/db-seed/ are both
 # reachable).
 ARG RP_VERSION=0.0.0-g2p-5383.272
-FROM openg2p/openg2p-registry-db-seed-base:${RP_VERSION}
+FROM openg2p/openg2p-registry-db-seed:${RP_VERSION}
+
+# The RP db-seed image ships the reference registry's seed; clear it so only
+# farmer's seed is applied.
+RUN rm -rf /seed/meta_data/* /seed/awe_meta_data/* /seed/templates/* /seed/seed-data/*
 
 COPY farmer-extension/src/openg2p_registry_farmer_extension/meta_data/     /seed/meta_data/
 COPY farmer-extension/src/openg2p_registry_farmer_extension/awe_meta_data/ /seed/awe_meta_data/
