@@ -18,6 +18,12 @@ global:
   registryVariant: 'farmer-registry'
   # Ingress host for this registry. Overrides the chart's generic default.
   registryHostname: '{{ .Release.Name }}.{{ .Release.Namespace }}.openg2p.org'
+  # The base chart defaults these OFF (minimal reference registry). Farmer ships
+  # demo records/images/templates, so turn the db-seed loaders back on.
+  loadGeoData: true
+  loadSampleData: true
+  loadImages: true
+  loadTemplates: true
 
 # ── Farmer-built images (FROM the registry-platform base images) ──
 staffApi:
