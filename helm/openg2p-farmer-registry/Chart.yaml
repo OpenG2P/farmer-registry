@@ -1,0 +1,51 @@
+apiVersion: v2
+name: openg2p-farmer-registry
+description: |
+  OpenG2P Farmer Registry — a thin, branded package over the shared
+  openg2p-registry chart published by the registry platform.
+
+  This chart owns NO templates. It declares openg2p-registry as a pinned
+  dependency and supplies only the farmer values overlay (variant identity,
+  hostname, the farmer-built images, seed toggles and the farmer sanity suite).
+  Everything else — all service templates, keycloak/iam wiring, db-seed
+  machinery — comes from the openg2p-registry subchart.
+type: application
+
+# Version handling:
+#   This `version` is a STATIC placeholder — it is NOT the published version.
+#   The central CI pipeline (build-publish.yml -> openg2p-packaging @v1) derives
+#   the real version from git (one version per commit) and overrides it at
+#   publish time, in lockstep with the farmer images this chart references.
+#   Bumping it here only affects a local `helm package`/`helm install .`.
+version: 0.0.0-develop
+appVersion: "develop"
+
+keywords:
+  - openg2p
+  - registry
+  - farmer-registry
+home: https://openg2p.org
+icon: https://openg2p.github.io/openg2p-helm/openg2p-logo.png
+sources:
+  - https://github.com/OpenG2P/farmer-registry
+maintainers:
+  - name: OpenG2P
+    email: info@openg2p.org
+
+# The Farmer Registry is the openg2p-registry chart plus a values overlay. The
+# openg2p-registry version is HARDCODED (not CI-rewritten): the farmer images
+# extend that same base image tag, so the two are pinned together and only moved
+# deliberately. Aliased to `registry` so the overlay nests under a hyphen-free
+# key (.Values.registry.*).
+dependencies:
+  - name: openg2p-registry
+    alias: registry
+    version: 0.0.0-develop.286
+    repository: https://openg2p.github.io/openg2p-helm
+
+# Rancher catalog branding
+annotations:
+  catalog.cattle.io/display-name: "OpenG2P Farmer Registry"
+  catalog.cattle.io/certified: partner
+  catalog.cattle.io/kube-version: ">=1.23.0-0"
+  openg2p.org/add-to-rancher: ""

@@ -24,6 +24,11 @@ policy. The only meaningful path is the AWE proxy.
 AWE does not apply the decision itself — it POSTs an HMAC-signed webhook to the
 registry, which applies the change and writes history. So the change lands
 asynchronously and the assertions below poll rather than read once.
+
+Farmer field-specific test (Set 2): the register/history rows the change is
+verified against live in the farmer register tables (g2p_register_farmers /
+g2p_register_history_farmers). The register id, CR tab and section are supplied
+as env by the Helm chart (sanity.* values).
 """
 
 import time
@@ -58,6 +63,10 @@ def _wait_until(predicate, timeout, interval=3):
 @pytest.fixture(scope="module")
 def change_request(cfg, staff_client, farmer_seeded, awe_approver):
     """Raise a CR that changes CR_FIELD, and return its id."""
+    from sanity.steplog import note
+    note(f"staff-portal-api login OK as '{cfg.staff_username}'; sanity approver registered on the AWE stages")
+    note(f"raising change request: set {fixtures.CR_FIELD}={fixtures.CR_VALUE_UPDATED!r} on record "
+         f"{fixtures.FARMER_INTERNAL_ID} (register={cfg.reg_type}, tab={cfg.cr_tab_id}, section={cfg.cr_section_id})")
     payload = {
         "register_id": cfg.farmer_register_id,
         "tab_id": cfg.cr_tab_id,
@@ -92,6 +101,7 @@ def change_request(cfg, staff_client, farmer_seeded, awe_approver):
     body = (resp.get("response_body") or {}).get("response_payload") or resp
     cr_id = body.get("change_request_id") or body.get("id")
     assert cr_id, f"could not find change_request_id in response: {resp}"
+    note(f"change request created id={cr_id} — status pending, awaiting AWE approval")
     return cr_id
 
 
@@ -126,7 +136,7 @@ def _open_tasks(cfg, cr_id):
 
 
 @pytest.mark.e2e
-def test_approval_through_awe_applies_the_change(cfg, staff_client, change_request):
+def test_approval_through_awe_applies_the_change(cfg, staff_client, change_request, step):
     """Approve every task on the request until the change is applied.
 
     Tasks are re-read each round rather than assuming a stage count, so a one-
@@ -141,6 +151,7 @@ def test_approval_through_awe_applies_the_change(cfg, staff_client, change_reque
         if _field_value(cfg) == fixtures.CR_VALUE_UPDATED:
             break
         tasks = _open_tasks(cfg, change_request)
+        step(f"AWE round: {len(tasks)} open approval task(s) offered for CR {change_request}")
         if not tasks:
             # Either nothing was ever offered, or the next stage's tasks aren't
             # created yet — wait once for them to appear.
@@ -158,7 +169,9 @@ def test_approval_through_awe_applies_the_change(cfg, staff_client, change_reque
                 "artifact_type": "registry.change_request",
                 "current_stage": task["stage_order"] or 1,
             })
+            step(f"approved AWE task {task['task_id']} (stage {task['stage_order']}, assignee {task['assignee']})")
             approved_any = True
+        step("waiting for AWE to advance the workflow (next stage or apply the change)…")
         # Let AWE advance to the next stage (or apply the change) before re-reading.
         _wait_until(
             lambda: _field_value(cfg) == fixtures.CR_VALUE_UPDATED or _open_tasks(cfg, change_request),
@@ -174,10 +187,14 @@ def test_approval_through_awe_applies_the_change(cfg, staff_client, change_reque
 
     # AWE applies the decision by POSTing an HMAC-signed webhook back to the
     # registry, so the change lands asynchronously — poll, do not read once.
+    step(f"all stages cleared; waiting up to {cfg.awe_settle_timeout}s for AWE's HMAC-signed decision "
+         "webhook to apply the change to the register")
     applied = _wait_until(
         lambda: _field_value(cfg) == fixtures.CR_VALUE_UPDATED,
         timeout=cfg.awe_settle_timeout,
     )
+    if applied:
+        step(f"change applied — {fixtures.CR_FIELD} is now {fixtures.CR_VALUE_UPDATED!r} in the register ✓")
     assert applied, (
         f"'{fixtures.CR_FIELD}' is still '{_field_value(cfg)}' after clearing every "
         f"offered stage and waiting {cfg.awe_settle_timeout}s — AWE's decision webhook "

@@ -1,6 +1,6 @@
 Both celery codebases (celery-workers and celery-beat-producers), plus the
-`run_celery.py` startup wrapper, live in the registry-platform **base** image
-`openg2p/openg2p-registry-celery-base`. Farmer's `docker/celery/Dockerfile` only
+`run_celery.py` startup wrapper, live in the registry-platform base image
+`openg2p/openg2p-registry-celery`. Farmer's `docker/celery/Dockerfile` only
 extends that base with the farmer domain model — it no longer installs celery
 itself.
 
@@ -22,4 +22,4 @@ base) reads them:
    CELERY_OPTS: worker --beat --loglevel=info --schedule=/tmp/celery-beat-schedule.db
    ```
 
-These are set per-deployment in the Helm values (celeryWorker / celeryBeatProducer).
+These are set per-deployment in the Helm values (celeryWorker / celeryBeat).

@@ -1,0 +1,80 @@
+# Farmer Registry — values overlay for the openg2p-registry chart.
+#
+# This chart has no templates; it deploys the openg2p-registry subchart (pinned
+# in Chart.yaml, aliased `registry`) with the overrides below. Install:
+#
+#     helm repo add openg2p https://openg2p.github.io/openg2p-helm
+#     helm dependency build ./helm/openg2p-farmer-registry
+#     helm install farmer-registry ./helm/openg2p-farmer-registry
+#
+# Two kinds of override:
+#   * global.*    — Helm propagates these to the subchart (and its subcharts).
+#   * registry.*  — values for the openg2p-registry subchart itself.
+# Everything not set here (all service wiring, keycloak/iam, db-seed machinery,
+# id-generator, demo users) is inherited from the subchart defaults.
+
+# ── Globals (propagate to the openg2p-registry subchart) ──────────────────────
+global:
+  registryVariant: 'farmer-registry'
+  # Ingress host for this registry. Overrides the subchart's generic default.
+  registryHostname: '{{ .Release.Name }}.{{ .Release.Namespace }}.openg2p.org'
+  # The subchart defaults these OFF (minimal reference registry). Farmer ships
+  # demo records/images/templates, so turn the db-seed loaders back on.
+  loadGeoData: true
+  loadSampleData: true
+  loadImages: true
+  loadTemplates: true
+
+# ── openg2p-registry subchart overrides ───────────────────────────────────────
+registry:
+  # Farmer-built images (each FROM the matching openg2p-registry base image).
+  # CI rewrites these tags to the freshly built farmer version (lockstep); the
+  # base image they extend is pinned by the openg2p-registry dependency version.
+  staffApi:
+    image:
+      repository: openg2p/openg2p-farmer-registry-staff-api
+      tag: 0.0.0-develop
+  partnerApi:
+    image:
+      repository: openg2p/openg2p-farmer-registry-partner-api
+      tag: 0.0.0-develop
+  celeryWorker:
+    image:
+      repository: openg2p/openg2p-farmer-registry-celery
+      tag: 0.0.0-develop
+  celeryBeat:
+    image:
+      repository: openg2p/openg2p-farmer-registry-celery
+      tag: 0.0.0-develop
+  dbSeed:
+    image:
+      repository: openg2p/openg2p-farmer-registry-db-seed
+      tag: 0.0.0-develop
+
+  # staffUi and beneApi are consumed as-is from the openg2p-registry base images
+  # (subchart defaults already point at openg2p/openg2p-registry-*), so they are
+  # intentionally not overridden.
+
+  # ── Farmer e2e sanity suite (image built here; Set 2 field tests) ───────────
+  # The subchart ships the reference (Individual) sanity values; override them
+  # for the Farmer register. Behaviour toggles (runE2e/failOnError) keep the
+  # subchart defaults.
+  sanity:
+    enabled: true
+    image:
+      repository: openg2p/openg2p-farmer-registry-sanity-tests
+      tag: 0.0.0-develop
+    regType: Farmer
+    regRecordType: 'spdci-extensions-dci:Farmer'
+    # farmer functional_record_id of the injected sanity record (see
+    # test/sanity/sanity/fixtures.py).
+    searchText: SANITY-FARMER-0001
+    # Consented scope + scopes asserted absent — top-level keys of the farmer
+    # outgoing DCI template (openg2p_farmer_to_dci.json.j2).
+    dataScopes: "farmer_personal_details"
+    deniedScopes: "family_details,farm_details,machineries_details"
+    # The Farmer register + the UI coordinates the change-request test edits
+    # (must match the farmer-extension seed metadata).
+    farmerRegisterId: a1a4d25a-1cd4-4356-abac-985a0b3c6bcd
+    crTabId: "farmer_farmer_tab"
+    crSectionId: "farmer_farmer_personal_identification_section_01"

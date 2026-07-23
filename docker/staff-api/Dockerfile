@@ -2,17 +2,16 @@
 #
 # Under the inverted build model the registry-platform publishes the base image
 # (platform code + fastapi-common/iam-core runtime + entrypoint/CMD/ENV). This
-# image only adds the farmer domain model on top: the farmer-extension wheel is
-# aliased (see farmer-extension/pyproject.toml [tool.hatch.build.targets.wheel.sources])
-# onto the import name `openg2p_registry_extensions`, which the platform resolves
-# from site-packages at runtime. ENV defaults and the migrate+gunicorn CMD are
-# inherited from the base.
+# image only adds the farmer domain model on top: the farmer-extension is pip-
+# installed under its own import name (openg2p_registry_farmer_extension) and
+# selected at runtime by REGISTRY_EXTENSION_MODULE (Option C). ENV defaults and
+# the migrate+gunicorn CMD are inherited from the base.
 #
-# RP_VERSION pins the base image tag. Defaults to `develop`; CI resolves it to a
-# released base version and stamps it as an org.openg2p.pin.RP_VERSION label.
+# RP_VERSION pins the openg2p-registry base image tag. Keep it in lockstep with
+# the openg2p-registry chart dependency pinned in helm/openg2p-farmer-registry/Chart.yaml.
 #
 # Build context = repo root (so farmer-extension/ is reachable).
-ARG RP_VERSION=0.0.0-g2p-5383.272
+ARG RP_VERSION=0.0.0-develop.286
 FROM openg2p/openg2p-registry-staff-api:${RP_VERSION}
 
 # Option C: select farmer's domain model (coexists with the base image's
