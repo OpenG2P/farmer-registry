@@ -53,6 +53,25 @@ registry:
     loadImages: true
     loadTemplates: true
 
+  # Name of this registry's tile in IAM. The roles/permissions catalog itself is
+  # registry-agnostic and comes from the subchart.
+  iamRegister:
+    applicationDescription: "Farmer Registry"
+
+  # Functional-ID pools, one per register. The subchart defaults to the REFERENCE
+  # registry's registers (individual + household), so the farmer register must be
+  # declared here. NB Helm merges maps, so `individual` is inherited too and an
+  # unused pool is provisioned for it — harmless, and a parent `null` cannot
+  # remove a subchart default.
+  idgenerator:
+    idGenerator:
+      appConfig:
+        idTypes:
+          farmer:
+            idLength: 12
+          household:
+            idLength: 10
+
   # staffUi and beneApi are consumed as-is from the openg2p-registry base images
   # (subchart defaults already point at openg2p/openg2p-registry-*), so they are
   # intentionally not overridden.
