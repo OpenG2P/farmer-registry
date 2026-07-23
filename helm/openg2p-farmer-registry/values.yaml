@@ -18,12 +18,6 @@ global:
   registryVariant: 'farmer-registry'
   # Ingress host for this registry. Overrides the subchart's generic default.
   registryHostname: '{{ .Release.Name }}.{{ .Release.Namespace }}.openg2p.org'
-  # The subchart defaults these OFF (minimal reference registry). Farmer ships
-  # demo records/images/templates, so turn the db-seed loaders back on.
-  loadGeoData: true
-  loadSampleData: true
-  loadImages: true
-  loadTemplates: true
 
 # ── openg2p-registry subchart overrides ───────────────────────────────────────
 registry:
@@ -50,6 +44,14 @@ registry:
     image:
       repository: openg2p/openg2p-farmer-registry-db-seed
       tag: 0.0.0-develop
+    # The subchart defaults these OFF (minimal reference registry). Farmer ships
+    # demo records/geo/images, so turn the db-seed loaders on. NB these are
+    # `dbSeed.*`, not `global.*` — the db-seed Job reads .Values.dbSeed.load*
+    # and there is no global fallback, so setting them under global is inert.
+    loadGeoData: true
+    loadSampleData: true
+    loadImages: true
+    loadTemplates: true
 
   # staffUi and beneApi are consumed as-is from the openg2p-registry base images
   # (subchart defaults already point at openg2p/openg2p-registry-*), so they are
