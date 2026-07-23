@@ -72,6 +72,14 @@ jobs:
       # together. beneApi/staffUi are consumed as-is from the base images, so
       # they carry no farmer tag to rewrite. The openg2p-registry dependency
       # version is intentionally NOT here (it stays hardcoded in Chart.yaml).
+      # This chart owns no templates, so Rancher would show an empty form (it
+      # reads questions.yaml only from the installed chart's ROOT, never from a
+      # subchart). CI regenerates questions.yaml at package time from the pinned
+      # openg2p-registry dependency, prefixing non-`global.` variables with the
+      # `registry` alias — so the farmer form matches the platform's exactly and
+      # cannot drift. Nothing about questions is kept in this repo.
+      chart-inherit-questions: '{"dependency":"openg2p-registry","alias":"registry"}'
+
       chart-image-paths: |
         [".registry.staffApi.image.tag",
          ".registry.partnerApi.image.tag",
