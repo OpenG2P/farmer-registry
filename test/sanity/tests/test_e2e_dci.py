@@ -1,7 +1,8 @@
 import pytest
 
 from sanity import fixtures
-from sanity.dci import build_search_envelope, post_search
+from sanity import dci as _dci
+from sanity.dci import build_search_envelope
 
 # End-to-end DCI search through the full PEP path:
 #   partner signs the DCI envelope + an embedded consent JWS with its PM key ->
@@ -22,11 +23,23 @@ SEARCH_PATH = "/dci/registry/sync/search"
 
 
 def _post_search(partner_client, envelope):
-    # DCI returns HTTP 200 even for a rejected result (status lives in the body).
-    # Delegated to the harness, which retries ONLY a transient dependency 5xx
-    # (e.g. Consent Manager handing out a stale pooled DB connection) — a genuine
-    # policy denial is returned immediately and still fails the assertion.
-    return post_search(partner_client, SEARCH_PATH, envelope)
+    """POST a DCI search. DCI answers HTTP 200 even for a rejection.
+
+    Prefers the harness helper, which retries ONLY a transient dependency 5xx
+    (e.g. Consent Manager handing out a stale pooled DB connection); a genuine
+    policy denial is returned immediately and still fails the assertion.
+
+    A variant image is built FROM a PINNED base image, so this overlay can be
+    newer than the harness it lands on. Falling back to a plain POST keeps the
+    suite runnable on a base image that predates the helper, instead of dying at
+    collection with ImportError.
+    """
+    post = getattr(_dci, "post_search", None)
+    if post is not None:
+        return post(partner_client, SEARCH_PATH, envelope)
+    r = partner_client.post(SEARCH_PATH, json=envelope)
+    assert r.status_code == 200, r.text
+    return r.json()
 
 
 def _meta(resp):
