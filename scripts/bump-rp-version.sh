@@ -3,10 +3,6 @@
 # extends — in BOTH the Dockerfiles (ARG RP_VERSION) and the Helm chart
 # dependency — atomically, so the two can never drift.
 #
-#   ./scripts/bump-rp-version.sh              # -> latest SAFE develop version
-#   ./scripts/bump-rp-version.sh 1.0.0        # -> that exact version
-#   ./scripts/bump-rp-version.sh 0.0.0-develop.296
-#
 # WHY "SAFE" LATEST
 #   A variant pins ONE version used for the Docker base images AND the chart
 #   dependency. registry-platform publishes both in lockstep per commit, but the
@@ -20,7 +16,7 @@
 # Requires: bash, curl, python3, helm. Run from the repo root.
 set -euo pipefail
 
-# ── repo-specific: the chart dir + the base image repos this variant extends ──
+# ── repo-specific: the chart dir this variant ships ───────────────────────────
 # The chart dir is the only per-repo value; everything else is derived.
 CHART_DIR="helm/openg2p-farmer-registry"
 
@@ -31,6 +27,45 @@ PROBE_IMAGE="openg2p/openg2p-registry-sanity-tests"
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 note() { echo "  $*"; }
+
+usage() {
+  cat <<EOF
+Bump the pinned openg2p-registry version (Dockerfiles' ARG RP_VERSION + the Helm
+chart dependency) atomically, so images and chart never drift.
+
+Usage:
+  ./scripts/bump-rp-version.sh                 Bump to the latest SAFE version.
+  ./scripts/bump-rp-version.sh <version>       Bump to a specific version.
+  ./scripts/bump-rp-version.sh -n              Show the latest SAFE version;
+  ./scripts/bump-rp-version.sh -n <version>    check a version — write NOTHING.
+  ./scripts/bump-rp-version.sh -h              This help.
+
+Options:
+  -n, --check, --dry-run   Resolve/validate and print, but do not modify any file.
+  -h, --help               Show this help.
+
+"Latest SAFE" = the highest 0.0.0-develop.N present in BOTH the Helm index and
+Docker Hub (an image-only tag whose chart has not published yet is skipped).
+A specific <version> is accepted only if it exists in both.
+
+Examples:
+  ./scripts/bump-rp-version.sh -n              # what would 'latest' pick?
+  ./scripts/bump-rp-version.sh                 # take it
+  ./scripts/bump-rp-version.sh 0.0.0-develop.296
+EOF
+}
+
+# ── args ──────────────────────────────────────────────────────────────────────
+CHECK_ONLY=false
+VERSION_ARG=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help)              usage; exit 0 ;;
+    -n|--check|--dry-run)   CHECK_ONLY=true; shift ;;
+    -*)                     die "unknown option '$1' (see --help)" ;;
+    *)                      [ -z "$VERSION_ARG" ] || die "unexpected extra argument '$1'"; VERSION_ARG="$1"; shift ;;
+  esac
+done
 
 command -v curl    >/dev/null || die "curl is required"
 command -v python3 >/dev/null || die "python3 is required"
@@ -75,11 +110,11 @@ image_versions > "$TMP/image" || die "could not read Docker Hub tags"
 [ -s "$TMP/chart" ] || die "no ${REGISTRY_CHART} versions in the Helm index"
 [ -s "$TMP/image" ] || die "no tags for ${PROBE_IMAGE} on Docker Hub"
 
-if [ $# -ge 1 ]; then
-  VERSION="$1"
+if [ -n "$VERSION_ARG" ]; then
+  VERSION="$VERSION_ARG"
   grep -qxF "$VERSION" "$TMP/chart" || die "version '$VERSION' has no published ${REGISTRY_CHART} chart"
   grep -qxF "$VERSION" "$TMP/image" || die "version '$VERSION' has no published ${PROBE_IMAGE} image"
-  note "using requested version: $VERSION (verified in chart + images)"
+  note "requested version: $VERSION (verified in chart + images)"
 else
   VERSION=$(latest_safe "$TMP/chart" "$TMP/image") || die "$VERSION"
   note "latest safe develop version (in chart + images): $VERSION"
@@ -95,6 +130,15 @@ PY
 )
 CUR_DOCKER=$(grep -hoE 'ARG RP_VERSION=\S+' docker/*/Dockerfile | sed 's/ARG RP_VERSION=//' | sort -u | tr '\n' ',' | sed 's/,$//')
 note "current: chart=$CUR_CHART  dockerfiles=$CUR_DOCKER"
+
+if [ "$CHECK_ONLY" = "true" ]; then
+  if [ "$CUR_CHART" = "$VERSION" ] && [ "$CUR_DOCKER" = "$VERSION" ]; then
+    echo "  already at $VERSION — no bump needed."
+  else
+    echo "  would bump: ${CUR_CHART} -> ${VERSION}   (run without -n to apply)"
+  fi
+  exit 0
+fi
 
 if [ "$CUR_CHART" = "$VERSION" ] && [ "$CUR_DOCKER" = "$VERSION" ]; then
   note "already at $VERSION — nothing to do."
