@@ -19,6 +19,8 @@ chart dependency version in `helm/openg2p-farmer-registry/Chart.yaml` are **hard
 pinned together**. The farmer images and the wrapper chart are versioned in
 lockstep by CI (one version per commit).
 
+To move the pin, run `./scripts/bump-rp-version.sh` (latest published version) or `./scripts/bump-rp-version.sh <version>` — it updates the Dockerfiles and the chart dependency together, so they can never drift. A CI check (`test/test_rp_pin_lockstep.py`) fails the build if they ever do.
+
 ## Deploy
 
 ```bash
