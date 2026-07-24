@@ -1,7 +1,7 @@
 import pytest
 
 from sanity import fixtures
-from sanity.dci import build_search_envelope
+from sanity.dci import build_search_envelope, post_search
 
 # End-to-end DCI search through the full PEP path:
 #   partner signs the DCI envelope + an embedded consent JWS with its PM key ->
@@ -23,9 +23,10 @@ SEARCH_PATH = "/dci/registry/sync/search"
 
 def _post_search(partner_client, envelope):
     # DCI returns HTTP 200 even for a rejected result (status lives in the body).
-    r = partner_client.post(SEARCH_PATH, json=envelope)
-    assert r.status_code == 200, r.text
-    return r.json()
+    # Delegated to the harness, which retries ONLY a transient dependency 5xx
+    # (e.g. Consent Manager handing out a stale pooled DB connection) — a genuine
+    # policy denial is returned immediately and still fails the assertion.
+    return post_search(partner_client, SEARCH_PATH, envelope)
 
 
 def _meta(resp):
