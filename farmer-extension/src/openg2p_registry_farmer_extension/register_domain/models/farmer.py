@@ -8,7 +8,6 @@ from openg2p_registry_core.models import (
 from ..services import G2PRegisterDomainServiceFarmer
 from .enums import DisabilityTypeEnum, DisabilitySeverityEnum, SourceOfIncomeEnum, EducationalLevelEnum
 
-
 class G2PFarmer:
 
     estimated_age: Mapped[int] = mapped_column(Integer, nullable=True)
@@ -22,7 +21,6 @@ class G2PFarmer:
     education_level: Mapped[EducationalLevelEnum] = mapped_column(String, nullable=True)       # EducationalLevelEnum
     national_id_masked: Mapped[str] = mapped_column(String, nullable=True)
 
-
 # All Register classes should have the prefix G2PRegister
 class G2PRegisterFarmer(G2PRegister, G2PPerson, G2PGeo, G2PFarmer):
     __tablename__ = "g2p_register_farmers"
@@ -35,7 +33,6 @@ class G2PRegisterFarmer(G2PRegister, G2PPerson, G2PGeo, G2PFarmer):
         """Return farmer fields used to build search_text."""
         return G2PRegisterDomainServiceFarmer().construct_search_text(self.to_dict())
 
-
 # All Register History classes should have the prefix G2PRegisterHistory
 class G2PRegisterHistoryFarmer(G2PRegisterHistory, G2PPersonHistory, G2PGeoHistory, G2PFarmer):
     __tablename__ = "g2p_register_history_farmers"
@@ -43,15 +40,6 @@ class G2PRegisterHistoryFarmer(G2PRegisterHistory, G2PPersonHistory, G2PGeoHisto
 # All Intake Form classes should have the prefix G2PIntakeForm
 class G2PIntakeFormFarmer(G2PIntakeForm, G2PRegister, G2PPerson, G2PGeo, G2PFarmer):
     __tablename__ = "g2p_intake_form_farmers"
-
-    async def get_link_internal_record_id(self, session):
-        from .household import G2PIntakeFormHousehold
-        result = await session.execute(
-            select(G2PIntakeFormHousehold).where(G2PIntakeFormHousehold.submission_id == self.submission_id)
-        )
-        household = result.scalars().first()
-        if household:
-            self.link_internal_record_id = household.internal_record_id
 
     def get_record_name_fields(self) -> str:
         """Return farmer fields used to build record_name."""

@@ -5,14 +5,12 @@ from openg2p_registry_core.models import G2PRegister, G2PRegisterHistory
 from ..services import G2PRegisterDomainServiceCrop
 from .enums import CropEndUseEnum
 
-
 class G2PCrop:
 
     commodity: Mapped[str] = mapped_column(String, nullable=True)      # Attribute lookup
     planted_date: Mapped[str] = mapped_column(Date, nullable=True)
     season: Mapped[str] = mapped_column(String, nullable=True)
     end_use: Mapped[CropEndUseEnum] = mapped_column(String, nullable=True)        # CropEndUseEnum
-
 
 # All Register classes should have the prefix G2PRegister
 class G2PRegisterCrop(G2PRegister, G2PCrop):
@@ -26,7 +24,6 @@ class G2PRegisterCrop(G2PRegister, G2PCrop):
         """Return crop record_name from domain service implementation."""
         return G2PRegisterDomainServiceCrop().construct_record_name(self.to_dict())
 
-
 # All Register History classes should have the prefix G2PRegisterHistory
 class G2PRegisterHistoryCrop(G2PRegisterHistory, G2PCrop):
     __tablename__ = "g2p_register_history_crops"
@@ -34,15 +31,6 @@ class G2PRegisterHistoryCrop(G2PRegisterHistory, G2PCrop):
 # All Intake Form classes should have the prefix G2PIntakeForm
 class G2PIntakeFormCrop(G2PIntakeForm, G2PRegister, G2PCrop):
     __tablename__ = "g2p_intake_form_crops"
-
-    async def get_link_internal_record_id(self, session):
-        from .land import G2PIntakeFormLand
-        result = await session.execute(
-            select(G2PIntakeFormLand).where(G2PIntakeFormLand.submission_id == self.submission_id)
-        )
-        land = result.scalars().first()
-        if land:
-            self.link_internal_record_id = land.internal_record_id
 
     def get_search_text_fields(self) -> str:
         """Return crop fields used to build search_text."""

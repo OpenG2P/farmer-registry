@@ -20,7 +20,6 @@ class G2PLand:
     year_of_acquisition: Mapped[int] = mapped_column(Integer, nullable=True)
     means_of_acquisition: Mapped[str] = mapped_column(String, nullable=True)  # Attribute lookup
 
-
 # All Register classes should have the prefix G2PRegister
 class G2PRegisterLand(G2PRegister, G2PGeo, G2PGeoShape, G2PLand):
     __tablename__ = "g2p_register_lands"
@@ -40,15 +39,6 @@ class G2PRegisterHistoryLand(G2PRegisterHistory, G2PGeoHistory, G2PGeoShapeHisto
 # All Intake Form classes should have the prefix G2PIntakeForm
 class G2PIntakeFormLand(G2PIntakeForm, G2PRegister, G2PGeo, G2PGeoShape, G2PLand):
     __tablename__ = "g2p_intake_form_lands"
-
-    async def get_link_internal_record_id(self, session):
-        from .farmer import G2PIntakeFormFarmer
-        result = await session.execute(
-            select(G2PIntakeFormFarmer).where(G2PIntakeFormFarmer.submission_id == self.submission_id)
-        )
-        farmer = result.scalars().first()
-        if farmer:
-            self.link_internal_record_id = farmer.internal_record_id
 
     def get_search_text_fields(self) -> str:
         """Return land fields used to build search_text."""
