@@ -48,10 +48,22 @@ registry:
     # demo records/geo/images, so turn the db-seed loaders on. NB these are
     # `dbSeed.*`, not `global.*` — the db-seed Job reads .Values.dbSeed.load*
     # and there is no global fallback, so setting them under global is inert.
-    loadGeoData: true
+    # Geo is seeded by the master-data chart now (geoSeed.countryPack there),
+    # not as a side effect of the registry seed. Leaving this on would load a
+    # second, unrelated hierarchy over the one MDS already holds.
+    loadGeoData: false
     loadSampleData: true
     loadImages: true
     loadTemplates: true
+    # Copy the country's code lists from Master Data, and match the geo dropdowns
+    # to the hierarchy it holds. Both are country-agnostic: they take whatever
+    # pack this environment loaded. They no-op when Master Data carries neither.
+    loadAttributes: true
+    # A Farmer Registry needs the agriculture lists (crops, livestock) on top of
+    # the core ones; a social registry has no use for them.
+    attributeDomains:
+      - agriculture
+    syncGeoWidgets: true
 
   # Name of this registry's tile in IAM. The roles/permissions catalog itself is
   # registry-agnostic and comes from the subchart.
