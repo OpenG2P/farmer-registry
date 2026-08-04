@@ -8,23 +8,30 @@
 # registry Helm release and therefore survive `helm uninstall`).
 #
 # What it does, in order:
-#   1. helm uninstall <release>            (registry workloads, services,
+#   1. Remove this registry's Superset     (dashboards/charts/datasets + the
+#      dashboards                           database connection, which live in
+#                                           the SHARED Superset release and so
+#                                           survive `helm uninstall`. Runs FIRST,
+#                                           while `helm get values` can still be
+#                                           read for the connection name. A no-op
+#                                           unless this variant ships dashboards.)
+#   2. helm uninstall <release>            (registry workloads, services,
 #                                           helm-owned secrets & configmaps)
-#   2. Delete leftover Jobs + their Pods   (helm hook jobs like db-seed,
+#   3. Delete leftover Jobs + their Pods   (helm hook jobs like db-seed,
 #                                           keycloak-init, postgres-init, and the
 #                                           sanity jobs (pm-seed, cm-seed, sanity)
 #                                           keep themselves around via
 #                                           hook-delete-policy: before-hook-creation)
-#   3. Sweep leftover Secrets/ConfigMaps   (label: app.kubernetes.io/instance)
-#   4. Drop Postgres databases + roles     (via `kubectl exec` into
+#   4. Sweep leftover Secrets/ConfigMaps   (label: app.kubernetes.io/instance)
+#   5. Drop Postgres databases + roles     (via `kubectl exec` into
 #                                           commons-postgresql-0)
-#   5. Delete this registry's IAM rows     (staff_portal_applications +
+#   6. Delete this registry's IAM rows     (staff_portal_applications +
 #                                           staff_roles / permissions / mappings
 #                                           for mnemonic <release>-staff-portal,
 #                                           in the IAM DB inside the same
 #                                           commons-postgresql instance)
-#   6. Delete PVCs by label                (app.kubernetes.io/instance)
-#   7. Delete PVs still bound to those PVCs
+#   7. Delete PVCs by label                (app.kubernetes.io/instance)
+#   8. Delete PVs still bound to those PVCs
 #      (typically `Released` PVs created with reclaimPolicy=Retain)
 #
 # NOT removed (by design): the sanity e2e seeds a SHARED, persistent test partner
@@ -44,6 +51,10 @@
 #       [--postgres-namespace <ns>]   (default: same as --namespace)
 #       [--iam-db <name>]             (default: iam; IAM staff-portal DB to clean)
 #       [--keep-iam]                  (do NOT delete this registry's IAM rows)
+#       [--keep-dashboards]           (do NOT remove this registry's Superset assets)
+#       [--superset-release <name>]   (default: commons-services)
+#       [--superset-namespace <ns>]   (default: same as --namespace)
+#       [--superset-db-name <name>]   (default: read from the release's values)
 #       [--keep-pvs]                  (delete PVCs but not PVs)
 #       [--dry-run]                   (print actions, change nothing)
 #       [--yes]                       (skip interactive confirmation)
@@ -70,9 +81,16 @@ KEEP_IAM=false
 KEEP_PVS=false
 DRY_RUN=false
 ASSUME_YES=false
+# Superset is a SHARED release (commons-services), not part of this registry.
+# SUPERSET_DB_NAME is auto-read from the release's own values below; the flag is
+# only needed when the release is already gone.
+SUPERSET_RELEASE="commons-services"
+SUPERSET_NAMESPACE=""
+SUPERSET_DB_NAME=""
+KEEP_DASHBOARDS=false
 
 # ---------- cli ----------
-usage() { sed -n '2,51p' "$0"; exit 1; }
+usage() { sed -n '2,70p' "$0"; exit 1; }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -82,6 +100,10 @@ while [[ $# -gt 0 ]]; do
     --postgres-namespace) POSTGRES_NAMESPACE="$2"; shift 2 ;;
     --iam-db)            IAM_DB="$2";            shift 2 ;;
     --keep-iam)          KEEP_IAM=true;          shift ;;
+    --keep-dashboards)   KEEP_DASHBOARDS=true;   shift ;;
+    --superset-release)  SUPERSET_RELEASE="$2";  shift 2 ;;
+    --superset-namespace) SUPERSET_NAMESPACE="$2"; shift 2 ;;
+    --superset-db-name)  SUPERSET_DB_NAME="$2";  shift 2 ;;
     --keep-pvs)          KEEP_PVS=true;          shift ;;
     --dry-run)           DRY_RUN=true;           shift ;;
     --yes|-y)            ASSUME_YES=true;        shift ;;
@@ -92,6 +114,7 @@ done
 
 [[ -z "$NAMESPACE" ]] && { echo "ERROR: --namespace is required"; exit 1; }
 [[ -z "$POSTGRES_NAMESPACE" ]] && POSTGRES_NAMESPACE="$NAMESPACE"
+[[ -z "$SUPERSET_NAMESPACE" ]] && SUPERSET_NAMESPACE="$NAMESPACE"
 
 # ---------- derived: DB / user names (templated exactly like values.yaml) ----------
 # values.yaml:
@@ -228,6 +251,108 @@ else
   HELM_RELEASE_EXISTS=false
 fi
 
+# Superset connection name: read from the release's own values so the caller does
+# not have to know it. Only possible while the release still exists — hence the
+# dashboard step runs before `helm uninstall`. --superset-db-name overrides, and
+# is the escape hatch when the release is already gone.
+if [[ "$KEEP_DASHBOARDS" == false && -z "$SUPERSET_DB_NAME" && "$HELM_RELEASE_EXISTS" == true ]]; then
+  SUPERSET_DB_NAME=$(helm -n "$NAMESPACE" get values "$RELEASE" -a -o json 2>/dev/null \
+    | jq -r '.analytics.dashboards.supersetDatabaseName // empty' 2>/dev/null || true)
+fi
+
+# Locate the shared Superset pod. Its app context is already configured in-pod, so
+# the cleanup runs there rather than re-plumbing Superset's config/secrets here.
+SUPERSET_POD=""
+if [[ "$KEEP_DASHBOARDS" == false && -n "$SUPERSET_DB_NAME" ]] \
+   && kubectl get ns "$SUPERSET_NAMESPACE" >/dev/null 2>&1; then
+  SUPERSET_POD=$(kubectl get pod -n "$SUPERSET_NAMESPACE" \
+    -l "app.kubernetes.io/instance=$SUPERSET_RELEASE,app.kubernetes.io/name=superset" \
+    -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+  # Fallback: by name. Exclude the -worker- pod, which has no web app context.
+  if [[ -z "$SUPERSET_POD" ]]; then
+    SUPERSET_POD=$(kubectl get pod -n "$SUPERSET_NAMESPACE" --no-headers 2>/dev/null \
+      | awk -v p="^${SUPERSET_RELEASE}-superset-" '$1 ~ p && $1 !~ /worker/ && $3 == "Running" {print $1; exit}' || true)
+  fi
+fi
+
+if [[ "$KEEP_DASHBOARDS" == true ]]; then
+  _yellow "  Superset dashboards: skipped (--keep-dashboards)"
+elif [[ -z "$SUPERSET_DB_NAME" ]]; then
+  _yellow "  Superset dashboards: no connection name found (analytics disabled, or release gone — use --superset-db-name)"
+elif [[ -z "$SUPERSET_POD" ]]; then
+  _yellow "  Superset dashboards: Superset pod not found in '$SUPERSET_NAMESPACE' — step will be skipped"
+else
+  _green "  Found Superset pod: $SUPERSET_POD (namespace: $SUPERSET_NAMESPACE, connection: '$SUPERSET_DB_NAME')"
+fi
+
+# Remove everything hanging off THIS registry's Superset database connection.
+# mode=report prints what would go (used for the preview and --dry-run); mode=delete
+# commits. Runs inside the Superset pod so SQLAlchemy handles the relationships —
+# safer than deleting metadata rows out from under Superset with psql.
+superset_cleanup() {
+  local mode="$1" out
+  out=$(kubectl exec -n "$SUPERSET_NAMESPACE" -i "$SUPERSET_POD" -c superset -- \
+          env SUPERSET_DB_NAME="$SUPERSET_DB_NAME" SUPERSET_CLEAN_MODE="$mode" python - <<'PY' 2>&1 || true
+import os, sys
+from superset.app import create_app
+with create_app().app_context():
+    from superset import db
+    from superset.models.core import Database
+    from superset.models.slice import Slice
+    from superset.connectors.sqla.models import SqlaTable
+
+    name = os.environ["SUPERSET_DB_NAME"]
+    commit = os.environ.get("SUPERSET_CLEAN_MODE") == "delete"
+
+    database = db.session.query(Database).filter_by(database_name=name).one_or_none()
+    if database is None:
+        print("[superset] no connection named %r — nothing to remove" % name)
+        sys.exit(0)
+
+    datasets = db.session.query(SqlaTable).filter_by(database_id=database.id).all()
+    ds_ids = [d.id for d in datasets]
+    charts = (db.session.query(Slice)
+              .filter(Slice.datasource_id.in_(ds_ids),
+                      Slice.datasource_type == "table").all()) if ds_ids else []
+    ours = {c.id for c in charts}
+
+    # Only take a dashboard when EVERY chart on it is ours. In a shared Superset a
+    # dashboard mixing another tenant's charts must survive, minus our charts.
+    candidates, shared = {}, []
+    for c in charts:
+        for d in c.dashboards:
+            candidates[d.id] = d
+    mine = []
+    for d in candidates.values():
+        (mine if all(s.id in ours for s in d.slices) else shared).append(d)
+
+    print("[superset] connection %r: %d dashboard(s), %d chart(s), %d dataset(s)"
+          % (name, len(mine), len(charts), len(datasets)))
+    for d in shared:
+        print("[superset]   KEPT (shared with other charts): dashboard %s %r"
+              % (d.id, d.dashboard_title))
+    if not commit:
+        sys.exit(0)
+
+    for d in mine:
+        db.session.delete(d)
+    for c in charts:
+        db.session.delete(c)
+    for t in datasets:
+        db.session.delete(t)
+    db.session.delete(database)
+    db.session.commit()
+    print("[superset] removed")
+PY
+  )
+  if printf '%s\n' "$out" | grep -qE '^\[superset\]'; then
+    printf '%s\n' "$out" | grep -E '^\[superset\]' | sed 's/^/  /'
+  else
+    _yellow "  (Superset cleanup produced no result — dashboards left in place)"
+    printf '%s\n' "$out" | tail -4 | sed 's/^/    /'
+  fi
+}
+
 # ---------- show the blast radius ----------
 _blue "==> Resources to be deleted"
 
@@ -240,6 +365,14 @@ if [[ "$KEEP_IAM" == true ]]; then
   echo "IAM rows:           (skipped — --keep-iam)"
 else
   echo "IAM rows:           mnemonic '$IAM_APP_MNEMONIC' in DB '$IAM_DB' (staff_portal_applications + roles/permissions/mappings)"
+fi
+if [[ "$KEEP_DASHBOARDS" == true ]]; then
+  echo "Superset assets:    (skipped — --keep-dashboards)"
+elif [[ -n "$SUPERSET_POD" ]]; then
+  echo "Superset assets:    connection '$SUPERSET_DB_NAME' in $SUPERSET_RELEASE ($SUPERSET_NAMESPACE):"
+  superset_cleanup report
+else
+  echo "Superset assets:    (none — no Superset pod / connection name resolved)"
 fi
 echo
 
@@ -301,20 +434,45 @@ if [[ "$ASSUME_YES" == false && "$DRY_RUN" == false ]]; then
   fi
 fi
 
-# ========== STEP 1: helm uninstall ==========
-_blue "==> [1/7] Helm uninstall"
+# ========== STEP 1: remove this registry's Superset dashboards ==========
+# The analytics job imports dashboards into the SHARED Superset — a different Helm
+# release — so `helm uninstall` never touches them. Left behind, the dashboards,
+# their charts and datasets, and the connection pointing at the registry DB we are
+# about to drop all survive, and the next install inherits stale, broken tiles.
+#
+# Scope is the Superset *database connection* this registry owns (analytics.
+# dashboards.supersetDatabaseName). Every asset the bundle imports hangs off it,
+# and each tenant in a shared Superset has its own, so nothing else is touched.
+# Runs BEFORE `helm uninstall` because the connection name is read from the
+# release's values — and there is nothing to gain from doing it later.
+_blue "==> [1/8] Remove Superset dashboards"
+if [[ "$KEEP_DASHBOARDS" == true ]]; then
+  _yellow "  (skipped — --keep-dashboards)"
+elif [[ -z "$SUPERSET_DB_NAME" ]]; then
+  echo "  (skipped — no Superset connection name; analytics disabled or release already gone)"
+elif [[ -z "$SUPERSET_POD" ]]; then
+  echo "  (skipped — Superset pod not reachable in namespace '$SUPERSET_NAMESPACE')"
+elif [[ "$DRY_RUN" == true ]]; then
+  echo "  Would remove, from Superset connection '$SUPERSET_DB_NAME':"
+  superset_cleanup report
+else
+  superset_cleanup delete
+fi
+
+# ========== STEP 2: helm uninstall ==========
+_blue "==> [2/8] Helm uninstall"
 if [[ "$HELM_RELEASE_EXISTS" == true ]]; then
   run "helm uninstall '$RELEASE' -n '$NAMESPACE' --wait --timeout 5m || true"
 else
   echo "  (skipped — release not present)"
 fi
 
-# ========== STEP 2: delete leftover Jobs (and their Pods) ==========
+# ========== STEP 3: delete leftover Jobs (and their Pods) ==========
 # Helm hook Jobs (db-seed post-install, keycloak-init, postgres-init) are created
 # with `helm.sh/hook-delete-policy: before-hook-creation`, which means they are
 # NOT cleaned up by `helm uninstall`. We delete them explicitly here — BEFORE
 # dropping the DBs, so their Pods close their Postgres connections cleanly.
-_blue "==> [2/7] Delete leftover Jobs and their Pods"
+_blue "==> [3/8] Delete leftover Jobs and their Pods"
 if [[ "$NAMESPACE_EXISTS" == true ]]; then
   run "kubectl -n '$NAMESPACE' delete job -l 'app.kubernetes.io/instance=$RELEASE' --ignore-not-found --wait=true --timeout=2m"
   # Orphan pods (completed/failed) that a Job left behind after TTL etc.
@@ -323,8 +481,8 @@ else
   echo "  (skipped — namespace '$NAMESPACE' not present)"
 fi
 
-# ========== STEP 3: sweep leftover Secrets & ConfigMaps ==========
-_blue "==> [3/7] Sweep leftover Secrets / ConfigMaps"
+# ========== STEP 4: sweep leftover Secrets & ConfigMaps ==========
+_blue "==> [4/8] Sweep leftover Secrets / ConfigMaps"
 if [[ "$NAMESPACE_EXISTS" == true ]]; then
   run "kubectl -n '$NAMESPACE' delete secret    -l 'app.kubernetes.io/instance=$RELEASE' --ignore-not-found"
   run "kubectl -n '$NAMESPACE' delete configmap -l 'app.kubernetes.io/instance=$RELEASE' --ignore-not-found"
@@ -332,8 +490,8 @@ else
   echo "  (skipped — namespace '$NAMESPACE' not present)"
 fi
 
-# ========== STEP 4: drop Postgres DBs & roles ==========
-_blue "==> [4/7] Drop Postgres databases and roles"
+# ========== STEP 5: drop Postgres DBs & roles ==========
+_blue "==> [5/8] Drop Postgres databases and roles"
 if [[ "$PG_POD_FOUND" == true ]]; then
   for db in "$REGISTRY_DB" "$IDGEN_DB" "$AWE_DB"; do
     echo "  - Database: $db"
@@ -353,13 +511,13 @@ else
   echo "  (skipped — commons-postgresql pod not reachable; if Postgres is already gone, DBs are gone too)"
 fi
 
-# ========== STEP 5: clean this registry's IAM rows ==========
+# ========== STEP 6: clean this registry's IAM rows ==========
 # IAM no longer seeds registry data — each registry self-registers its tile +
 # roles/permissions into IAM at install time (keyed by application_mnemonic =
 # <release>-staff-portal). `helm uninstall` does not touch IAM, so remove those
 # rows here (child rows first). Targeted strictly by this release's mnemonic, so
 # it never affects other registries or the keycloak/minio/superset singletons.
-_blue "==> [5/7] Clean IAM staff-portal rows"
+_blue "==> [6/8] Clean IAM staff-portal rows"
 if [[ "$KEEP_IAM" == true ]]; then
   _yellow "  (skipped — --keep-iam)"
 elif [[ "$PG_POD_FOUND" != true ]]; then
@@ -386,16 +544,16 @@ else
   fi
 fi
 
-# ========== STEP 6: PVCs ==========
-_blue "==> [6/7] Delete PVCs"
+# ========== STEP 7: PVCs ==========
+_blue "==> [7/8] Delete PVCs"
 if [[ "$NAMESPACE_EXISTS" == true ]]; then
   run "kubectl -n '$NAMESPACE' delete pvc -l 'app.kubernetes.io/instance=$RELEASE' --ignore-not-found"
 else
   echo "  (skipped — namespace '$NAMESPACE' not present; any orphan PVs handled in step 6)"
 fi
 
-# ========== STEP 7: PVs ==========
-_blue "==> [7/7] Delete PVs"
+# ========== STEP 8: PVs ==========
+_blue "==> [8/8] Delete PVs"
 if [[ "$KEEP_PVS" == true ]]; then
   _yellow "  (skipped — --keep-pvs)"
 else
