@@ -46,6 +46,7 @@
 -- publishes stale holdings:
 --
 --   REFRESH MATERIALIZED VIEW CONCURRENTLY fr_rpt_land;
+--   REFRESH MATERIALIZED VIEW CONCURRENTLY fr_rpt_crop;
 --   REFRESH MATERIALIZED VIEW CONCURRENTLY fr_rpt_farmer;
 --
 -- (CONCURRENTLY needs the unique indexes created at the bottom, and those in turn
@@ -238,6 +239,41 @@ COMMENT ON MATERIALIZED VIEW fr_rpt_land IS
 
 
 -- ---------------------------------------------------------------------------
+-- Crops
+-- ---------------------------------------------------------------------------
+-- One row per crop planting, carrying its parcel's geo and tenure. fr_rpt_land
+-- collapses commodities into a comma-joined string for drill-down, which cannot
+-- be grouped by — "which crops, where" needs the crop grain. Keep aggregates that
+-- COUNT PARCELS on fr_rpt_land and aggregates that COUNT PLANTINGS here.
+DROP MATERIALIZED VIEW IF EXISTS fr_rpt_crop CASCADE;
+CREATE MATERIALIZED VIEW fr_rpt_crop AS
+SELECT
+    c.internal_record_id                       AS crop_id,
+    c.link_internal_record_id                  AS land_id,
+    l.farmer_id,
+    c.commodity,
+    c.season,
+    c.planted_date,
+    c.end_use,
+    (c.end_use = 'FOOD_HUMAN_CONSUMPTION')     AS is_food_crop,
+    (c.end_use = 'FEED_ANIMALS')               AS is_feed_crop,
+    l.geo_1, l.geo_2, l.geo_3, l.geo_4, l.geo_5,
+    l.land_ownership_type,
+    l.current_land_use,
+    l.farming_type,
+    -- Parcel area repeats on every crop row: correct for "area where X is grown",
+    -- WRONG to SUM across a parcel's crops. Charts that total area use fr_rpt_land.
+    l.land_size_ha                             AS parcel_land_size_ha
+FROM g2p_register_crops c
+JOIN fr_rpt_land l ON l.land_id = c.link_internal_record_id
+WHERE c.record_status = 'ACTIVE';
+
+COMMENT ON MATERIALIZED VIEW fr_rpt_crop IS
+    'One row per crop planting with its parcel geo/tenure. Use for crop-mix and '
+    'end-use questions; parcel_land_size_ha repeats per crop, so never SUM it.';
+
+
+-- ---------------------------------------------------------------------------
 -- Farmers
 -- ---------------------------------------------------------------------------
 DROP MATERIALIZED VIEW IF EXISTS fr_rpt_farmer CASCADE;
@@ -423,6 +459,9 @@ COMMENT ON MATERIALIZED VIEW fr_rpt_farmer IS
 -- blocking readers — a dashboard mid-query keeps the old snapshot).
 CREATE UNIQUE INDEX fr_rpt_farmer_pk ON fr_rpt_farmer (farmer_id);
 CREATE UNIQUE INDEX fr_rpt_land_pk   ON fr_rpt_land   (land_id);
+CREATE UNIQUE INDEX fr_rpt_crop_pk   ON fr_rpt_crop   (crop_id);
+CREATE INDEX fr_rpt_crop_commodity   ON fr_rpt_crop   (commodity);
+CREATE INDEX fr_rpt_crop_geo         ON fr_rpt_crop   (geo_1, geo_2, geo_3);
 
 -- Geo indexes back the region drill-down, which filters progressively by level.
 CREATE INDEX fr_rpt_farmer_geo    ON fr_rpt_farmer (geo_1, geo_2, geo_3);

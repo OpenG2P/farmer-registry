@@ -1,0 +1,27 @@
+{{- if and .Values.analytics.dashboards.enabled (not .Values.analytics.dashboards.bundleConfigMap) }}
+{{/*
+The Superset dashboard bundle, carried in the chart itself.
+
+It is a ZIP, so it goes in binaryData rather than data. At ~46 KB it sits well
+inside the 1 MB ConfigMap limit; if the bundle ever outgrows that, bake it into
+an image and point analytics.dashboards.bundleConfigMap at nothing instead.
+
+Created as a hook with a weight below the import Job's so it exists before that
+Job mounts it — a plain manifest would not be applied during the hook phase.
+Deleted only on success, so a failed import can still be inspected.
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-fr-dashboard-bundle
+  labels:
+    app.kubernetes.io/name: fr-dashboard-bundle
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "49"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+binaryData:
+  fr-dashboards.zip: {{ .Files.Get "files/fr-dashboards.zip" | b64enc | quote }}
+{{- end }}

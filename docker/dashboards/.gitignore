@@ -1,0 +1,4 @@
+__pycache__/
+# The bundle is generated into helm/openg2p-farmer-registry/files/ (Helm cannot
+# read files outside the chart dir), so nothing built should live here.
+*.zip

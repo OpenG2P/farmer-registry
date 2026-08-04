@@ -21,3 +21,15 @@ COPY farmer-extension/src/openg2p_registry_farmer_extension/meta_data/     /seed
 COPY farmer-extension/src/openg2p_registry_farmer_extension/awe_meta_data/ /seed/awe_meta_data/
 COPY farmer-extension/src/openg2p_registry_farmer_extension/templates/     /seed/templates/
 COPY docker/db-seed/seed-data/                                             /seed/seed-data/
+
+# Analytics seed, distinct from the demo fixture above.
+#   seed-data/*.json + the inherited load_sample_data.py  -> the ~500-row smoke set
+#                                                            (dbSeed.loadSampleData)
+#   generate_fr_bulk_sample.py                            -> volume for the charts
+#                                                            (analytics.bulkSample)
+# Both write the same tables, so the generator refuses to run on a non-empty
+# register rather than colliding with the fixture. The reporting views are
+# farmer's own schema and ship here rather than in the base image.
+COPY docker/db-seed/generate_fr_bulk_sample.py /seed/generate_fr_bulk_sample.py
+COPY docker/db-seed/reporting_views.sql        /seed/reporting_views.sql
+RUN chmod +x /seed/generate_fr_bulk_sample.py

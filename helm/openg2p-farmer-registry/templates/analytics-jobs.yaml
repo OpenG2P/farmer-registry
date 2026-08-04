@@ -1,0 +1,610 @@
+{{/*
+farmer-registry analytics install chain: bulk sample -> reporting views -> dashboards.
+
+These live in farmer's umbrella chart rather than the openg2p-registry subchart
+because they are FR-specific: the sample generator targets farmer's schema, the
+reporting views are farmer's, and the dashboards are built over those views.
+
+Ordering, by hook weight:
+    5   MDS geo seed            (openg2p-master-data chart)
+    10  registry db-seed        (openg2p-registry subchart — fixtures, templates)
+    19  iam-register-payload    (subchart)
+    20  iam-register            (subchart)
+    25  sanity suite            (subchart)
+    40  bulk sample             here
+    45  reporting views         here
+    50  dashboard import        here
+
+The analytics chain sits above 25 deliberately: the sanity suite asserts against
+the seeded fixture, and dropping 50k generated records in underneath it would
+change what it is checking.
+
+Geography is NOT declared here. It comes from whatever the environment's Master
+Data Service holds — see geoSeed.countryPack in the openg2p-master-data chart.
+The bulk-sample job below refuses to run against an empty MDS rather than
+silently producing records that point nowhere.
+*/}}
+{{- $ctx := . }}
+{{- $pg := tpl .Values.global.postgresqlHost $ }}
+{{/* These jobs run inside the registry's db-seed image — the same one that
+     carries /seed, including farmer's own generator and views. Inherit its coordinates rather
+     than declaring a second image: CI rewrites .registry.dbSeed.image.tag to
+     the freshly built version and knows nothing about an analytics-specific
+     path, so a separate tag here silently stays at the placeholder and the
+     pod ends up in ErrImagePull. */}}
+{{- $seedRepo := .Values.analytics.image.repository | default .Values.registry.dbSeed.image.repository }}
+{{- $seedTag := .Values.analytics.image.tag | default .Values.registry.dbSeed.image.tag }}
+
+{{- if .Values.analytics.bulkSample.enabled }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-fr-bulk-sample
+  labels:
+    app.kubernetes.io/name: fr-bulk-sample
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "40"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: 0 # a half-written load must be purged, not blindly retried
+  template:
+    spec:
+      restartPolicy: Never
+      initContainers:
+        {{/* Fail loudly on empty geography. Seeding a registry against an MDS
+             that has not been populated yet produces records whose geo points
+             at nothing, and nothing downstream notices until a map is blank. */}}
+        - name: require-mds-geo
+          image: {{ .Values.analytics.waitImage }}
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              for i in $(seq 1 60); do
+                n=$(psql -tAc "select count(*) from g2p_geo_level_values" 2>/dev/null || echo 0)
+                if [ "${n:-0}" -gt 0 ]; then
+                  echo "MDS geo present: $n units"; exit 0
+                fi
+                echo "waiting for MDS geo to be seeded..."; sleep 5
+              done
+              echo "ERROR: MDS geo is still empty. Install/seed the master-data" \
+                   "chart (geoSeed.countryPack) before seeding the registry." >&2
+              exit 1
+          env:
+            - name: PGHOST
+              value: {{ $pg | quote }}
+            - name: PGPORT
+              value: {{ .Values.global.masterDataDBPort | default 5432 | quote }}
+            - name: PGDATABASE
+              value: {{ tpl .Values.global.masterDataDB $ | quote }}
+            - name: PGUSER
+              value: {{ tpl .Values.global.masterDataDBUser $ | quote }}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ tpl .Values.global.masterDataDBSecret $ | quote }}
+                  key: {{ tpl .Values.global.masterDataDBUserPasswordKey $ | quote }}
+      containers:
+        - name: bulk-sample
+          image: {{ $seedRepo }}:{{ $seedTag }}
+          command:
+            {{/* The generator is farmer's own and is copied into /seed by this
+                 repo's db-seed image, alongside reporting_views.sql: it writes
+                 farmer's extension tables and draws from farmer's enums, so it
+                 versions with the schema it targets.
+
+                 This is the ANALYTICS seed, distinct from the ~500-row demo
+                 fixture that dbSeed.loadSampleData ingests. That one is a
+                 smoke-test set with hand-written ids; this one generates at
+                 scale so a distribution is legible in a chart. They write the
+                 same tables, so the generator refuses to run on a non-empty
+                 register rather than colliding with it.
+
+                 The counterpart marginals file NSR passes (--distributions) has
+                 no equivalent here: farmer's weightings live in the generator,
+                 keyed to the enums they draw from. */}}
+            - python
+            - /seed/generate_fr_bulk_sample.py
+            - --farmers
+            - {{ .Values.analytics.bulkSample.farmers | quote }}
+            {{- if .Values.analytics.bulkSample.expectedCountry }}
+            {{/* A guard, not a selector: errors if the environment's MDS holds a
+                 different country than this deployment expects. */}}
+            - --expect-country
+            - {{ .Values.analytics.bulkSample.expectedCountry | quote }}
+            {{- end }}
+          env:
+            - name: PGHOST
+              value: {{ $pg | quote }}
+            - name: PGPORT
+              value: {{ .Values.global.registryDBPort | default 5432 | quote }}
+            - name: FR_DB
+              value: {{ tpl .Values.global.registryDB $ | quote }}
+            - name: MDS_DB
+              value: {{ tpl .Values.global.masterDataDB $ | quote }}
+            - name: PGUSER
+              value: {{ tpl .Values.global.registryDBUser $ | quote }}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ tpl .Values.global.registryDBSecret $ | quote }}
+                  key: {{ tpl .Values.global.registryDBUserPasswordKey $ | quote }}
+            {{/* Master Data is a separate database owned by a separate role.
+                 Reading the geo hierarchy as the registry user fails with
+                 "permission denied for table g2p_geo_levels". */}}
+            - name: MDS_PGUSER
+              value: {{ tpl .Values.global.masterDataDBUser $ | quote }}
+            - name: MDS_PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ tpl .Values.global.masterDataDBSecret $ | quote }}
+                  key: {{ tpl .Values.global.masterDataDBUserPasswordKey $ | quote }}
+            - name: MDS_PGPORT
+              value: {{ .Values.global.masterDataDBPort | default 5432 | quote }}
+          resources: {{- toYaml .Values.analytics.resources | nindent 12 }}
+{{- end }}
+
+{{- if .Values.analytics.reportingViews.enabled }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-fr-reporting-views
+  labels:
+    app.kubernetes.io/name: fr-reporting-views
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "45"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: reporting-views
+          image: {{ $seedRepo }}:{{ $seedTag }}
+          {{/* CREATE OR REPLACE throughout, so this is safe on every upgrade.
+               Note a plain REFRESH does NOT pick up an edited definition — the
+               DDL has to be re-applied, which is what this job does. */}}
+          command: ["sh", "-c", "psql -v ON_ERROR_STOP=1 -f /seed/reporting_views.sql"]
+          env:
+            - name: PGHOST
+              value: {{ $pg | quote }}
+            - name: PGPORT
+              value: {{ .Values.global.registryDBPort | default 5432 | quote }}
+            - name: PGDATABASE
+              value: {{ tpl .Values.global.registryDB $ | quote }}
+            - name: PGUSER
+              value: {{ tpl .Values.global.registryDBUser $ | quote }}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ tpl .Values.global.registryDBSecret $ | quote }}
+                  key: {{ tpl .Values.global.registryDBUserPasswordKey $ | quote }}
+          resources: {{- toYaml .Values.analytics.resources | nindent 12 }}
+{{- end }}
+
+{{- if .Values.analytics.dashboards.enabled }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-fr-dashboards
+  labels:
+    app.kubernetes.io/name: fr-dashboards
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "50"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        {{/* Superset belongs to a DIFFERENT Helm release (commons-services), so
+             nothing orders it against this hook. Without a gate, a Superset that
+             is merely restarting fails this Job outright — and with the whole
+             import behind it, an unrelated pod restart loses the dashboards. */}}
+        - name: wait-for-superset
+          image: {{ .Values.analytics.dashboards.image.repository }}:{{ .Values.analytics.dashboards.image.tag }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              for i in $(seq 1 {{ .Values.analytics.dashboards.superset.waitAttempts }}); do
+                if python -c "import sys,urllib.request; urllib.request.urlopen('$SUPERSET_URL/health', timeout=5)" 2>/dev/null; then
+                  echo "[dashboards] Superset is up at $SUPERSET_URL"
+                  exit 0
+                fi
+                echo "[dashboards] waiting for Superset at $SUPERSET_URL ($i)"
+                sleep {{ .Values.analytics.dashboards.superset.waitSeconds }}
+              done
+              echo "[dashboards] Superset never became reachable at $SUPERSET_URL" >&2
+              exit 1
+          env:
+            - name: SUPERSET_URL
+              value: {{ tpl .Values.analytics.dashboards.superset.url $ | quote }}
+      containers:
+        - name: import-dashboards
+          image: {{ .Values.analytics.dashboards.image.repository }}:{{ .Values.analytics.dashboards.image.tag }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+
+              {{- with .Values.analytics.dashboards.superset.bootstrapKey }}
+              # Same bootstrap the Superset deployment runs before starting. It
+              # installs what the mounted config requires — authlib for
+              # AUTH_OAUTH — which the stock image does not carry.
+              if [ -f "/app/pythonpath/{{ . }}" ]; then
+                echo "[dashboards] sourcing {{ . }}"
+                . "/app/pythonpath/{{ . }}"
+              else
+                echo "[dashboards] {{ . }} not mounted — continuing without it"
+              fi
+              {{- end }}
+
+              {{/* Everything below drives Superset's own CLI and ORM, which means
+                   it writes to whatever SQLALCHEMY_DATABASE_URI resolves to. That
+                   used to be nothing: this Job was given no Superset config at
+                   all, so Superset fell back to its default SQLite file, the
+                   service account and all 8 dashboards were created inside the
+                   Job's own pod, and it exited 0 leaving the real Superset empty.
+                   An install that reported success and imported nothing.
+
+                   The config now arrives via envFrom + the mounted
+                   superset_config.py. This asserts it actually took, because the
+                   failure is otherwise completely silent. */}}
+              python - <<'PY'
+              import sys
+              from superset.app import create_app
+              uri = str(create_app().config.get("SQLALCHEMY_DATABASE_URI", ""))
+              if uri.startswith("sqlite"):
+                  sys.exit(
+                      "[dashboards] ABORT: Superset resolved its metadata database to "
+                      f"{uri!r} — a throwaway file in this pod, not the Superset this "
+                      "environment runs. Importing here would report success and change "
+                      "nothing. Set analytics.dashboards.superset.envFromSecret and "
+                      ".configSecret to the Secrets the Superset deployment uses."
+                  )
+              # Resolving the URI is not the same as being able to USE it, and the
+              # difference is not cosmetic: with a blank password every command
+              # below still runs, each one logging a swallowed
+              # "DB Creation and initialization failed" before carrying on, and the
+              # Job dies several minutes later somewhere unrelated. Connect once,
+              # here, where the message can say what is actually wrong.
+              from sqlalchemy import create_engine
+              try:
+                  create_engine(uri).connect().close()
+              except Exception as exc:
+                  sys.exit(
+                      f"[dashboards] ABORT: cannot connect to Superset's metadata "
+                      f"database at {uri.split('@')[-1]}: {exc}\n"
+                      "[dashboards] If this is an authentication failure, check "
+                      "analytics.dashboards.superset.dbPasswordSecret — DB_PASS is "
+                      "empty in the envFrom Secret and has to come from the "
+                      "Superset chart's own password Secret."
+                  )
+              print(f"[dashboards] metadata database: {uri.split('@')[-1] or uri}")
+              PY
+
+              {{/* An import needs a user to own the assets. On a Keycloak-only
+                   Superset there are NO local users until someone logs in, so
+                   `-u admin` fails with a bare "AttributeError: user". Create a
+                   service account instead.
+
+                   The password is NOT throwaway when supersetAdminPasswordSecret
+                   is set. AUTH_OAUTH removes the local login form, so this
+                   account cannot sign in through the UI — but Superset's REST API
+                   still authenticates it via /api/v1/security/login with
+                   provider=db, and under OAuth that is the only way any machine
+                   client (G2P Insight's Dashboards tab) can reach the API at all.
+                   A discarded random password locks the API out for good, which
+                   is why this converges the account onto the Secret's value on
+                   every run rather than only at creation. */}}
+              SVC_PW="${SUPERSET_ADMIN_PASSWORD:-}"
+              if [ -z "$SVC_PW" ]; then
+                SVC_PW="$(head -c 32 /dev/urandom | base64)"
+                echo "[dashboards] no password Secret configured — generating a" \
+                     "throwaway one. The Superset REST API will NOT be reachable" \
+                     "as $SUPERSET_ADMIN; set analytics.dashboards.supersetAdminPasswordSecret."
+              fi
+              if superset fab list-users 2>/dev/null | grep -q "$SUPERSET_ADMIN"; then
+                if [ -n "${SUPERSET_ADMIN_PASSWORD:-}" ]; then
+                  echo "[dashboards] resetting $SUPERSET_ADMIN password to the configured Secret"
+                  superset fab reset-password --username "$SUPERSET_ADMIN" \
+                    --password "$SVC_PW"
+                fi
+              else
+                superset fab create-admin \
+                  --username "$SUPERSET_ADMIN" \
+                  --firstname Service --lastname Importer \
+                  --email "$SUPERSET_ADMIN@openg2p.local" \
+                  --password "$SVC_PW"
+              fi
+
+              python - <<'PY'
+              import os, zipfile, yaml
+              from superset.app import create_app
+              app = create_app()
+              with app.app_context():
+                  from flask import g
+                  from superset import db, security_manager
+                  from superset.models.slice import Slice
+                  g.user = security_manager.find_user(username=os.environ["SUPERSET_ADMIN"])
+
+                  # Superset's dashboard importer calls import_chart(overwrite=False)
+                  # — only DASHBOARDS honour overwrite. Re-importing a corrected
+                  # bundle therefore leaves existing charts untouched and a chart
+                  # fix never reaches a deployment that already has it. Delete the
+                  # charts this bundle owns (matched on uuid, so nothing
+                  # hand-made is touched) and let the import recreate them.
+                  uuids = set()
+                  with zipfile.ZipFile("/bundle/fr-dashboards.zip") as z:
+                      for n in z.namelist():
+                          if "/charts/" in n and n.endswith((".yaml", ".yml")):
+                              cfg = yaml.safe_load(z.read(n)) or {}
+                              if cfg.get("uuid"):
+                                  uuids.add(str(cfg["uuid"]))
+                  stale = [c for c in db.session.query(Slice).all()
+                           if str(c.uuid) in uuids]
+                  for c in stale:
+                      db.session.delete(c)
+                  db.session.commit()
+                  print(f"[dashboards] replacing {len(stale)} existing chart(s)")
+              PY
+
+              superset import-dashboards -p /bundle/fr-dashboards.zip -u "$SUPERSET_ADMIN"
+
+              python - <<'PY'
+              import os, sys, zipfile, yaml
+              from superset.app import create_app
+              with create_app().app_context():
+                  from superset import db
+                  from superset.models.core import Database
+                  from superset.models.dashboard import Dashboard
+
+                  name = os.environ["SUPERSET_DB_NAME"]
+                  # one_or_none, not one: `.one()` raises AFTER the import has
+                  # already succeeded, so the dashboards exist, their connection
+                  # does not, and the Job reports failure with a SQLAlchemy
+                  # traceback that names neither.
+                  d = db.session.query(Database).filter_by(database_name=name).one_or_none()
+                  if d is None:
+                      sys.exit(
+                          f"[dashboards] no Superset database connection named {name!r} after "
+                          "import. The bundle declares it, so this means the import did not "
+                          "create it. Check analytics.dashboards.supersetDatabaseName matches "
+                          "the database_name recorded in the bundle.")
+                  # The bundle ships no password — it is not a secret store.
+                  d.sqlalchemy_uri = (
+                      f"postgresql+psycopg2://{os.environ['REGISTRY_DB_USER']}"
+                      f"@{os.environ['PGHOST']}:{os.environ['PGPORT']}"
+                      f"/{os.environ['REGISTRY_DB']}")
+                  d.password = os.environ["REGISTRY_DB_PASSWORD"]
+
+                  # Publish only what this bundle owns. Superset may be shared —
+                  # commons-services runs one for the whole environment — and
+                  # publishing every dashboard in it would expose someone else's
+                  # draft, from a Job that has no business touching it.
+                  ours = set()
+                  with zipfile.ZipFile("/bundle/fr-dashboards.zip") as z:
+                      for n in z.namelist():
+                          if "/dashboards/" in n and n.endswith((".yaml", ".yml")):
+                              cfg = yaml.safe_load(z.read(n)) or {}
+                              if cfg.get("uuid"):
+                                  ours.add(str(cfg["uuid"]))
+                  published = 0
+                  for dash in db.session.query(Dashboard).all():
+                      if str(dash.uuid) in ours:
+                          dash.published = True
+                          published += 1
+                  db.session.commit()
+                  print(f"[dashboards] published {published} of this bundle's "
+                        f"{len(ours)} dashboard(s), connection set")
+              PY
+
+              {{- if .Values.analytics.dashboards.superset.enableEmbedding }}
+              {{/* Imported dashboards carry no embedded UUID, so G2P Insights can
+                   list them and render none. Enabling it is a REST call rather
+                   than an ORM write: the embedded-dashboard tables are internal
+                   and have moved between Superset versions, whereas this endpoint
+                   has not.
+
+                   Authenticating with provider=db is the only option under
+                   AUTH_TYPE = AUTH_OAUTH — that endpoint checks Superset's own
+                   user table and never consults Keycloak. Which is exactly why
+                   the service account above needs a real password. */}}
+              python - <<'PY'
+              import os, sys, requests
+              base = os.environ["SUPERSET_URL"].rstrip("/")
+              pw = os.environ.get("SUPERSET_ADMIN_PASSWORD")
+              if not pw:
+                  print("[dashboards] no service-account password configured — "
+                        "skipping embedding. Insights will list the dashboards and "
+                        "be unable to render them.")
+                  sys.exit(0)
+              s = requests.Session()
+
+              # Superset sets SESSION_COOKIE_SECURE — correct for browsers arriving
+              # over the public HTTPS ingress, and fatal here: this Job talks to the
+              # in-cluster Service over http, and an HTTP client will not transmit a
+              # Secure cookie over a plaintext connection. The CSRF token below then
+              # arrives with no session to validate it against, and every call comes
+              # back "400 The CSRF session token is missing" — which reads like a
+              # missing token, not a dropped cookie, and sends you looking in the
+              # wrong place entirely.
+              #
+              # Called before EVERY request, not once: Superset re-issues the session
+              # cookie on each response, so clearing the flag a single time buys
+              # exactly one request. That failure mode is nastier than the original,
+              # because the first dashboard embeds and the rest do not — a partial
+              # success that looks like a per-dashboard problem.
+              #
+              # Clearing the flag on our own cookie jar, not on Superset: the config
+              # is right, and the hop it affects is pod-to-Service inside the
+              # cluster. Using the public hostname would also work, at the cost of
+              # routing every service-to-service call back out through the ingress —
+              # which is exactly what splitting the Superset URL removed.
+              def allow_session_cookie_over_http():
+                  for cookie in s.cookies:
+                      cookie.secure = False
+
+              r = s.post(f"{base}/api/v1/security/login", timeout=30, json={
+                  "username": os.environ["SUPERSET_ADMIN"], "password": pw,
+                  "provider": "db", "refresh": True})
+              r.raise_for_status()
+              s.headers["Authorization"] = f"Bearer {r.json()['access_token']}"
+              allow_session_cookie_over_http()
+              csrf = s.get(f"{base}/api/v1/security/csrf_token/", timeout=30)
+              if not csrf.ok:
+                  sys.exit(f"[dashboards] ABORT: csrf_token {csrf.status_code}: "
+                           f"{csrf.text[:200]}")
+              s.headers.update({"X-CSRFToken": csrf.json()["result"], "Referer": base})
+              # Superset sets SESSION_COOKIE_SECURE — correct for browsers arriving
+              # over the public HTTPS ingress, and fatal here: this Job talks to the
+              # in-cluster Service over http, and an HTTP client will not transmit a
+              # Secure cookie over a plaintext connection. The token above then
+              # arrives with no session to validate it against, and every call comes
+              # back "400 The CSRF session token is missing" — which reads like a
+              # missing token, not a dropped cookie, so it sends you looking in the
+              # wrong place entirely.
+              #
+              # See allow_session_cookie_over_http above.
+              # Which dashboards are OURS, resolved through the ORM.
+              #
+              # NOT from the list API: DashboardRestApi.list_columns does not
+              # include `uuid`, so filtering the REST response on it matches
+              # nothing and silently embeds zero. The ORM has it.
+              #
+              # Scoping matters because Superset is shared across the
+              # environment — enabling embedding on another team's dashboard is
+              # a change this Job has no business making.
+              import zipfile, yaml
+              from superset.app import create_app
+              ours = set()
+              with zipfile.ZipFile("/bundle/fr-dashboards.zip") as z:
+                  for n in z.namelist():
+                      if "/dashboards/" in n and n.endswith((".yaml", ".yml")):
+                          cfg = yaml.safe_load(z.read(n)) or {}
+                          if cfg.get("uuid"):
+                              ours.add(str(cfg["uuid"]))
+              with create_app().app_context():
+                  from superset import db
+                  from superset.models.dashboard import Dashboard
+                  ids = [d.id for d in db.session.query(Dashboard).all()
+                         if str(d.uuid) in ours]
+
+              done = 0
+              for did in ids:
+                  allow_session_cookie_over_http()
+                  e = s.post(f"{base}/api/v1/dashboard/{did}/embedded",
+                             json={"allowed_domains": []}, timeout=30)
+                  if e.ok:
+                      done += 1
+                  else:
+                      print(f"[dashboards] embedding {did} failed "
+                            f"{e.status_code}: {e.text[:160]}")
+              if done != len(ours):
+                  print(f"[dashboards] WARNING: embedded {done} but the bundle has "
+                        f"{len(ours)} dashboard(s) — Insights will list the rest "
+                        "and be unable to render them")
+              print(f"[dashboards] embedding enabled on {done} dashboard(s)")
+              PY
+              {{- end }}
+          env:
+            - name: SUPERSET_URL
+              value: {{ tpl .Values.analytics.dashboards.superset.url $ | quote }}
+            {{- with .Values.analytics.dashboards.superset.configSecret }}
+            - name: SUPERSET_CONFIG_PATH
+              value: /app/pythonpath/{{ $.Values.analytics.dashboards.superset.configKey }}
+            {{- end }}
+            - name: SUPERSET_ADMIN
+              value: {{ .Values.analytics.dashboards.supersetAdmin | quote }}
+            {{- with .Values.analytics.dashboards.supersetAdminPasswordSecret }}
+            {{- if .name }}
+            - name: SUPERSET_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ tpl .name $ | quote }}
+                  key: {{ .key | default "password" | quote }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.analytics.dashboards.superset.dbPasswordSecret }}
+            {{- if .name }}
+            {{/* Superset's METADATA database password. Deliberately an explicit
+                 `env:` and not left to envFromSecret: DB_PASS is present but
+                 EMPTY in that Secret, and an explicit env var overrides the one
+                 envFrom supplies. The Superset deployment does exactly this. */}}
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ tpl .name $ | quote }}
+                  key: {{ .key | quote }}
+            {{- end }}
+            {{- end }}
+            - name: SUPERSET_DB_NAME
+              value: {{ .Values.analytics.dashboards.supersetDatabaseName | quote }}
+            - name: PGHOST
+              value: {{ $pg | quote }}
+            - name: PGPORT
+              value: {{ .Values.global.registryDBPort | default 5432 | quote }}
+            - name: REGISTRY_DB
+              value: {{ tpl .Values.global.registryDB $ | quote }}
+            - name: REGISTRY_DB_USER
+              value: {{ tpl .Values.global.registryDBUser $ | quote }}
+            - name: REGISTRY_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ tpl .Values.global.registryDBSecret $ | quote }}
+                  key: {{ tpl .Values.global.registryDBUserPasswordKey $ | quote }}
+          {{- with .Values.analytics.dashboards.superset.envFromSecret }}
+          envFrom:
+            {{/* Superset's DB_HOST/DB_NAME/DB_USER/DB_PASS — the same Secret its
+                 own deployment consumes, so the CLI below reaches the same
+                 metadata database rather than a local file. */}}
+            - secretRef:
+                name: {{ tpl . $ | quote }}
+          {{- end }}
+          volumeMounts:
+            - name: bundle
+              mountPath: /bundle
+            {{- if .Values.analytics.dashboards.superset.configSecret }}
+            - name: superset-config
+              mountPath: /app/pythonpath
+              readOnly: true
+            {{- end }}
+          resources: {{- toYaml .Values.analytics.resources | nindent 12 }}
+      volumes:
+        - name: bundle
+          configMap:
+            name: {{ .Values.analytics.dashboards.bundleConfigMap | default (printf "%s-fr-dashboard-bundle" .Release.Name) }}
+        {{- with .Values.analytics.dashboards.superset.configSecret }}
+        - name: superset-config
+          secret:
+            secretName: {{ tpl . $ | quote }}
+            items:
+              - key: {{ $.Values.analytics.dashboards.superset.configKey }}
+                path: {{ $.Values.analytics.dashboards.superset.configKey }}
+              {{- with $.Values.analytics.dashboards.superset.bootstrapKey }}
+              {{/* The deployed Superset sources this before starting, and it is
+                   where AUTH_OAUTH's dependency comes from — the stock image does
+                   not ship authlib. Projecting only superset_config.py gave this
+                   Job a config demanding OAuth and no library to satisfy it, so
+                   every run died in create_app with ModuleNotFoundError before
+                   importing anything. */}}
+              - key: {{ . }}
+                path: {{ . }}
+              {{- end }}
+        {{- end }}
+{{- end }}

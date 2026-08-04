@@ -1,7 +1,8 @@
 # Farmer Registry — values overlay for the openg2p-registry chart.
 #
-# This chart has no templates; it deploys the openg2p-registry subchart (pinned
-# in Chart.yaml, aliased `registry`) with the overrides below. Install:
+# This chart owns only the analytics jobs (templates/); everything else comes from
+# the openg2p-registry subchart (pinned in Chart.yaml, aliased `registry`) with the
+# overrides below. Install:
 #
 #     helm repo add openg2p https://openg2p.github.io/openg2p-helm
 #     helm dependency build ./helm/openg2p-farmer-registry
@@ -18,6 +19,24 @@ global:
   registryVariant: 'farmer-registry'
   # Ingress host for this registry. Overrides the subchart's generic default.
   registryHostname: '{{ .Release.Name }}.{{ .Release.Namespace }}.openg2p.org'
+
+  # Database wiring, mirroring openg2p-registry's own defaults. Declared here
+  # rather than inherited because a parent chart's templates cannot read a
+  # subchart's globals — only the other direction — and the analytics Jobs in
+  # templates/ need them. The values are deliberately IDENTICAL to the subchart's,
+  # so declaring them changes nothing about how the subchart resolves; drifting
+  # them would point the analytics jobs at a different database than the services.
+  postgresqlHost: commons-postgresql
+  registryDB:  '{{ printf "%s" .Release.Name | replace "-" "_" }}'
+  registryDBPort: 5432
+  registryDBUser: '{{ printf "%s_user" .Release.Name | replace "-" "_" }}'
+  registryDBSecret: '{{ .Release.Name }}'
+  registryDBUserPasswordKey: '{{ .Release.Name }}-db-user'
+  masterDataDB: 'master_data'
+  masterDataDBPort: 5432
+  masterDataDBUser: 'master_data_user'
+  masterDataDBSecret: 'master-data'
+  masterDataDBUserPasswordKey: 'master-data-db-user'
 
 # ── openg2p-registry subchart overrides ───────────────────────────────────────
 registry:
@@ -111,3 +130,140 @@ registry:
     farmerRegisterId: a1a4d25a-1cd4-4356-abac-985a0b3c6bcd
     crTabId: "farmer_farmer_tab"
     crSectionId: "farmer_farmer_personal_identification_section_01"
+
+
+# ── Analytics: sample data, reporting views, dashboards ──────────────────────
+# Runs after the registry db-seed (hook weight 10) as 15 -> 20 -> 30.
+#
+# There is deliberately no country setting here. Geography comes from whatever
+# the environment's Master Data Service holds — see geoSeed.countryPack in the
+# openg2p-master-data chart. Declaring a country in two charts is how registry
+# records end up pointing at places MDS has never heard of.
+analytics:
+  # Left empty on purpose: these jobs run in the registry db-seed image and
+  # inherit registry.dbSeed.image, whose tag CI rewrites to the built version.
+  # Setting a tag here would pin it to a placeholder CI does not update.
+  image:
+    repository: ""
+    tag: ""
+  # No dataDir: the sample generator and its distributions are farmer's own and are
+  # copied into /seed by the db-seed image. They used to be read from the shared
+  # openg2p-data clone at /openg2p-data, which is what let them drift out of step
+  # with the enums they write.
+  waitImage: jbergknoff/postgresql-client:latest
+
+  bulkSample:
+    enabled: true
+    # ~250k individuals over ~62.5k households, sized against the DEFAULT geo
+    # pack (Kamuntu, 668 villages) so the deepest level averages ~90 households
+    # and its percentages are reportable rather than suppressed as unreliable.
+    #
+    # This is the one number to revisit when changing countryPack, because the
+    # denominator that matters is households *per leaf unit*, not the total. The
+    # previous 50k was sized for Ethiopia's 1,148 woredas and leaves roughly a
+    # dozen households each — enough for counts and rankings, too thin for rates,
+    # since one household then moves a percentage by ~8 points.
+    farmers: 100000
+    # Optional guard: fails the job if MDS holds a different country than this
+    # deployment expects. Not a selector — MDS remains the source of truth.
+    #
+    # This is the root unit's P-code, NOT the pack directory name: "XK" for
+    # Kamuntu (pack XKM), "ET" for Ethiopia (pack ETH). The two differ because a
+    # P-code is ISO alpha-2 while a pack is named by alpha-3, so setting "XKM"
+    # here would abort every run.
+    expectedCountry: ""
+
+  reportingViews:
+    enabled: true
+
+  dashboards:
+    enabled: true
+    image:
+      repository: apachesuperset.docker.scarf.sh/apache/superset
+      tag: 4.0.1
+    # Service account that owns imported assets. On a Keycloak-only Superset no
+    # local user exists until someone logs in, so the Job creates this one if
+    # absent. It cannot log in through the UI — AUTH_OAUTH removes the local
+    # login form — but see the password below: it can still use the REST API.
+    supersetAdmin: svc-importer
+    # Password for that account, read from a Secret. Leave the secret name empty
+    # and the Job generates a random password and discards it, which is fine if
+    # the account only ever needs to own assets.
+    #
+    # Set it when anything has to call the Superset API as a machine, which is
+    # what G2P Insight's Dashboards tab does. Under AUTH_TYPE = AUTH_OAUTH this
+    # is the ONLY way in: POST /login/ is a browser redirect to Keycloak and
+    # returns 405 to a form post, and /api/v1/security/login authenticates
+    # against Superset's OWN user table — provider=db never consults Keycloak, so
+    # no Keycloak credential, however privileged, can authenticate a service.
+    #
+    # When set, the Job converges the account onto this password on every run,
+    # so rotating the Secret and upgrading is enough to rotate the credential.
+    supersetAdminPasswordSecret:
+      # Generated on first install and adopted thereafter, so nobody has to
+      # invent one. Whichever of FR and G2P Insights installs first creates it;
+      # the other adopts it, which is why both charts default to the same name
+      # and key. Set generate=false and create the Secret yourself if your
+      # pipeline renders manifests and applies them (helm template / --dry-run
+      # cannot read the cluster, so it would mint a new password every render).
+      generate: true
+      name: openg2p-insights-superset-svc
+      key: password
+    # database_name of the connection inside Superset, as recorded in the bundle
+    supersetDatabaseName: FR
+
+    # Superset's OWN configuration. This job runs Superset's CLI and ORM
+    # (`superset fab`, `create_app()`, `import-dashboards`), so it must be
+    # pointed at the SAME metadata database Superset itself uses.
+    #
+    # Without these it was pointed at nothing: Superset defaults
+    # SQLALCHEMY_DATABASE_URI to a SQLite file, so the job created its service
+    # account and imported all 8 dashboards into a throwaway database inside its
+    # own pod, exited 0, and left the real Superset empty. A successful install
+    # with no dashboards in it. The job now aborts rather than repeat that.
+    #
+    # Defaults match the commons-services Superset chart; override for a Superset
+    # deployed under another name.
+    superset:
+      # In-cluster base URL, used for the REST calls that enable embedding.
+      url: http://commons-services-superset:8088
+      # Superset is a different Helm release, so nothing orders it against this
+      # Job. Wait rather than fail: a Superset merely restarting would otherwise
+      # take the whole dashboard import down with it.
+      waitAttempts: 60
+      waitSeconds: 5
+      # Secret carrying Superset's DB_HOST/DB_NAME/DB_USER/DB_PASS.
+      envFromSecret: commons-services-superset-env
+      # ...except DB_PASS, which in that Secret is EMPTY. The Superset chart keeps
+      # the password in a Secret of its own and injects it as an explicit `env:`
+      # entry, which takes precedence over the same key coming from `envFrom`.
+      # Copying only the envFrom half therefore produced a URI with no password and
+      # the CLI died on `fe_sendauth: no password supplied` — after waiting for
+      # Superset, after installing authlib, so the log looked like it was working
+      # right up to the point it wasn't. Rendered as an explicit env var here for
+      # the same reason: it has to win over the blank one.
+      dbPasswordSecret:
+        name: superset-db-user
+        key: superset-db-user-password
+      # Secret carrying superset_config.py (AUTH_TYPE, SECRET_KEY, the DB URI).
+      configSecret: commons-services-superset-config
+      configKey: superset_config.py
+      # Sourced before the Superset CLI runs, exactly as the Superset deployment
+      # does before starting. It installs what the mounted config needs — authlib
+      # for AUTH_OAUTH — which the stock apache/superset image does not ship.
+      # Without it this Job died in create_app with ModuleNotFoundError, before
+      # importing a single dashboard. Set empty to skip.
+      bootstrapKey: superset_bootstrap.sh
+      # Enable embedding on the imported dashboards. Without this they exist and
+      # are published but carry no embedded UUID, so G2P Insights' Dashboards tab
+      # lists them and can render none of them.
+      enableEmbedding: true
+    # ConfigMap holding fr-dashboards.zip; defaults to <release>-nsr-dashboard-bundle
+    bundleConfigMap: ""
+
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      memory: 2Gi
