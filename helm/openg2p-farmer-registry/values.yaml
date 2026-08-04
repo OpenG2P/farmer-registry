@@ -234,7 +234,7 @@ dbSeed:
   # Upload flat Jinja templates from the db-seed image to MinIO after SQL seed
   loadTemplates: true
   image:
-    repository: openg2p/openg2p-farmer-registry-db-seed
+    repository: registry.gitlab.com/openg2p/registry/farmer-registry/db-seed
     tag: "develop"
     pullPolicy: Always
 
@@ -332,7 +332,7 @@ partnerApi:
     create: false
     name: ""
   image:
-    repository: openg2p/openg2p-farmer-registry-partner-api
+    repository: registry.gitlab.com/openg2p/registry/farmer-registry/partner-api
     tag: "develop"
     pullPolicy: Always
   podSecurityContext:
@@ -681,7 +681,7 @@ staffPortalApi:
     create: false
     name: ""
   image:
-    repository: openg2p/openg2p-farmer-registry-staff-portal-api
+    repository: registry.gitlab.com/openg2p/registry/farmer-registry/staff-portal-api
     tag: "develop"
     pullPolicy: Always
   podSecurityContext:
@@ -999,7 +999,7 @@ celeryBeatProducer:
   nameOverride: celery-beat-producer
   replicaCount: 1
   image:
-    repository: openg2p/openg2p-farmer-registry-celery
+    repository: registry.gitlab.com/openg2p/registry/farmer-registry/celery
     tag: "develop"
     pullPolicy: Always
 
@@ -1076,7 +1076,7 @@ celeryWorker:
   nameOverride: celery-worker
   replicaCount: 1
   image:
-    repository: openg2p/openg2p-farmer-registry-celery
+    repository: registry.gitlab.com/openg2p/registry/farmer-registry/celery
     tag: "develop"
     pullPolicy: Always
 
@@ -1415,7 +1415,7 @@ idgenerator:
 sanity:
   enabled: true
   image:
-    repository: openg2p/openg2p-farmer-registry-sanity
+    repository: registry.gitlab.com/openg2p/registry/farmer-registry/sanity
     tag: develop
     pullPolicy: Always
   # In-cluster partner-api Service URL (no ingress path prefix), :80.
