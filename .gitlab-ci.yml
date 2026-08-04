@@ -41,4 +41,5 @@ variables:
 
   CHART_PATH: helm/openg2p-farmer-registry
   CHART_IMAGE_PATHS: '[".registry.staffApi.image.tag",".registry.partnerApi.image.tag",".registry.celeryWorker.image.tag",".registry.celeryBeat.image.tag",".registry.dbSeed.image.tag",".registry.sanity.image.tag"]'
+  CHART_INHERIT_QUESTIONS: '{"dependency":"openg2p-registry","alias":"registry"}'
   CHART_GITLAB_PROJECT: openg2p/charts
