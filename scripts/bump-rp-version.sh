@@ -10,8 +10,8 @@
 #   the newest image tag has no matching chart yet (or a chart step lagged/failed).
 #   Picking an image-only version would write a chart dependency that does not
 #   resolve. So "latest" here means the highest 0.0.0-develop.N present in BOTH
-#   the Helm index AND on Docker Hub. An explicit version is likewise verified to
-#   exist in both before anything is written.
+#   the Helm index AND the container registry. An explicit version is likewise
+#   verified to exist in both before anything is written.
 #
 # Requires: bash, curl, python3, helm. Run from the repo root.
 set -euo pipefail
@@ -21,9 +21,25 @@ set -euo pipefail
 CHART_DIR="helm/openg2p-farmer-registry"
 
 REGISTRY_CHART="openg2p-registry"
-HELM_INDEX="https://openg2p.github.io/openg2p-helm/index.yaml"
+
+# registry-platform now publishes to GitLab, not GitHub Pages + Docker Hub: the
+# chart goes to the shared `openg2p/charts` Helm registry, the images to
+# registry-platform's own container registry. The old openg2p-helm Pages index and
+# the openg2p/* Docker Hub repos are frozen at the pre-move versions, so a bump
+# that still read them could never see anything new.
+#
+# Both projects are public -- every read below is anonymous, no token needed.
+# Project PATHS are used (url-encoded) rather than numeric ids so this stays
+# readable. To eyeball a release by hand instead:
+#   https://openg2p.gitlab.io/versions/registry-registry-platform/CHANGELOG.html
+#   https://gitlab.com/groups/openg2p/-/packages
+GL_API="https://gitlab.com/api/v4"
+CHARTS_PROJECT="openg2p%2Fcharts"                     # shared Helm registry
+CHART_CHANNEL="stable"
+RP_PROJECT="openg2p%2Fregistry%2Fregistry-platform"   # container registry
+HELM_INDEX="${GL_API}/projects/${CHARTS_PROJECT}/packages/helm/${CHART_CHANNEL}/index.yaml"
 # One representative platform image; all are published together at the same tag.
-PROBE_IMAGE="openg2p/openg2p-registry-sanity-tests"
+PROBE_IMAGE="sanity-tests"
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 note() { echo "  $*"; }
@@ -44,9 +60,10 @@ Options:
   -n, --check, --dry-run   Resolve/validate and print, but do not modify any file.
   -h, --help               Show this help.
 
-"Latest SAFE" = the highest 0.0.0-develop.N present in BOTH the Helm index and
-Docker Hub (an image-only tag whose chart has not published yet is skipped).
-A specific <version> is accepted only if it exists in both.
+"Latest SAFE" = the highest 0.0.0-develop.N present in BOTH the GitLab Helm
+registry and registry-platform's container registry (an image-only tag whose
+chart has not published yet is skipped). A specific <version> is accepted only
+if it exists in both.
 
 Examples:
   ./scripts/bump-rp-version.sh -n              # what would 'latest' pick?
@@ -80,12 +97,28 @@ chart_versions() {
 }
 
 image_versions() {
-  # paginate Docker Hub tags (100/page is the max)
-  local url="https://hub.docker.com/v2/repositories/${PROBE_IMAGE}/tags?page_size=100"
-  while [ -n "$url" ] && [ "$url" != "null" ]; do
-    local page; page=$(curl -fsSL "$url" 2>/dev/null) || break
-    printf '%s' "$page" | python3 -c "import sys,json; d=json.load(sys.stdin); [print(t['name']) for t in d.get('results',[])]"
-    url=$(printf '%s' "$page" | python3 -c "import sys,json; print(json.load(sys.stdin).get('next') or '')")
+  # The tags endpoint is keyed by the container repository's numeric id, so look
+  # that up from the path first -- ids are assigned per project and would rot if
+  # hardcoded here.
+  local repo_id
+  repo_id=$(curl -fsSL "${GL_API}/projects/${RP_PROJECT}/registry/repositories?per_page=100" 2>/dev/null \
+    | python3 -c "
+import sys, json
+want = sys.argv[1]
+for r in json.load(sys.stdin):
+    if r.get('path','').rsplit('/',1)[-1] == want:
+        print(r['id']); break
+" "$PROBE_IMAGE") || return 1
+  [ -n "$repo_id" ] || return 1
+
+  # paginate tags (100/page is the max)
+  local page=1 body names
+  while :; do
+    body=$(curl -fsSL "${GL_API}/projects/${RP_PROJECT}/registry/repositories/${repo_id}/tags?per_page=100&page=${page}" 2>/dev/null) || break
+    names=$(printf '%s' "$body" | python3 -c "import sys,json; [print(t['name']) for t in json.load(sys.stdin)]" 2>/dev/null) || break
+    [ -n "$names" ] || break
+    printf '%s\n' "$names"
+    page=$((page+1))
   done | sort -u
 }
 
@@ -97,7 +130,7 @@ chart=set(l.strip() for l in open(sys.argv[1]) if l.strip())
 image=set(l.strip() for l in open(sys.argv[2]) if l.strip())
 both=[v for v in chart & image if v.startswith("0.0.0-develop.")]
 if not both:
-    sys.exit("no 0.0.0-develop.N version exists in BOTH the Helm index and Docker Hub")
+    sys.exit("no 0.0.0-develop.N version exists in BOTH the Helm registry and the container registry")
 both.sort(key=lambda v:int(v.rsplit(".",1)[1]))
 print(both[-1])
 PY
@@ -105,15 +138,15 @@ PY
 
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 echo "Resolving published openg2p-registry versions…"
-chart_versions > "$TMP/chart" || die "could not read the Helm index"
-image_versions > "$TMP/image" || die "could not read Docker Hub tags"
+chart_versions > "$TMP/chart" || die "could not read the Helm index ($HELM_INDEX)"
+image_versions > "$TMP/image" || die "could not read registry-platform's container registry"
 [ -s "$TMP/chart" ] || die "no ${REGISTRY_CHART} versions in the Helm index"
-[ -s "$TMP/image" ] || die "no tags for ${PROBE_IMAGE} on Docker Hub"
+[ -s "$TMP/image" ] || die "no tags for the '${PROBE_IMAGE}' image in registry-platform's container registry"
 
 if [ -n "$VERSION_ARG" ]; then
   VERSION="$VERSION_ARG"
   grep -qxF "$VERSION" "$TMP/chart" || die "version '$VERSION' has no published ${REGISTRY_CHART} chart"
-  grep -qxF "$VERSION" "$TMP/image" || die "version '$VERSION' has no published ${PROBE_IMAGE} image"
+  grep -qxF "$VERSION" "$TMP/image" || die "version '$VERSION' has no published '${PROBE_IMAGE}' image"
   note "requested version: $VERSION (verified in chart + images)"
 else
   VERSION=$(latest_safe "$TMP/chart" "$TMP/image") || die "$VERSION"
@@ -169,8 +202,8 @@ PY
 
 # refresh the dependency lock so it matches the new pin
 echo "Updating the chart dependency lock…"
-helm repo add openg2p https://openg2p.github.io/openg2p-helm >/dev/null 2>&1 || true
-helm repo update openg2p >/dev/null 2>&1 || true
+helm repo add openg2p-charts "${HELM_INDEX%/index.yaml}" >/dev/null 2>&1 || true
+helm repo update openg2p-charts >/dev/null 2>&1 || true
 helm dependency update "$CHART_DIR" >/dev/null 2>&1 || die "helm dependency update failed for $VERSION"
 
 # ── verify + report ───────────────────────────────────────────────────────────
