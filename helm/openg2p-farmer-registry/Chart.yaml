@@ -37,11 +37,16 @@ maintainers:
 # extend that same base image tag, so the two are pinned together and only moved
 # deliberately. Aliased to `registry` so the overlay nests under a hyphen-free
 # key (.Values.registry.*).
+#
+# Since the platform moved to GitLab, openg2p-registry is pulled from the shared
+# `openg2p/charts` Helm registry (project 84460547, channel `stable`) rather than
+# the old openg2p-helm GitHub Pages index, which is frozen at the pre-move
+# versions. The project is public, so no credentials are needed to resolve it.
 dependencies:
   - name: openg2p-registry
     alias: registry
-    version: 0.0.0-develop.296
-    repository: https://openg2p.github.io/openg2p-helm
+    version: 0.0.0-develop.343
+    repository: https://gitlab.com/api/v4/projects/84460547/packages/helm/stable
 
 # Rancher catalog branding
 annotations:
