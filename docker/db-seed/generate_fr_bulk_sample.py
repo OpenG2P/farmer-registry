@@ -377,6 +377,10 @@ def main():
         "score_type", "computed_score", "computed_at"])
 
     log(f"generating {args.farmers} farmers…")
+    _seq = {'LD': 0, 'CR': 0, 'LS': 0, 'FI': 0, 'MB': 0}
+    def _fid(pfx):
+        _seq[pfx] += 1
+        return f"{pfx}-{_seq[pfx]:09d}"
     for i in range(args.farmers):
         fid = rid(rng)
         chain = leaves[rng.randrange(len(leaves))]
@@ -412,6 +416,11 @@ def main():
             "ET", leaf_id, hierarchy,
         ])
 
+        # Sub-table functional ids are SEQUENTIAL, not a truncated uuid.
+        # The old `f"CR-{cid[:8]}"` kept only 8 hex chars: ~4.3e9 values, so by the
+        # birthday bound a run of this size collides long before it finishes —
+        # 100k farmers died at ~39k crop rows on
+        # ix_g2p_register_crops_functional_record_id. A counter cannot collide.
         # A farmer with no land at all is real (pastoralists, landless labour) and
         # the coverage panel is supposed to show it.
         for _ in range(weighted(rng, [(1, 0.55), (2, 0.28), (3, 0.11), (0, 0.06)])):
@@ -422,11 +431,11 @@ def main():
                     "SQUARE_METER": lambda: rng.randrange(500, 40_000)}[unit]()
             ftype = weighted(rng, FARMING_TYPE)
             lands.add([
-                lid, fid, f"LD-{lid[:8]}", "ACTIVE", created.isoformat(sep=" "), SEEDER, created.isoformat(sep=" "), SEEDER,
+                lid, fid, _fid("LD"), "ACTIVE", created.isoformat(sep=" "), SEEDER, created.isoformat(sep=" "), SEEDER,
                 weighted(rng, TENURE), size, unit, weighted(rng, SOIL),
                 weighted(rng, LAND_USE), ftype, rng.randrange(1985, today.year),
                 rng.choice(["inherited", "purchased", "allocated", "rented"]),
-                f"CERT-{lid[:8]}" if rng.random() < 0.41 else None,
+                f"CERT-{_seq['LD']:09d}" if rng.random() < 0.41 else None,
                 leaf_id, hierarchy,
             ])
 
@@ -434,20 +443,20 @@ def main():
                 for _ in range(rng.randint(1, 3)):
                     cid = rid(rng)
                     planted = today - timedelta(days=rng.randrange(400))
-                    crops.add([cid, lid, f"CR-{cid[:8]}", "ACTIVE",
+                    crops.add([cid, lid, _fid("CR"), "ACTIVE",
                                created.isoformat(sep=" "), SEEDER, created.isoformat(sep=" "), SEEDER, weighted(rng, COMMODITIES),
                                planted.isoformat(), weighted(rng, SEASON),
                                weighted(rng, CROP_END_USE)])
             if ftype in ("LIVESTOCK", "MIXED"):
                 for _ in range(rng.randint(1, 3)):
                     sid = rid(rng)
-                    stock.add([sid, lid, f"LS-{sid[:8]}", "ACTIVE",
+                    stock.add([sid, lid, _fid("LS"), "ACTIVE",
                                created.isoformat(sep=" "), SEEDER, created.isoformat(sep=" "), SEEDER, weighted(rng, LIVESTOCK_TYPE),
                                rng.choice(["Local", "Crossbreed", "Improved"]),
                                rng.randint(1, 60), weighted(rng, LIVESTOCK_SYSTEM)])
             if rng.random() < 0.72:
                 iid = rid(rng)
-                inputs.add([iid, lid, f"FI-{iid[:8]}", "ACTIVE",
+                inputs.add([iid, lid, _fid("FI"), "ACTIVE",
                             created.isoformat(sep=" "), SEEDER, created.isoformat(sep=" "), SEEDER,
                             rng.random() < 0.46, rng.random() < 0.31,
                             rng.random() < 0.22, rng.random() < 0.38,
@@ -457,7 +466,7 @@ def main():
         if rng.random() < 0.34:
             mid = rid(rng)
             in_cluster = rng.random() < 0.55
-            member.add([mid, fid, f"MB-{mid[:8]}", "ACTIVE", created.isoformat(sep=" "), SEEDER, created.isoformat(sep=" "), SEEDER,
+            member.add([mid, fid, _fid("MB"), "ACTIVE", created.isoformat(sep=" "), SEEDER, created.isoformat(sep=" "), SEEDER,
                         rng.random() < 0.62, "Woreda Farmers Cooperative",
                         rng.random() < 0.21, "Regional Cooperative Union",
                         in_cluster, weighted(rng, CLUSTER_ROLE) if in_cluster else None])
