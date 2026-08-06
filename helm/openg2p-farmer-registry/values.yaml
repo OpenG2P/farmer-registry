@@ -230,6 +230,12 @@ analytics:
       # Superset is a different Helm release, so nothing orders it against this
       # Job. Wait rather than fail: a Superset merely restarting would otherwise
       # take the whole dashboard import down with it.
+      # Superset is a SEPARATE Helm release and analytics is optional, so an
+      # absent Superset SKIPS the dashboard import rather than failing the
+      # install: a registry must come up whether or not a reporting stack was
+      # deployed beside it. Set true where the dashboards are load-bearing and a
+      # silent skip would be worse than a failed deploy.
+      required: false
       waitAttempts: 60
       waitSeconds: 5
       # Secret carrying Superset's DB_HOST/DB_NAME/DB_USER/DB_PASS.
@@ -267,3 +273,16 @@ analytics:
       memory: 256Mi
     limits:
       memory: 2Gi
+
+# ── Maps content for G2P Insights ────────────────────────────────────────────
+# The queries and page this registry contributes to the Insights map surface,
+# published as a ConfigMap for Insights to mount. See
+# templates/maps-content-configmap.yaml for why this is configuration and not
+# an image.
+#
+# Harmless when Insights is not installed: nothing else reads it.
+mapsContent:
+  enabled: true
+  # Defaults to <release>-maps-content. Whatever this resolves to is what goes
+  # into the Insights chart as insightMaps.build.content.configMap.
+  nameOverride: ""

@@ -1,0 +1,42 @@
+{{- if .Values.mapsContent.enabled }}
+{{/*
+The maps content this registry contributes to G2P Insights.
+
+WHY A ConfigMap AND NOT AN IMAGE
+--------------------------------
+What a map DRAWS belongs to a registry — these queries read fr_rpt_farmer / fr_rpt_crop and plot
+this registry's measures, which no other registry has. But the content itself is
+four SQL files and a page: about 30 KB of text.
+
+It used to ship as a container image built FROM the Insights Evidence builder,
+which meant a registry pinned an Insights version and could not build until
+Insights had published a matching one. A registry's pipeline failing because of
+an analytics release is the dependency pointing the wrong way: Insights consumes
+what a registry produces, not the reverse.
+
+So the content travels as configuration. Insights mounts this ConfigMap and
+overlays it onto its own toolchain at build time. This chart does not know
+Insights exists; Insights is told only the ConfigMap name.
+
+Insights may be installed before or after this registry, and may be absent
+entirely — an unread ConfigMap costs nothing.
+*/}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mapsContent.name" . }}
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    openg2p.org/maps-content: "true"
+data:
+  {{/* Flattened deliberately: a ConfigMap has no directories. Insights sorts
+       *.sql into sources/ and *.md into pages/, so the names must stay
+       distinct across the two. */}}
+  {{- range $path, $_ := .Files.Glob "files/maps/sources/*.sql" }}
+  {{ base $path }}: |
+{{ $.Files.Get $path | indent 4 }}
+  {{- end }}
+  {{- range $path, $_ := .Files.Glob "files/maps/pages/*.md" }}
+  {{ base $path }}: |
+{{ $.Files.Get $path | indent 4 }}
+  {{- end }}
+{{- end }}

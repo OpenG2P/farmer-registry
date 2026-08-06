@@ -36,11 +36,6 @@ variables:
       {
         "name": "sanity-tests",
         "dockerfile": "docker/sanity-tests/Dockerfile"
-      },
-      {
-        "name": "maps",
-        "dockerfile": "docker/maps/Dockerfile",
-        "context": "."
       }
     ]
   CHART_PATH: helm/openg2p-farmer-registry

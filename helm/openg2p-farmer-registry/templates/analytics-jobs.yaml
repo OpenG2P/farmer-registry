@@ -224,16 +224,33 @@ spec:
               for i in $(seq 1 {{ .Values.analytics.dashboards.superset.waitAttempts }}); do
                 if python -c "import sys,urllib.request; urllib.request.urlopen('$SUPERSET_URL/health', timeout=5)" 2>/dev/null; then
                   echo "[dashboards] Superset is up at $SUPERSET_URL"
+                  touch /gate/superset
                   exit 0
                 fi
                 echo "[dashboards] waiting for Superset at $SUPERSET_URL ($i)"
                 sleep {{ .Values.analytics.dashboards.superset.waitSeconds }}
               done
+              {{- if .Values.analytics.dashboards.superset.required }}
               echo "[dashboards] Superset never became reachable at $SUPERSET_URL" >&2
               exit 1
+              {{- else }}
+              # Superset is a SEPARATE release and may not be installed at all —
+              # analytics is optional, the registry is not. Failing here would
+              # fail the whole install over a missing reporting stack, so this
+              # skips instead and says so. Set
+              # analytics.dashboards.superset.required=true where the dashboards
+              # are load-bearing and a silent skip would be worse.
+              echo "[dashboards] Superset is not reachable at $SUPERSET_URL — SKIPPING the"
+              echo "[dashboards] dashboard import. The registry itself is unaffected; re-run"
+              echo "[dashboards] the upgrade once Superset is installed to load them."
+              exit 0
+              {{- end }}
           env:
             - name: SUPERSET_URL
               value: {{ tpl .Values.analytics.dashboards.superset.url $ | quote }}
+          volumeMounts:
+            - name: gate
+              mountPath: /gate
       containers:
         - name: import-dashboards
           image: {{ .Values.analytics.dashboards.image.repository }}:{{ .Values.analytics.dashboards.image.tag }}
@@ -241,6 +258,15 @@ spec:
           args:
             - |
               set -e
+
+              # Set by the init container ONLY when Superset actually answered.
+              # Checked here as well as there because an init container that
+              # exits 0 does NOT stop the pod — skipping in one place only means
+              # the import runs anyway against a Superset that is not there.
+              if [ ! -f /gate/superset ]; then
+                echo "[dashboards] no Superset — nothing to import."
+                exit 0
+              fi
 
               {{- with .Values.analytics.dashboards.superset.bootstrapKey }}
               # Same bootstrap the Superset deployment runs before starting. It
@@ -577,6 +603,8 @@ spec:
                 name: {{ tpl . $ | quote }}
           {{- end }}
           volumeMounts:
+            - name: gate
+              mountPath: /gate
             - name: bundle
               mountPath: /bundle
             {{- if .Values.analytics.dashboards.superset.configSecret }}
@@ -586,6 +614,8 @@ spec:
             {{- end }}
           resources: {{- toYaml .Values.analytics.resources | nindent 12 }}
       volumes:
+        - name: gate
+          emptyDir: {}
         - name: bundle
           configMap:
             name: {{ .Values.analytics.dashboards.bundleConfigMap | default (printf "%s-fr-dashboard-bundle" .Release.Name) }}
