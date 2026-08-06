@@ -260,6 +260,20 @@ if [[ "$KEEP_DASHBOARDS" == false && -z "$SUPERSET_DB_NAME" && "$HELM_RELEASE_EX
     | jq -r '.analytics.dashboards.supersetDatabaseName // empty' 2>/dev/null || true)
 fi
 
+# Fall back to this registry's own connection name when the release is already
+# gone — which is the COMMON case, not the exotic one: uninstalling from Rancher,
+# or running `helm uninstall` before this script, removes the release and with it
+# the only place the name was being read from. The step then skipped quietly and
+# left the dashboards, charts, datasets and the database connection behind in the
+# shared Superset, where the next install silently adopted them.
+#
+# This script belongs to ONE registry, so it knows its own name. --superset-db-name
+# still overrides, for a deployment that renamed the connection.
+if [[ "$KEEP_DASHBOARDS" == false && -z "$SUPERSET_DB_NAME" ]]; then
+  SUPERSET_DB_NAME="FR"
+  _yellow "  Superset connection: release gone, assuming '$SUPERSET_DB_NAME' (override with --superset-db-name)"
+fi
+
 # Locate the shared Superset pod. Its app context is already configured in-pod, so
 # the cleanup runs there rather than re-plumbing Superset's config/secrets here.
 SUPERSET_POD=""
