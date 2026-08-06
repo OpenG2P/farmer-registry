@@ -49,6 +49,11 @@ from io import StringIO
 
 import psycopg2
 
+# created_by stamped on every generated farmer. It is what tells this
+# generator's rows apart from the demo fixture's in the same tables — the
+# seeded-means-done guard and --purge both key off it.
+SEEDER = "bulk-sample"
+
 # Rows per COPY chunk. Large enough to amortise round-trips, small enough that a
 # failure does not roll back an hour of work.
 CHUNK = 50_000
@@ -259,25 +264,60 @@ def main():
             # its schema. An absent table means "not seeded", not a failure.
             log("g2p_register_farmers does not exist yet — nothing to seed.")
             return
-        cur.execute("SELECT count(*) FROM g2p_register_farmers")
+        # Count only what THIS generator wrote. The demo fixture
+        # (dbSeed.loadSampleData) writes the same tables under its own created_by,
+        # and both are normally on — counting every farmer would let those ~21
+        # fixture rows block the bulk load forever.
+        cur.execute('SELECT count(*) FROM g2p_register_farmers WHERE created_by = %s',
+                    (SEEDER,))
         existing = cur.fetchone()[0]
 
     if existing and args.purge and not args.dry_run:
-        log(f"--purge: removing {existing} existing farmer rows and their children")
+        log(f"--purge: removing {existing} bulk-generated farmers and their children")
         with conn.cursor() as cur:
-            for t in ("g2p_register_scores", "g2p_register_membership_details",
-                      "g2p_register_crops", "g2p_register_livestocks",
-                      "g2p_register_farm_inputs", "g2p_register_lands",
-                      "g2p_register_farmers"):
-                cur.execute(f"DELETE FROM {t}")
+            # Scoped to this generator's rows, by walking down from its farmers —
+            # a blanket DELETE would take the demo fixture with it. Children first.
+            bulk_farmers = ('SELECT internal_record_id FROM g2p_register_farmers '
+                            'WHERE created_by = %s')
+            bulk_lands = (f'SELECT internal_record_id FROM g2p_register_lands '
+                          f'WHERE link_internal_record_id IN ({bulk_farmers})')
+            for t in ("g2p_register_crops", "g2p_register_livestocks",
+                      "g2p_register_farm_inputs"):
+                cur.execute(f'DELETE FROM {t} WHERE link_internal_record_id IN ({bulk_lands})',
+                            (SEEDER,))
+            for t in ("g2p_register_lands", "g2p_register_membership_details",
+                      "g2p_register_scores"):
+                cur.execute(f'DELETE FROM {t} WHERE link_internal_record_id IN ({bulk_farmers})',
+                            (SEEDER,))
+            cur.execute('DELETE FROM g2p_register_farmers WHERE created_by = %s', (SEEDER,))
         conn.commit()
         existing = 0
     elif existing:
         # Seeded means done. A rerun would regenerate identical ids and COPY has no
         # ON CONFLICT, so it would die on row one and fail the whole upgrade.
-        log(f"already seeded ({existing} farmers) — nothing to do. Use --purge to redo.")
+        log(f"already seeded ({existing:,} bulk farmers) — nothing to do. "
+            "Use --purge to regenerate.")
         return
 
+    # g2p_register_scores.register_id is NOT NULL. Look the Farmer register up by
+    # mnemonic rather than hardcoding a uuid — the ids are per-deployment (seeded
+    # by g2p_register_definitions.sql) and a wrong one would attach every score to
+    # a register that does not exist.
+    register_id = args.register_id
+    if not register_id:
+        with conn.cursor() as cur:
+            cur.execute("SELECT to_regclass('public.g2p_register_definitions')")
+            if cur.fetchone()[0] is not None:
+                cur.execute("SELECT register_id FROM g2p_register_definitions "
+                            "WHERE register_mnemonic = %s", ("Farmer",))
+                row = cur.fetchone()
+                register_id = row[0] if row else None
+    if not register_id:
+        log("no Farmer register in g2p_register_definitions — scores will be skipped. "
+            "Pass --register-id to force one.")
+
+    # One score definition for the whole run: a definition is a shared entity, so
+    # a fresh uuid per row would imply thousands of distinct scoring models.
     levels, leaves = load_geo(mds, args.expect_country)
     if not leaves:
         log("Master Data holds no geography — skipping. Load a country pack "
@@ -292,10 +332,12 @@ def main():
 
     rng = random.Random(args.seed)
     today = date.today()
+    score_def_id = rid(rng)
 
     farmers = Copier(conn, "g2p_register_farmers", [
         "internal_record_id", "functional_record_id", "record_name", "record_status",
-        "created_at", "created_by", "registration_date", "search_text",
+        "created_at", "created_by", "last_approved_at", "last_approved_by",
+        "registration_date", "search_text",
         "first_name", "last_name", "gender", "birth_date", "marital_status",
         "occupation", "education_level", "estimated_age", "has_personal_phone",
         "disabled", "disability_type", "disability_severity", "source_of_income",
@@ -303,29 +345,35 @@ def main():
         "geo_lowest_level_value_id", "geo_code_hierarchy_json"])
     lands = Copier(conn, "g2p_register_lands", [
         "internal_record_id", "link_internal_record_id", "functional_record_id",
-        "record_status", "created_at", "land_ownership_type", "land_size", "unit",
+        "record_status", "created_at", "created_by", "last_approved_at",
+        "last_approved_by", "land_ownership_type", "land_size", "unit",
         "soil_fertility", "current_land_use", "farming_type", "year_of_acquisition",
         "means_of_acquisition", "certificate_storage_id",
         "geo_lowest_level_value_id", "geo_code_hierarchy_json"])
     crops = Copier(conn, "g2p_register_crops", [
         "internal_record_id", "link_internal_record_id", "functional_record_id",
-        "record_status", "created_at", "commodity", "planted_date", "season", "end_use"])
+        "record_status", "created_at", "created_by", "last_approved_at",
+        "last_approved_by", "commodity", "planted_date", "season", "end_use"])
     stock = Copier(conn, "g2p_register_livestocks", [
         "internal_record_id", "link_internal_record_id", "functional_record_id",
-        "record_status", "created_at", "livestock_type", "breed", "head_count",
+        "record_status", "created_at", "created_by", "last_approved_at",
+        "last_approved_by", "livestock_type", "breed", "head_count",
         "livestock_system"])
     inputs = Copier(conn, "g2p_register_farm_inputs", [
         "internal_record_id", "link_internal_record_id", "functional_record_id",
-        "record_status", "created_at", "fertilizer_use", "pesticide_use",
+        "record_status", "created_at", "created_by", "last_approved_at",
+        "last_approved_by", "fertilizer_use", "pesticide_use",
         "insecticide_use", "improved_seed_use", "water_source",
         "access_to_machinery", "access_to_finance"])
     member = Copier(conn, "g2p_register_membership_details", [
         "internal_record_id", "link_internal_record_id", "functional_record_id",
-        "record_status", "created_at", "is_primary_cooperative_member",
+        "record_status", "created_at", "created_by", "last_approved_at",
+        "last_approved_by", "is_primary_cooperative_member",
         "primary_cooperative_name", "is_cooperative_union_member",
         "cooperative_union_name", "is_farmer_cluster_member", "farmer_cluster_role"])
     scores = Copier(conn, "g2p_register_scores", [
         "internal_record_id", "link_internal_record_id", "register_id",
+        "score_definition_id", "triggered_by_cr_id",
         "score_type", "computed_score", "computed_at"])
 
     log(f"generating {args.farmers} farmers…")
@@ -349,7 +397,8 @@ def main():
 
         farmers.add([
             fid, f"FR-{i + 1:08d}", f"{first} {last}", "ACTIVE",
-            created.isoformat(sep=" "), "bulk-sample",
+            created.isoformat(sep=" "), SEEDER,
+            created.isoformat(sep=" "), SEEDER,
             (created.date()).isoformat(),
             f"{first} {last}".lower(),
             first, last, sex, born.isoformat() if has_dob else None,
@@ -373,7 +422,7 @@ def main():
                     "SQUARE_METER": lambda: rng.randrange(500, 40_000)}[unit]()
             ftype = weighted(rng, FARMING_TYPE)
             lands.add([
-                lid, fid, f"LD-{lid[:8]}", "ACTIVE", created.isoformat(sep=" "),
+                lid, fid, f"LD-{lid[:8]}", "ACTIVE", created.isoformat(sep=" "), SEEDER, created.isoformat(sep=" "), SEEDER,
                 weighted(rng, TENURE), size, unit, weighted(rng, SOIL),
                 weighted(rng, LAND_USE), ftype, rng.randrange(1985, today.year),
                 rng.choice(["inherited", "purchased", "allocated", "rented"]),
@@ -386,20 +435,20 @@ def main():
                     cid = rid(rng)
                     planted = today - timedelta(days=rng.randrange(400))
                     crops.add([cid, lid, f"CR-{cid[:8]}", "ACTIVE",
-                               created.isoformat(sep=" "), weighted(rng, COMMODITIES),
+                               created.isoformat(sep=" "), SEEDER, created.isoformat(sep=" "), SEEDER, weighted(rng, COMMODITIES),
                                planted.isoformat(), weighted(rng, SEASON),
                                weighted(rng, CROP_END_USE)])
             if ftype in ("LIVESTOCK", "MIXED"):
                 for _ in range(rng.randint(1, 3)):
                     sid = rid(rng)
                     stock.add([sid, lid, f"LS-{sid[:8]}", "ACTIVE",
-                               created.isoformat(sep=" "), weighted(rng, LIVESTOCK_TYPE),
+                               created.isoformat(sep=" "), SEEDER, created.isoformat(sep=" "), SEEDER, weighted(rng, LIVESTOCK_TYPE),
                                rng.choice(["Local", "Crossbreed", "Improved"]),
                                rng.randint(1, 60), weighted(rng, LIVESTOCK_SYSTEM)])
             if rng.random() < 0.72:
                 iid = rid(rng)
                 inputs.add([iid, lid, f"FI-{iid[:8]}", "ACTIVE",
-                            created.isoformat(sep=" "),
+                            created.isoformat(sep=" "), SEEDER, created.isoformat(sep=" "), SEEDER,
                             rng.random() < 0.46, rng.random() < 0.31,
                             rng.random() < 0.22, rng.random() < 0.38,
                             weighted(rng, WATER_SOURCE),
@@ -408,13 +457,13 @@ def main():
         if rng.random() < 0.34:
             mid = rid(rng)
             in_cluster = rng.random() < 0.55
-            member.add([mid, fid, f"MB-{mid[:8]}", "ACTIVE", created.isoformat(sep=" "),
+            member.add([mid, fid, f"MB-{mid[:8]}", "ACTIVE", created.isoformat(sep=" "), SEEDER, created.isoformat(sep=" "), SEEDER,
                         rng.random() < 0.62, "Woreda Farmers Cooperative",
                         rng.random() < 0.21, "Regional Cooperative Union",
                         in_cluster, weighted(rng, CLUSTER_ROLE) if in_cluster else None])
-        if rng.random() < 0.28:
+        if register_id and rng.random() < 0.28:
             sid = rid(rng)
-            scores.add([sid, fid, args.register_id, args.score_type,
+            scores.add([sid, fid, register_id, score_def_id, rid(rng), args.score_type,
                         round(rng.uniform(0, 100), 2), created.isoformat(sep=" ")])
 
         if (i + 1) % 25_000 == 0:

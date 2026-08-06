@@ -655,7 +655,7 @@ def _seq(record: dict) -> int:
     return int(record["functional_record_id"].rsplit("-", 1)[-1])
 
 
-def insert_household_members(cur, members: list, ind_by_id: dict) -> None:
+def insert_household_members(cur, members: list, ind_by_id: dict, remap: dict) -> None:
     columns = [
         "internal_record_id", "functional_record_id",
         "link_internal_record_id", "link_foundational_id",
@@ -671,8 +671,23 @@ def insert_household_members(cur, members: list, ind_by_id: dict) -> None:
         "geo_lowest_level_value_id", "geo_code_hierarchy_json", "is_disabled",
     ]
     rows = []
+    skipped = 0
     for m in members:
-        ind = ind_by_id[m["member_individual_id"]]
+        # member_individual_id names a person in the FIXTURE's id space — the same
+        # space link_internal_record_id uses. remap_links repoints only the link,
+        # so this one still has to be resolved here, or the lookup is a fixture id
+        # ('i0001') against a dict keyed by the loaded master-data ids and the load
+        # dies on the first member.
+        #
+        # Resolving can legitimately come up empty: the remap cycles a couple of
+        # dozen loaded people onto hundreds of fixture ids, so a member may name
+        # someone this country pack never loaded. Skip that row — a household
+        # short one member is worth more than no sample data at all.
+        member_id = m.get("member_individual_id")
+        ind = ind_by_id.get(remap.get(member_id, member_id))
+        if ind is None:
+            skipped += 1
+            continue
         rows.append(
             (
                 m["internal_record_id"], m["functional_record_id"],
@@ -701,7 +716,8 @@ def insert_household_members(cur, members: list, ind_by_id: dict) -> None:
         + ") VALUES %s ON CONFLICT (\"internal_record_id\") DO NOTHING"
     )
     psycopg2.extras.execute_values(cur, sql, rows, template=None, page_size=200)
-    print(f"[load-sample-data]   -> g2p_register_household_members: {len(rows)}")
+    note = f" ({skipped} skipped — member names a person this pack did not load)" if skipped else ""
+    print(f"[load-sample-data]   -> g2p_register_household_members: {len(rows)}{note}")
 
 
 COMMON_COLUMNS = [
@@ -926,7 +942,8 @@ def main() -> None:
         insert_farmers(cur, individuals, farmer_extras)
         insert_households(cur, households)
         insert_household_members(
-            cur, remap_links("g2p_register_household_members", members, remap), ind_by_id)
+            cur, remap_links("g2p_register_household_members", members, remap),
+            ind_by_id, remap)
         for table, fname, extras, json_cols in SUB_TABLES:
             rows = remap_links(table, fixtures[fname], remap)
             if table == "g2p_register_lands":

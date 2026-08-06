@@ -368,31 +368,16 @@ SELECT
     f.disability_severity,
     f.has_personal_phone,
 
-    -- birth_date is free text; prefer it, fall back to the captured estimate.
-    (CASE WHEN f.birth_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
-          THEN date_part('year', age((substring(f.birth_date from 1 for 10))::date))::int
-          ELSE f.estimated_age END)            AS age,
+    -- birth_date is a DATE; estimated_age covers the records captured without one.
+    -- Computed once in the LATERAL below rather than inlined per band, so the two
+    -- columns cannot disagree.
+    a.age,
     (CASE
-        WHEN COALESCE(
-                 CASE WHEN f.birth_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
-                      THEN date_part('year', age((substring(f.birth_date from 1 for 10))::date))::int
-                      ELSE f.estimated_age END, -1) < 0  THEN 'UNKNOWN'
-        WHEN COALESCE(
-                 CASE WHEN f.birth_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
-                      THEN date_part('year', age((substring(f.birth_date from 1 for 10))::date))::int
-                      ELSE f.estimated_age END, -1) < 25 THEN 'UNDER_25'
-        WHEN COALESCE(
-                 CASE WHEN f.birth_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
-                      THEN date_part('year', age((substring(f.birth_date from 1 for 10))::date))::int
-                      ELSE f.estimated_age END, -1) < 35 THEN '25_34'
-        WHEN COALESCE(
-                 CASE WHEN f.birth_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
-                      THEN date_part('year', age((substring(f.birth_date from 1 for 10))::date))::int
-                      ELSE f.estimated_age END, -1) < 50 THEN '35_49'
-        WHEN COALESCE(
-                 CASE WHEN f.birth_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}'
-                      THEN date_part('year', age((substring(f.birth_date from 1 for 10))::date))::int
-                      ELSE f.estimated_age END, -1) < 65 THEN '50_64'
+        WHEN a.age IS NULL THEN 'UNKNOWN'
+        WHEN a.age < 25    THEN 'UNDER_25'
+        WHEN a.age < 35    THEN '25_34'
+        WHEN a.age < 50    THEN '35_49'
+        WHEN a.age < 65    THEN '50_64'
         ELSE '65_PLUS'
      END)                                      AS age_band,
     (f.gender = 'FEMALE')                      AS is_female,
@@ -445,7 +430,13 @@ FROM g2p_register_farmers f
 LEFT JOIN geo     g  ON g.farmer_id  = f.internal_record_id
 LEFT JOIN holding h  ON h.farmer_id  = f.internal_record_id
 LEFT JOIN member  m  ON m.farmer_id  = f.internal_record_id
-LEFT JOIN score   sc ON sc.farmer_id = f.internal_record_id;
+LEFT JOIN score   sc ON sc.farmer_id = f.internal_record_id
+CROSS JOIN LATERAL (
+    SELECT COALESCE(
+        CASE WHEN f.birth_date IS NOT NULL
+             THEN date_part('year', age(f.birth_date))::int END,
+        f.estimated_age) AS age
+) a;
 
 COMMENT ON MATERIALIZED VIEW fr_rpt_farmer IS
     'One row per farmer with land, crop, livestock, input, membership and score '
