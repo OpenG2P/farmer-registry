@@ -176,6 +176,23 @@ analytics:
   reportingViews:
     enabled: true
 
+    # How often the snapshots behind the dashboards are rebuilt.
+    #
+    # These are MATERIALIZED views: Postgres does not update them when the
+    # register changes, so without this they stay frozen at whatever the install
+    # produced — new farmers simply never appear, and nothing reports an error.
+    # Empty disables the CronJob and leaves the views static.
+    #
+    # Hourly by default. Raise the frequency for a small register; lower it if
+    # the refresh starts overrunning the interval (it runs CONCURRENTLY, so it
+    # costs time rather than availability).
+    refreshSchedule: "0 * * * *"
+
+    # Which materialized views the refresh covers. Matched by prefix rather than
+    # listed, so a view added to reporting_views.sql is picked up without anyone
+    # remembering to add it here.
+    matchPrefix: fr_rpt_
+
   dashboards:
     enabled: true
     image:

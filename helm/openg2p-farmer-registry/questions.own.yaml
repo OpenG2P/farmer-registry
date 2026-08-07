@@ -1,0 +1,26 @@
+# Questions for keys this chart owns, which exist in no dependency and so cannot
+# be inherited. Appended verbatim to the generated questions.yaml at package time
+# by openg2p/packaging ci/chart/inherit-questions.sh — variables here address the
+# ROOT chart and are NOT path-prefixed.
+
+- variable: analytics.reportingViews.enabled
+  label: "Build reporting views"
+  description: >-
+    Create the reporting views the dashboards, maps and Ask tab read. Turn this
+    off only for an install that does no reporting at all — with it off there is
+    nothing for Superset or Insights to query.
+  type: boolean
+  default: true
+  group: "Analytics"
+
+- variable: analytics.reportingViews.refreshSchedule
+  label: "Reporting data refresh"
+  description: >-
+    How often the reporting views behind the dashboards, maps and Ask tab are
+    rebuilt from the register. These are snapshots — between refreshes, farmers
+    registered since the last run do not appear in any report. Cron format.
+    Leave empty to never refresh automatically.
+  type: string
+  default: "0 * * * *"
+  group: "Analytics"
+  show_if: "analytics.reportingViews.enabled=true"

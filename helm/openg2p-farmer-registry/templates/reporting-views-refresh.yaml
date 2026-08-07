@@ -1,0 +1,147 @@
+{{/*
+Keep the reporting views current.
+
+WHY THIS BELONGS HERE
+---------------------
+`fr_rpt_farmer` and friends are MATERIALIZED views: they hold a snapshot taken
+when this chart created them, and Postgres never updates a materialized view
+when its base tables change. Nothing else in this chart touched them again, so a
+registry installed and then used normally showed dashboards frozen at install
+time — every farmer registered afterwards invisible, with no error anywhere to
+say so.
+
+The refresh did exist, but inside G2P Insights' maps build. That put the
+freshness of THIS registry's reporting data behind an analytics release: a
+deployment without Insights never refreshed at all, and one with it refreshed
+only as a side effect of building maps. Creation and refresh belong to the same
+owner — the reporting views are ours, and so is keeping them true.
+
+WHAT IT DOES
+------------
+Refreshes in DEPENDENCY ORDER, resolved from the catalog rather than listed:
+fr_rpt_crop and fr_rpt_farmer both read fr_rpt_land, so refreshing them first
+would rebuild them from the previous snapshot and quietly produce a half-updated
+set. A hand-maintained list would also have to be kept in step with
+reporting_views.sql by whoever next edits it, which is the kind of coupling that
+holds for exactly as long as the two files have the same author.
+*/}}
+{{- if and .Values.analytics.reportingViews.enabled .Values.analytics.reportingViews.refreshSchedule }}
+{{- $seedRepo := .Values.analytics.image.repository | default .Values.registry.dbSeed.image.repository }}
+{{- $seedTag := .Values.analytics.image.tag | default .Values.registry.dbSeed.image.tag }}
+{{- $pg := tpl .Values.global.postgresqlHost $ }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-fr-reporting-views-refresh
+  labels:
+    app.kubernetes.io/name: fr-reporting-views-refresh
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  schedule: {{ .Values.analytics.reportingViews.refreshSchedule | quote }}
+  # A refresh that overruns its slot must not have a second one started on top
+  # of it: CONCURRENTLY already holds the work open for minutes on a large
+  # register, and two of them serialise into a queue that never drains.
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  startingDeadlineSeconds: 600
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: fr-reporting-views-refresh
+            app.kubernetes.io/instance: {{ .Release.Name }}
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: refresh
+              image: {{ $seedRepo }}:{{ $seedTag }}
+              command:
+                - sh
+                - -c
+                - |
+                  set -e
+
+                  # Dependency order, from pg_depend. Views nobody reads come
+                  # first (lvl 0); a view built on another follows it.
+                  ORDER=$(psql -tA <<'SQL'
+                  WITH RECURSIVE mv AS (
+                      SELECT c.oid, c.relname
+                      FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+                      WHERE c.relkind = 'm' AND n.nspname = 'public'
+                        AND c.relname LIKE '{{ .Values.analytics.reportingViews.matchPrefix }}%'
+                  ), edge AS (
+                      SELECT DISTINCT r.ev_class AS child, d.refobjid AS parent
+                      FROM pg_depend d JOIN pg_rewrite r ON r.oid = d.objid
+                      WHERE d.classid = 'pg_rewrite'::regclass
+                        AND r.ev_class <> d.refobjid
+                        AND r.ev_class IN (SELECT oid FROM mv)
+                        AND d.refobjid IN (SELECT oid FROM mv)
+                  ), depth AS (
+                      SELECT oid, 0 AS lvl FROM mv WHERE oid NOT IN (SELECT child FROM edge)
+                      UNION ALL
+                      SELECT e.child, d.lvl + 1 FROM edge e JOIN depth d ON d.oid = e.parent
+                  )
+                  SELECT mv.relname
+                  FROM mv JOIN (SELECT oid, max(lvl) AS lvl FROM depth GROUP BY oid) t
+                    ON t.oid = mv.oid
+                  ORDER BY t.lvl, mv.relname;
+                  SQL
+                  )
+
+                  if [ -z "$ORDER" ]; then
+                    # Not an error worth failing on, but it must be visible: the
+                    # views are created by a post-install hook, so an early first
+                    # run legitimately finds none.
+                    echo "[refresh] no materialized views matching" \
+                         "'{{ .Values.analytics.reportingViews.matchPrefix }}%' — nothing to do"
+                    exit 0
+                  fi
+
+                  echo "[refresh] order: $(echo $ORDER | tr '\n' ' ')"
+                  rc=0
+                  for v in $ORDER; do
+                    # CONCURRENTLY so dashboards and the Ask tab keep reading the
+                    # old snapshot while this runs. It needs a unique index, which
+                    # reporting_views.sql creates.
+                    if psql -v ON_ERROR_STOP=1 \
+                         -c "REFRESH MATERIALIZED VIEW CONCURRENTLY $v" >/dev/null 2>/tmp/err; then
+                      echo "[refresh] $v"
+                    else
+                      # Fall back to a plain REFRESH rather than skipping. A view
+                      # added later without a unique index would otherwise never
+                      # refresh again and nothing but this log line would say so —
+                      # permanent silent staleness is worse than the brief lock.
+                      sed 's/^/[refresh]   /' /tmp/err
+                      echo "[refresh] $v: retrying WITHOUT concurrency (readers will block)"
+                      if psql -v ON_ERROR_STOP=1 \
+                           -c "REFRESH MATERIALIZED VIEW $v" >/dev/null 2>/tmp/err; then
+                        echo "[refresh] $v (non-concurrent)"
+                      else
+                        sed 's/^/[refresh]   /' /tmp/err
+                        echo "[refresh] $v FAILED — keeping the existing snapshot"
+                        rc=1
+                      fi
+                    fi
+                  done
+                  exit $rc
+              env:
+                - name: PGHOST
+                  value: {{ $pg | quote }}
+                - name: PGPORT
+                  value: {{ .Values.global.registryDBPort | default 5432 | quote }}
+                - name: PGDATABASE
+                  value: {{ tpl .Values.global.registryDB $ | quote }}
+                - name: PGUSER
+                  value: {{ tpl .Values.global.registryDBUser $ | quote }}
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ tpl .Values.global.registryDBSecret $ | quote }}
+                      key: {{ tpl .Values.global.registryDBUserPasswordKey $ | quote }}
+              resources: {{- toYaml .Values.analytics.resources | nindent 16 }}
+{{- end }}
