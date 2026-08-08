@@ -53,21 +53,13 @@
 -- need a first non-concurrent refresh — which CREATE ... AS does for us.)
 -- =============================================================================
 
--- Level labels for this deployment, so dashboards can name geo_1..geo_5.
-DROP VIEW IF EXISTS fr_rpt_geo_levels CASCADE;
-CREATE VIEW fr_rpt_geo_levels AS
-SELECT DISTINCT
-    (ordinality)::int                       AS depth,
-    elem ->> 'level_mnemonic'               AS level_name
-FROM g2p_register_farmers f,
-     LATERAL jsonb_array_elements(f.geo_code_hierarchy_json -> 'hierarchy')
-             WITH ORDINALITY AS t(elem, ordinality)
-WHERE f.geo_code_hierarchy_json IS NOT NULL;
-
-COMMENT ON VIEW fr_rpt_geo_levels IS
-    'Geo level names for this deployment, by depth. Lets a dashboard label '
-    'geo_1..geo_5 without hardcoding a country hierarchy.';
-
+-- fr_rpt_geo_levels is GENERATED, from Master Data.
+--
+-- It used to be derived here, by unpacking a registered farmer's own hierarchy.
+-- That made the labels a property of the DATA: a registry installed empty — the
+-- production case — produced an empty lookup, so nothing could name its own geo
+-- columns. Master Data holds the country pack and knows the answer before the
+-- first record exists.
 
 -- ---------------------------------------------------------------------------
 -- Land parcels

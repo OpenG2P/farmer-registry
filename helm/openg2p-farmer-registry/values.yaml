@@ -176,6 +176,12 @@ analytics:
   reportingViews:
     enabled: true
 
+    # Generate the mechanical views from the schema, after the hand-written
+    # ones. Off means this registry reports on exactly the entities somebody
+    # remembered to write SQL for — which is how livestock ended up with no
+    # view while the register held 132,824 of them.
+    generate: true
+
     # How often the snapshots behind the dashboards are rebuilt.
     #
     # These are MATERIALIZED views: Postgres does not update them when the

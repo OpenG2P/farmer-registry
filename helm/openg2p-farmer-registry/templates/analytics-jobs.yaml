@@ -174,7 +174,28 @@ spec:
           {{/* CREATE OR REPLACE throughout, so this is safe on every upgrade.
                Note a plain REFRESH does NOT pick up an edited definition — the
                DDL has to be re-applied, which is what this job does. */}}
-          command: ["sh", "-c", "psql -v ON_ERROR_STOP=1 -f /seed/reporting_views.sql"]
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              # 1. The registry's OWN views — the semantic ones. Materialized,
+              #    hand-maintained, and named under `custom:` in reporting.yaml
+              #    so step 2 leaves them alone.
+              psql -v ON_ERROR_STOP=1 -f /seed/reporting_views.sql
+              {{- if .Values.analytics.reportingViews.generate }}
+              # 2. The mechanical rest, from the platform: one view per entity
+              #    node, discovered from this registry's own schema. It runs
+              #    SECOND because a generated child reads its parent's columns,
+              #    and the semantic parents are created above.
+              #
+              #    It fails the job if personal data reaches a generated view.
+              #    That is the point: an allow-list a planner respects is a
+              #    convention, a column that is not in the view is a boundary.
+              python3 /seed/generate_reporting_views.py
+              {{- else }}
+              echo "[reporting-views] generation disabled (analytics.reportingViews.generate=false)"
+              {{- end }}
           env:
             - name: PGHOST
               value: {{ $pg | quote }}
@@ -189,6 +210,35 @@ spec:
                 secretKeyRef:
                   name: {{ tpl .Values.global.registryDBSecret $ | quote }}
                   key: {{ tpl .Values.global.registryDBUserPasswordKey $ | quote }}
+            - name: REPORTING_PREFIX
+              value: {{ .Values.analytics.reportingViews.matchPrefix | quote }}
+            - name: REPORTING_CONFIG
+              value: /seed/reporting.yaml
+            {{/* Master Data owns the country pack, and the hierarchy DEPTH comes
+                 from it rather than from registered rows. A production registry
+                 is installed empty, so measuring the data gave every view zero
+                 geo columns on precisely the install that matters. It is a
+                 separate database owned by a separate role — reading it as the
+                 registry user fails with "permission denied for
+                 g2p_geo_levels". */}}
+            - name: MDS_DB
+              value: {{ tpl .Values.global.masterDataDB $ | quote }}
+            {{- /* Only when Master Data is somewhere else. Unset, the script
+                   falls back to PGHOST, which is right in every deployment
+                   where the two databases share a Postgres. */}}
+            {{- if .Values.global.masterDataDBHost }}
+            - name: MDS_PGHOST
+              value: {{ tpl .Values.global.masterDataDBHost $ | quote }}
+            {{- end }}
+            - name: MDS_PGPORT
+              value: {{ .Values.global.masterDataDBPort | default 5432 | quote }}
+            - name: MDS_PGUSER
+              value: {{ tpl .Values.global.masterDataDBUser $ | quote }}
+            - name: MDS_PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ tpl .Values.global.masterDataDBSecret $ | quote }}
+                  key: {{ tpl .Values.global.masterDataDBUserPasswordKey $ | quote }}
           resources: {{- toYaml .Values.analytics.resources | nindent 12 }}
 {{- end }}
 

@@ -51,4 +51,7 @@ RUN chmod +x /seed/load_sample_data.py /seed/upload_images.py
 # farmer's own schema and ship here rather than in the base image.
 COPY docker/db-seed/generate_fr_bulk_sample.py /seed/generate_fr_bulk_sample.py
 COPY docker/db-seed/reporting_views.sql        /seed/reporting_views.sql
+# What the platform's reporting generator cannot infer: which views are
+# hand-written, and which column names are organisations rather than people.
+COPY docker/db-seed/reporting.yaml            /seed/reporting.yaml
 RUN chmod +x /seed/generate_fr_bulk_sample.py
