@@ -63,3 +63,28 @@ pii:
     # report, guessing wrong in the other direction leaks a person.
     - primary_cooperative_name
     - cooperative_union_name
+
+
+# Computed columns on the generated views, in this country's terms.
+#
+# The generator derives an `age` wherever it withholds a birth date — that much
+# is arithmetic. Where the BANDS fall is policy, and it has to match
+# fr_rpt_farmer exactly: defining them twice with different edges is how two
+# charts come to disagree about how many people are under 25.
+derived:
+  household_member:
+    age_band: |
+      CASE WHEN age IS NULL THEN 'UNKNOWN'
+           WHEN age < 25    THEN 'UNDER_25'
+           WHEN age < 35    THEN '25_34'
+           WHEN age < 50    THEN '35_49'
+           WHEN age < 65    THEN '50_64'
+           ELSE '65_PLUS'
+      END
+
+# Materialize nothing yet. These views select flat columns and join a parent that
+# is already materialized and uniquely indexed, so they are cheap; a plain view
+# is always current and needs no refresh. Revisit per deployment if a chart
+# measures slow — a register with 30 million livestock records may well differ
+# from one with 130,000.
+materialized: []
