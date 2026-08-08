@@ -240,6 +240,30 @@ spec:
                   name: {{ tpl .Values.global.masterDataDBSecret $ | quote }}
                   key: {{ tpl .Values.global.masterDataDBUserPasswordKey $ | quote }}
           resources: {{- toYaml .Values.analytics.resources | nindent 12 }}
+          {{- /* DEVELOPMENT ONLY. Mounts the reporting scripts from a ConfigMap
+                 over the ones baked into the image, so a change to the SQL or
+                 the generator can be tested against a real install without
+                 building and publishing an image for every edit.
+
+                 Deliberately not a general mechanism: it silently overrides
+                 what the image contains, which is exactly what you want while
+                 iterating and exactly what you must not ship. Leave
+                 devOverlay.configMap empty and none of this renders. */}}
+          {{- if .Values.analytics.reportingViews.devOverlay.configMap }}
+          volumeMounts:
+            {{- range .Values.analytics.reportingViews.devOverlay.files }}
+            - name: seed-overlay
+              mountPath: /seed/{{ . }}
+              subPath: {{ . }}
+            {{- end }}
+          {{- end }}
+      {{- if .Values.analytics.reportingViews.devOverlay.configMap }}
+      volumes:
+        - name: seed-overlay
+          configMap:
+            name: {{ .Values.analytics.reportingViews.devOverlay.configMap }}
+            defaultMode: 0755
+      {{- end }}
 {{- end }}
 
 {{- if .Values.analytics.dashboards.enabled }}

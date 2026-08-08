@@ -20,10 +20,8 @@ prefix: fr_rpt_
 # Produced by `generate_reporting_views.py --discover` against a populated
 # environment, then reviewed. Two entries below could not have been guessed:
 #
-#   score   hangs off HOUSEHOLD here, though it resolved 100% to farmers in a
-#           bulk-generated deployment. It is polymorphic — g2p_register_scores
-#           carries register_id, and Master Data's register definitions say
-#           Household. Left to inference this returns zero rows and says nothing.
+#   score   is POLYMORPHIC — see the note on it below. Left to inference it
+#           silently loses whichever set of rows the guess did not match.
 #
 #   farmer  hangs off household, which the hand-written views never modelled:
 #           they treated farmer as the root of the tree.
@@ -36,7 +34,13 @@ tree:
   farm_input:       {parent: land}
   membership:       {parent: farmer}
   household_member: {parent: household}
-  score:            {parent: household}
+  # BOTH, and not a mistake. A single Farmer Registry install carries scores
+  # hanging off both: the bulk generator attaches them to farmers and the sample
+  # loader to households — 5,671 and 6 respectively on a reference install. The
+  # generator emits a LEFT JOIN per candidate and a subject_entity column saying
+  # which one matched, so neither set is lost. Naming only one silently stripped
+  # the parent and the geography from every row of the other.
+  score:            {parent: [farmer, household]}
   score_history:    null
 
 # Hand-written, and left alone by the generator.

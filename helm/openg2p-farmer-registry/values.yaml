@@ -194,6 +194,22 @@ analytics:
     # costs time rather than availability).
     refreshSchedule: "0 * * * *"
 
+    # DEVELOPMENT ONLY — override the reporting scripts from a ConfigMap.
+    #
+    # The reporting SQL and the platform's generator live in the db-seed image,
+    # so testing a change to either normally means building and publishing an
+    # image. Point this at a ConfigMap holding the files and the job runs those
+    # instead, which turns a fifteen-minute pipeline into a kubectl apply.
+    #
+    # Empty in every real deployment: an image whose contents can be swapped
+    # from outside is not an artifact you can reason about.
+    devOverlay:
+      configMap: ""
+      files:
+        - generate_reporting_views.py
+        - reporting_views.sql
+        - reporting.yaml
+
     # Which materialized views the refresh covers. Matched by prefix rather than
     # listed, so a view added to reporting_views.sql is picked up without anyone
     # remembering to add it here.
