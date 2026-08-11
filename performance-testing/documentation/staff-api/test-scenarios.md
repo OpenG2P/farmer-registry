@@ -1,0 +1,417 @@
+# Test Scenarios for staff-api
+
+## 1. Objectives
+
+Establish, with reproducible evidence on the production-equivalent 3-node
+deployment ([`environment-topology.md`](../environment-topology.md)):
+
+1. **Per-pod API capacity** — the max RPS each of the 5 scenarios (and the
+   blended mix of all 5) sustains at its latency SLO with zero failures,
+   found by ramping load to failure.
+2. **Time-stability** — that capacity holds over an 8-hour soak at 80% of the
+   discovered blended max (no memory leak, connection leak, latency creep, or
+   error growth).
+3. **Horizontal scaling factor** — how the blended max RPS changes from
+   Pod-Scale 1 → 2 → 3, and the scaling efficiency (actual ÷ ideal-linear),
+   derived from repeating Step 2 at each Pod-Scale, not run separately.
+4. **Database ceiling** — RPS and latency vs PostgreSQL tuning/sizing
+   (`db-sweep`, §7) — structurally different from 1–3 (§3).
+5. **Capacity / sizing model** — the headline output (see [`final-report.md`](final-report.md)).
+
+**Async pipeline throughput (Celery ingestion/outgestion/dedup) is out of
+scope for this round**; revisit once the Volume-Tier × Pod-Scale matrix below
+is done.
+
+## 2. Scope
+
+This document covers **staff-api only**. `partner-api` and `celery` each have
+their own test-scenarios doc —
+[`../partner-api/test-scenarios.md`](../partner-api/test-scenarios.md) and
+[`../celery/test-scenarios.md`](../celery/test-scenarios.md).
+
+**In scope**
+- Synchronous APIs of `staff-portal-api` (§4).
+- Host PostgreSQL on the storage node, as a tuning target (`db-sweep`).
+- Auth on the hot path (Keycloak OIDC token validation).
+
+**Out of scope**
+- Staff Portal UI (Next.js) rendering.
+- Keycloak / MinIO / Kafka internal scaling — provided dependencies,
+  monitored, not tested.
+- `bene-portal-api` (disabled by default).
+- Chaos/failover/DR testing.
+
+## 3. The model: two axes, a repeated 3-Step plan, plus a separate db-sweep
+
+Every capacity/soak run sits at a point in a **Volume-Tier × Pod-Scale**
+matrix. The same 3 Steps repeat at whichever cells matter for the question at
+hand — skip the rest. `db-sweep` is a separate exercise outside this matrix
+(below).
+
+### Volume-Tier
+
+The seeded data size — see [`seeding-design.md`](../seeding-design.md) for the
+generator. `smoke` is harness validation, not a capacity figure — it may
+still appear in [`raw-report.md`](raw-report.md) and, labeled as a
+methodology sample, in [`final-report.md`](final-report.md) §3, but isn't a
+real ceiling.
+
+| Volume-Tier | Farmer records |
+|---|---:|
+| `smoke` | 10K |
+| `primary` | 10M |
+| `stretch` | 50M |
+| `stress` | 100M |
+
+### Pod-Scale
+
+The number of `staff-portal-api` replicas under test, HPA off,
+`requests == limits` at a fixed 1 vCPU / 4 GB per pod.
+
+| Pod-Scale | Replicas |
+|---|---|
+| `1`, `2`, `3` | see [`environment-topology.md`](../environment-topology.md) — all share one compute node |
+
+### The 3 Steps (repeated at each Volume-Tier × Pod-Scale cell you choose to run)
+
+| Step | What it does | Duration |
+|---|---|---|
+| **1 — Isolated** | One of the 5 scenarios (§4) at a time. Ramp load stepwise until p95 breaches its SLO or the pod saturates (CPU/mem ≈100%) — that ramp point is the scenario's true max RPS at this cell. | Ramp-to-failure |
+| **2 — Blended** | An 80:20 read:write mix across all 5 scenarios. Same ramp-to-failure methodology as Step 1, giving the blended max RPS for this cell. | Ramp-to-failure |
+| **3 — Soak** | The blended mix again, but at a **fixed** load — 80% of *this same cell's* Step 2 result — run continuously. Not discovering a new ceiling; checking the Step-2 ceiling holds over time. | Fixed, 8h |
+
+Which Steps run at which Volume-Tier × Pod-Scale:
+
+| Volume-Tier | Pod-Scale | Steps |
+|---|---|---|
+| Smoke | 1, 2, 3 | 1-isolated (harness validation only) |
+| Primary | 1, 2, 3 | 1-isolated, 2-blended, 3-soak, 4-db-sweep |
+| Stretch | 3 | 1-isolated, 2-blended |
+| Stress | 3 | 1-isolated, 2-blended |
+
+`smoke` and `primary` run at every Pod-Scale because their Step-2 results feed
+the scaling-factor calculation below, which needs the same tier at Pod-Scale
+1, 2, and 3. `stretch`/`stress` only need to answer "does this still hold at
+higher data volume", so they run once, at Pod-Scale 3 (the
+production-representative scale) — not across all three.
+
+**Derived from the matrix, not run as separate tests:**
+
+- **Scaling factor.** After Step 2 has run at Pod-Scale 1, 2, and 3 for the
+  same Volume-Tier (`primary`), take each cell's blended max RPS from
+  `blended-capacity.csv` and compute, for N = 2 and N = 3:
+  - `scaling_factor(N) = max_rps(pod_scale=N) / max_rps(pod_scale=1)`
+  - `scaling_efficiency(N) = scaling_factor(N) / N` — 1.0 is perfect linear
+    scaling; a value below 1.0 quantifies how much throughput is lost to
+    contention (DB connections, shared node CPU, etc.) as pods are added.
+- **Data-volume sensitivity.** After Step 1 or Step 2 has run at a fixed
+  Pod-Scale across two or more Volume-Tiers, take each tier's max RPS and p95
+  latency from `isolated-capacity.csv` / `blended-capacity.csv` and compute
+  the change tier-to-tier (e.g. `primary` → `stretch` → `stress`):
+  - `Δ max_rps % = (max_rps(tier_b) - max_rps(tier_a)) / max_rps(tier_a) * 100`
+  - `Δ p95_ms = p95(tier_b) - p95(tier_a)`
+  A material drop in RPS or rise in p95 as data volume grows points to a
+  volume-dependent bottleneck (index depth, table scan cost) rather than a
+  request-rate one.
+
+Both calculations reuse numbers already captured while running Steps 1–2 at
+each matrix cell — no separate load-generation run produces them.
+
+### `db-sweep` — a separate exercise, not part of the matrix
+
+`db-sweep` repeats the **same blended load** (Step 2's methodology) while
+varying **PostgreSQL-side configuration** — a third dimension that isn't
+Volume-Tier or Pod-Scale and doesn't get repeated across the matrix the way
+Steps 1–3 do. Typically run at one fixed, already-identified-as-DB-stressed
+cell (e.g. `stress`/`1`), sweeping:
+
+- baseline `postgresql.conf` → tuned (`shared_buffers`, `work_mem`,
+  `effective_cache_size`, `max_connections`, autovacuum) → tuned + PgBouncer
+- optionally: DB VM resize, gp3 IOPS bump
+
+It answers a different question than the matrix does: once the app tier
+isn't the bottleneck, what caps throughput on the DB side — raw config,
+connection pooling, or disk? See §7 for the procedure.
+
+## 4. Test scenarios (`locust/api/staff-api/`)
+
+The endpoints below are the **real routes** of the OpenG2P Registry platform
+(`registry-platform/apis/...`), POST JSON unless noted. Each scenario is a
+standalone Locust `User` class, run in isolation for Step 1 (§3); a blended
+locustfile for Steps 2–3 is follow-up work. All 5 acquire one OIDC token per
+simulated user at `on_start`, cached and refreshed on expiry.
+
+Each endpoint's **Class** groups it for SLO purposes — see §5 for the p95/p99
+target per class.
+
+### `register_read/` — browse + version-history read, including change requests per tab
+
+Purpose: the dominant read path — search, then drill into one record's
+detail across every tab, including that tab's pending change requests and
+its full version history.
+
+APIs fired, in order:
+
+| # | API Endpoint | URL | Class | Notes |
+|---|---|---|---|---|
+| 1 | `get_register_summary_data` | `/register-data/get_register_summary_data` | Register-Read | Register-level overview/counts. |
+| 2 | `search_in_a_register` | `/register-data/search_in_a_register` | Register-Search | The dominant read; exercises text + attribute filters. Anchored `search_text` (sticky per user), random page. |
+| 3 | `get_subject_record` | `/register-data/get_subject_record` | Register-Read | Fetch one record by id. |
+| 4 | `get_all_tabs` | `/register-tab-metadata/get_all_tabs` | Metadata-Read | |
+| 4a | `get_tab_sections` | `/register-tab-metadata/get_sections` | Metadata-Read | Repeats once per tab. |
+| 4b | `get_tab_records` | `/register-data/get_tab_records` | Register-Read | Tab materialisation. Repeats once per tab. |
+| 4c | `get_number_of_pending_change_requests` | `/change-requests/get_number_of_pending_change_requests` | Change-Request-Read | Repeats once per tab. |
+| 4d | `get_change_requests` | `/change-requests/get_change_requests` | Change-Request-Read | Paginated; walks every page. Repeats once per tab. |
+| 4da | `get_change_request_documents` | `/documents/get_change_request_documents` | Document-Fetch | Repeats once per change request found in 4d. |
+| 4db | `get_section_ui_schema` | `/register-section-metadata/get_section_ui_schema` | Metadata-Read | Conditional — only if the change request's `section_id` is present. Repeats once per change request. |
+| 4dc | `get_change_request` | `/change-requests/get_change_request` | Change-Request-Read | Fetch one CR by id. Repeats once per change request. |
+| 4dd | `check_change_request_sequence` | `/change-requests/check_change_request_sequence` | Change-Request-Read | Repeats once per change request. |
+| 4de | `get_verifications_for_change_request` | `/change-requests/get_verifications_for_change_request` | Change-Request-Read | Repeats once per change request. |
+| 4df | `get_deduplication_change_request_results` | `/register-data/get_deduplication_change_request_results` | Change-Request-Read | Simple fetch of results Celery already crunched, not fuzzy-match compute. Repeats once per change request. |
+| 4dg | `get_deduplication_register_results` | `/register-data/get_deduplication_register_results` | Register-Read | Same caveat as above. Repeats once per change request. |
+| 4f | `get_number_of_versions` | `/register-data/get_number_of_versions` | Register-Read | Version/history read (joins `*_history`). Repeats once per tab. |
+| 4g | `get_version_dates` | `/register-data/get_version_dates` | Register-Read | Version/history read (joins `*_history`). Repeats once per tab. |
+| 4ga | `get_versions_for_a_date` | `/register-data/get_versions_for_a_date` | Register-Read | Repeats once per date returned by 4g (every date, not a sample). |
+
+Search anchoring: at `on_start`, the user picks one random 4-char anchor from
+`seed_manifest.json`'s `search_terms` and stays sticky to it all session.
+`current_page` is randomized within the last search's `number_of_pages`, so
+reads spread across the result set.
+
+### `cr_create/` — change-request creation against the Farmer register
+
+Purpose: the change-request write path, including document upload for
+sections that require it.
+
+APIs fired:
+
+| # | API Endpoint | URL | Class | Notes |
+|---|---|---|---|---|
+| 1 | `get_register_summary_data` | `/register-data/get_register_summary_data` | Register-Read | Register-level overview/counts. |
+| 2 | `search_in_a_register` | `/register-data/search_in_a_register` | Register-Search | Anchored, random page. |
+| 3 | `get_subject_record` | `/register-data/get_subject_record` | Register-Read | Fetch one record by id. |
+| 4 | `get_all_sections` | `/register-section-metadata/get_all_sections` | Metadata-Read | Register-wide — also the source of `documents_required` per section. |
+| 5 | `get_all_tabs` | `/register-tab-metadata/get_all_tabs` | Metadata-Read | |
+| 5a | `get_tab_sections` | `/register-tab-metadata/get_sections` | Metadata-Read | Repeats once per tab. |
+| 5b | `get_tab_records` | `/register-data/get_tab_records` | Register-Read | Tab materialisation. Repeats once per tab. |
+| 5c | `get_section_ui_schema` | `/register-section-metadata/get_section_ui_schema` | Metadata-Read | Repeats once per tab. |
+| 5d | `get_attribute_values` | `/attributes/get_attribute_values` | Metadata-Read | Conditional — only if the field's enum is API-sourced. Repeats once per tab. |
+| 5e | `upload_documents` | `/documents/upload_documents` | Document-Upload | Streams to MinIO, raw multipart. Conditional — only if the chosen section's `documents_required` is true; 3 files in one call. Repeats once per tab. |
+| 5f | `create_change_request` or `create_change_request_for_core_data` | `/change-requests/create_change_request` or `/change-requests-core-data/create_change_request_for_core_data` | Change-Request-Write | EDIT route; writes record + `*_history`. Core vs. non-core section decides which; uploaded documents attached via `documents` field. Repeats once per tab (one CR per tab). |
+
+Search anchoring: same sticky-per-user pattern as `register_read`.
+
+### `cr_read_and_approve/` — approve pending change requests
+
+Purpose: the change-request read-and-approve workflow, plus dedup checks.
+
+APIs fired:
+
+| # | API Endpoint | URL | Class | Notes |
+|---|---|---|---|---|
+| 1 | `get_register_change_request_summary_data` | `/change-requests/get_register_change_request_summary_data` | Change-Request-Read | Register-wide pending/approved/total counts. Once. |
+| 2 | `search_in_change_request` | `/change-requests/search_in_change_request` | Register-Search | Anchored, walks **every** page, not just one. |
+| 3 | `get_change_request_documents` | `/documents/get_change_request_documents` | Document-Fetch | Repeats once per pending CR. |
+| 4 | `get_section_ui_schema` | `/register-section-metadata/get_section_ui_schema` | Metadata-Read | Conditional — only if the CR's `section_id` is present. Repeats once per pending CR. |
+| 5 | `get_change_request` | `/change-requests/get_change_request` | Change-Request-Read | Fetch one CR by id. Repeats once per pending CR. |
+| 6 | `check_change_request_sequence` | `/change-requests/check_change_request_sequence` | Change-Request-Read | Read-only gate: does an earlier pending CR block approval. Repeats once per pending CR — skip the rest if blocked. |
+| 7 | `get_deduplication_change_request_results` | `/register-data/get_deduplication_change_request_results` | Change-Request-Read | Simple fetch of results Celery already crunched, not fuzzy-match compute. Repeats once per pending CR. |
+| 8 | `get_deduplication_register_results` | `/register-data/get_deduplication_register_results` | Register-Read | Same caveat as above. Repeats once per pending CR. |
+| 9 | `get_verifications_for_change_request` | `/change-requests/get_verifications_for_change_request` | Change-Request-Read | Repeats once per pending CR. |
+| 10 | `add_verification_for_change_request` | `/change-requests/add_verification_for_change_request` | Workflow-Write | CR verification. Repeats once per pending CR. |
+| 11 | `approve_change_request` | `/change-requests/approve_change_request` | Workflow-Write | May trigger AWE approval + webhook. Repeats once per pending CR. |
+
+Search anchoring: sticky per user, same as `register_read`. Finds matches
+once `cr_create` has run and created change requests against the anchored
+data.
+
+### `intake_create/` — new farmer intake submission, one section at a time
+
+Purpose: the intake write path — the flow that actually seeds new,
+live-created (not bulk-generated) farmer data other scenarios read from.
+
+APIs fired:
+
+| # | API Endpoint | URL | Class | Notes |
+|---|---|---|---|---|
+| 1 | `get_intake_form_submissions_summary` | `/intake-form-data/get_intake_form_submissions_summary` | Intake-Submission-Read | Register-wide summary counts. Once. |
+| 2 | `render_intake_form` | `/intake-form-metadata/render_intake_form` | Metadata-Read | Full tab + section structure for the form in one call, filtered to the Farmer intake tab; sections carry `documents_required` directly. |
+| 3 | `upload_documents` | `/documents/upload_documents` | Document-Upload | Streams to MinIO, raw multipart. Conditional — per section, only if `documents_required`; 3 files. |
+| 4 | `save_intake_form_submission` | `/intake-form-data/save_intake_form_submission` | Intake-Submission-Write | Per-section INSERT route. Repeats once per section (3–4 repeat as a group); `documents` attached if uploaded. |
+| 5 | `get_intake_form_submission` | `/intake-form-data/get_intake_form_submission` | Intake-Submission-Read | Fetch one submission by id. Once, after all sections are saved. |
+| 6 | `finalize_intake_form_submission` | `/intake-form-data/finalize_intake_form_submission` | Intake-Submission-Write | Commits the record + history — this is where the real register row is actually written. |
+
+Search anchoring: not sticky — each generated farmer's `first_name` gets one
+anchor chosen at random and spliced in, same as the bulk generator
+([`seeding-design.md`](../seeding-design.md) "Search-text anchors"). This
+lets `cr_read_and_approve`/`intake_read_and_approve` find live-created data
+too, not just bulk-seeded rows.
+
+Household linkage: `link_internal_record_id` for the household-lookup section
+comes from `choose_household_id()`, a random pick from `seed_manifest.json`'s
+`household_ids`.
+
+One of 9 known-editable attributes (across sections) is randomized per
+invocation; everything else in that section keeps a fixed baseline value.
+
+### `intake_read_and_approve/` — approve pending intake submissions
+
+Purpose: the intake read-and-approve workflow, plus dedup checks.
+
+APIs fired:
+
+| # | API Endpoint | URL | Class | Notes |
+|---|---|---|---|---|
+| 1 | `get_intake_form_submissions_summary` | `/intake-form-data/get_intake_form_submissions_summary` | Intake-Submission-Read | Register-wide summary counts. Once. |
+| 2 | `search_in_intake_form_submissions` | `/intake-form-data/search_in_intake_form_submissions` | Register-Search | Anchored, walks every page. |
+| 3 | `get_intake_form_submission` | `/intake-form-data/get_intake_form_submission` | Intake-Submission-Read | Fetch one submission by id. Repeats once per pending submission. |
+| 4 | `get_verifications` | `/verifications/get_verifications` | Intake-Submission-Read | Repeats once per pending submission. |
+| 5 | `add_verification` | `/verifications/add_verification` | Workflow-Write | Intake verification. Repeats once per pending submission. |
+| 6 | `get_intake_form_documents` | `/documents/get_intake_form_documents` | Document-Fetch | Repeats once per pending submission. |
+| 7 | `get_deduplication_intake_form_register_results` | `/intake-form-data/get_deduplication_intake_form_register_results` | Intake-Submission-Read | Repeats once per pending submission. |
+| 8 | `get_deduplication_intake_form_intake_form_results` | `/intake-form-data/get_deduplication_intake_form_intake_form_results` | Intake-Submission-Read | Repeats once per pending submission. |
+| 9 | `approve_intake_form_submission` | `/intake-form-data/approve_intake_form_submission` | Workflow-Write | Requires `number_of_verifications_done >= number_of_verifications_required`, hence verification first. Repeats once per pending submission. |
+
+Search anchoring: sticky per user; finds real matches once `intake_create`
+has run (same reasoning as `cr_read_and_approve`).
+
+`get_file_url` (`/documents/get_file_url`, Document-Fetch class) isn't fired
+by any of the 5 scenarios yet — its SLO (§5) is reserved for future use.
+
+## 5. Service-Level Objectives (per endpoint class)
+
+Classes match the Class column in each scenario's endpoint table (§4), so
+every endpoint has one unambiguous SLO.
+
+| Class | Examples | p95 SLO | p99 SLO |
+|------|----------|--------:|--------:|
+| Metadata-Read | `get_all_tabs`, `get_all_sections`, `get_section_ui_schema`, `get_attribute_values` | 200 ms | 400 ms |
+| Register-Read | `get_subject_record`, `get_tab_records`, `get_number_of_versions`, `get_deduplication_register_results` | 300 ms | 600 ms |
+| Change-Request-Read | `get_change_request`, `check_change_request_sequence`, `get_deduplication_change_request_results` | 300 ms | 600 ms |
+| Intake-Submission-Read | `get_intake_form_submission`, `get_intake_form_submissions_summary`, `get_verifications` | 300 ms | 600 ms |
+| Register-Search | `search_in_a_register`, `search_in_change_request`, `search_in_intake_form_submissions` | 1000 ms | 1500 ms |
+| Change-Request-Write | `create_change_request`, `create_change_request_for_core_data` | 800 ms | 1200 ms |
+| Intake-Submission-Write | `save_intake_form_submission`, `finalize_intake_form_submission` | 800 ms | 1200 ms |
+| Workflow-Write | `approve_change_request`, `approve_intake_form_submission`, `add_verification*` | 500 ms | 800 ms |
+| Document-Fetch | `get_file_url`, `get_change_request_documents`, `get_intake_form_documents` | 500 ms | 800 ms |
+| Document-Upload | `upload_documents` | 1500 ms (size-dependent) | — |
+
+## 6. Pass / fail criteria
+
+A configuration **passes** at a given RPS when, at steady state:
+- p95 (and p99) ≤ the endpoint SLO, **and**
+- error rate = 0 (no 5xx, no timeouts, no DB-connection errors), **and**
+- for Step 3 (soak): the above hold for the full 8h with no upward
+  memory/latency trend.
+
+The **reported max RPS** (Steps 1–2) is the highest ramp step satisfying all
+three at the defined resource-saturation stop condition.
+
+## 7. Execution runbook
+
+### Prep (once, before entering any matrix cell)
+
+1. **Freeze versions** — chart version, image tags, git SHA, Postgres version.
+2. **Seed data** to whichever Volume-Tier(s) you'll test per
+   [`seeding-design.md`](../seeding-design.md); `ANALYZE`; verify indexes; warm
+   cache.
+3. **De-burst the DB node** — enable T3 Unlimited on the storage node, or move
+   PG to a non-burstable instance for the duration.
+4. **Stand up observability** — Prometheus/Grafana for pod+node CPU/mem;
+   `postgres_exporter` + `pg_stat_statements` on the storage node. Confirm
+   dashboards show live data.
+5. **Pin the pod under test** — `replicas` = the Pod-Scale you're about to
+   run, HPA off, `requests == limits` at **1 vCPU / 4 GB**. Sweep
+   gunicorn/uvicorn `NO_OF_WORKERS ∈ {1,2,4}` at a fixed moderate load and
+   keep the value with best RPS-at-SLO; record it.
+6. **Deploy Locust** in-cluster (for per-pod/scaling) and/or on an external
+   host (for end-to-end). Load the seed manifest. Validate one of each
+   request type returns 2xx before load.
+
+### Step 1 — Isolated (per Volume-Tier × Pod-Scale cell)
+
+For each of the 5 scenarios in §4:
+1. Warm up 3–5 min at low load; **discard** this window.
+2. Ramp users stepwise (e.g. +N users every 60–120 s) so each step reaches
+   steady state. Hold each step long enough for stable percentiles.
+3. At each step record: RPS, p50/p90/p95/p99/max, error count by type, pod
+   CPU/mem, DB connections, DB CPU/IO.
+4. Identify **max RPS** = highest step where p95 ≤ SLO **and** errors = 0
+   **and** pod CPU≈100% or mem≈100%. Note the saturating resource.
+5. Repeat each point ≥ 2× on separate runs; report median + spread.
+
+Deliverable: raw per-endpoint numbers for this cell in
+[`raw-report.md`](raw-report.md) (regenerate via `create_raw_report.py`),
+plus the curated `isolated-capacity.csv` (per-scenario capacity table + the
+latency-vs-RPS "knee" chart) via `synthesize_report.py`.
+
+### Step 2 — Blended (per Volume-Tier × Pod-Scale cell)
+
+Same ramp-to-failure procedure as Step 1, but driving an 80:20 read:write mix
+across all 5 scenarios instead of one at a time. Requires the combined
+locustfile (follow-up work — not built yet).
+
+Deliverable: raw numbers in [`raw-report.md`](raw-report.md), plus the
+curated `blended-capacity.csv` for this cell. Comparing this across
+Pod-Scale 1→2→3 (fixed tier) gives the **scaling factor**; comparing it
+across Volume-Tier (fixed pod-scale) gives **data-volume sensitivity** — see
+§3.
+
+### Step 3 — Soak (typically one cell — the production-representative one)
+
+1. Set load to **80% of this cell's Step 2 max RPS**.
+2. Run **8 hours** continuously (blended mix).
+3. Watch for: upward memory trend (leak), growing DB connections
+   (pool/handle leak), latency creep, any errors.
+4. Pass = SLOs hold + 0 errors + flat memory for the full window.
+
+Deliverable: the time series in [`raw-report.md`](raw-report.md) (from
+Locust's `_stats_history.csv`, RPS/p95/error rate), plus pod memory/DB conns
+recorded manually into `soak.csv` for this cell.
+
+### `db-sweep` (separate from the matrix — see §3)
+
+For each scenario below, drive the blended load from enough app pods to push
+the DB, raising it to the **point of failure** (errors / p95 breach /
+connection exhaustion / IOPS saturation); record the threshold RPS and the
+first bottleneck. Held at one fixed Volume-Tier/Pod-Scale cell unless the
+scenario itself sweeps Volume-Tier:
+
+1. **Tuning sweep** (same VM): baseline postgresql.conf → tuned
+   (`shared_buffers` ≈ 25% RAM, `effective_cache_size` ≈ 50–75% RAM,
+   `work_mem`, `max_connections`, autovacuum) → **+ PgBouncer** (transaction
+   pooling).
+2. **Volume-Tier sweep:** `smoke` → `primary` → `stretch` → `stress`
+   (re-`ANALYZE`/warm each), pod-scale held fixed.
+3. **VM resize (optional):** storage 8/32 → 16/64 (non-burstable).
+4. **I/O (optional):** raise gp3 IOPS/throughput if disk-bound.
+
+Deliverable: `db-sweep.csv` (threshold RPS + first bottleneck per scenario) +
+latency-vs-volume chart + top `pg_stat_statements` offenders. Not Locust-fired,
+so there's no auto-generated raw table — drop the readings as a CSV (schema:
+`raw_report_templates/db-sweep.csv`) into the `4-db-sweep` results folder and
+`create_raw_report.py` will pick it up into [`raw-report.md`](raw-report.md) verbatim.
+
+### Synthesis
+
+1. Regenerate [`raw-report.md`](raw-report.md) (`scripts/create_raw_report.py`),
+   then assemble all tables/graphs into [`final-report.md`](final-report.md).
+2. Derive the **capacity / sizing model**.
+3. List bottlenecks found and the tuning that moved them.
+4. Map results to the SLOs/NFR targets → pass/fail summary.
+
+## 8. Risks and mitigations
+
+- Burstable `t3a` storage node throttling under sustained DB load → enable T3
+  Unlimited or use non-burstable for `db-sweep`/Step 3.
+- Shared single compute node → other platform pods add noise; run in quiet
+  windows, capture node-level metrics, record co-tenants.
+- gunicorn worker count vs 1 vCPU → tune, don't accept the default 8.
+- DB connection exhaustion (pods × workers × pool) → size pools, use
+  PgBouncer.
+- Benchmarking through the 2-vCPU RP for end-to-end runs → RP can cap
+  throughput; separate that finding from the microservice's own capacity.
+- Token endpoint accidentally under test → mitigated: tokens cached in the
+  load script, one per simulated user (§4).
+- DB grows during write phases → pre-size or measure write throughput
+  separately.

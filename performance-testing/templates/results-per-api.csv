@@ -1,9 +1,0 @@
-phase,ingress,register,endpoint,method,data_volume,pod_cpu,pod_mem,workers,max_rps,p50_ms,p90_ms,p95_ms,p99_ms,max_ms,error_pct,saturating_resource,slo_p95_ms,pass_fail,notes
-1,in-cluster,Farmer,search_in_a_register,POST,10M,1,4Gi,2,,,,,,,,,1000,,
-1,in-cluster,Farmer,get_subject_record,POST,10M,1,4Gi,2,,,,,,,,,300,,
-1,in-cluster,Farmer,get_deduplication_register_results,POST,10M,1,4Gi,2,,,,,,,,,1500,,
-1,in-cluster,Farmer,save_intake_form_submission,POST,10M,1,4Gi,2,,,,,,,,,800,,
-1,in-cluster,Farmer,create_change_request,POST,10M,1,4Gi,2,,,,,,,,,800,,
-1,in-cluster,Farmer,add_verification,POST,10M,1,4Gi,2,,,,,,,,,500,,
-1,in-cluster,Farmer,dci_sync_search,POST,10M,1,4Gi,2,,,,,,,,,1000,,
-1,in-cluster,Farmer,BLENDED,MIX,10M,1,4Gi,2,,,,,,,,,1000,,

@@ -1,6 +1,0 @@
-pipeline,data_volume,worker_replicas,worker_cpu,worker_mem,batch_size,records_per_sec,p95_end_to_end_ms,peak_queue_depth,drain_time_s,worker_cpu_pct,first_bottleneck,notes
-ingestion,10M,1,1,768Mi,2000,,,,,,,
-ingestion,10M,2,1,768Mi,2000,,,,,,,
-ingestion,10M,3,1,768Mi,2000,,,,,,,
-outgestion,10M,1,1,768Mi,2000,,,,,,,
-deduplication,10M,1,1,768Mi,2000,,,,,,,
