@@ -1,0 +1,15 @@
+Table_Name,Number_of_Records
+g2p_register_farmers,10021
+g2p_register_crops,30713
+g2p_register_farm_inputs,10434
+g2p_register_households,4012
+g2p_register_household_members,16290
+g2p_register_lands,15566
+g2p_register_livestocks,5424
+g2p_register_history_farmers,10000
+g2p_register_history_crops,29956
+g2p_register_history_farm_inputs,10000
+g2p_register_history_households,4006
+g2p_register_history_household_members,15971
+g2p_register_history_lands,15057
+g2p_register_history_livestocks,4953
