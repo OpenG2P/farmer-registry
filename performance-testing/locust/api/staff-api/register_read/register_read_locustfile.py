@@ -21,6 +21,7 @@ from register_read_helpers import (
     RegisterBrowseState,
     change_request_items,
     choose_internal_record_id,
+    extract_awe_request_id,
     extract_ordered_tab_ids,
     extract_version_dates,
     total_pages,
@@ -109,9 +110,13 @@ class RegisterUser(LocustUser):
         self._get_change_request_documents(change_request_id)
         if section_id:
             self._get_section_ui_schema(register_state, section_id)
-        self._get_change_request(change_request_id)
+        change_request_response = self._get_change_request(change_request_id)
         self._check_change_request_sequence(change_request_id)
-        self._get_verifications_for_change_request(change_request_id)
+
+        awe_request_id = extract_awe_request_id(safe_json(change_request_response))
+        if awe_request_id:
+            self._list_tasks_for_request(awe_request_id)
+
         self._get_deduplication_change_request_results(change_request_id)
         self._get_deduplication_register_results(change_request_id)
 
@@ -269,15 +274,15 @@ class RegisterUser(LocustUser):
         )
 
     # ------------------------------------------------------------------
-    # 4de — get_verifications_for_change_request (g2p_register_change_request_controller)
+    # 4de — list_tasks_for_request (g2p_awe_proxy_controller)
     # ------------------------------------------------------------------
-    def _get_verifications_for_change_request(self, change_request_id: str):
-        payload = self.build_request(request_payload={"change_request_id": change_request_id})
+    def _list_tasks_for_request(self, awe_request_id: str):
+        payload = self.build_request(request_payload={"request_id": awe_request_id})
         return self._post(
             STAFF_API_BASE,
-            "/change-requests/get_verifications_for_change_request",
+            "/awe/list_tasks_for_request",
             payload,
-            name="get_verifications_for_change_request",
+            name="list_tasks_for_request",
         )
 
     # ------------------------------------------------------------------

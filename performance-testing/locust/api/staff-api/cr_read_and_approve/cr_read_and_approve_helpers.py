@@ -42,9 +42,9 @@ def pending_change_requests(search_response_json: dict) -> list[dict]:
     search_in_change_request has no register/status scoping in its
     request_payload (it's empty — pagination_request.search_text is the only
     input), so every change request on the page comes back regardless of
-    status; only PENDING ones should actually go through approve_change_request,
-    so they're picked out here the same way pending_submission_ids does for
-    intake_read_and_approve.
+    status; only PENDING ones should actually go through the AWE decision
+    step, so they're picked out here the same way pending_submission_ids does
+    for intake_read_and_approve.
     """
     results = response_payload(search_response_json) or []
     return [
@@ -52,3 +52,21 @@ def pending_change_requests(search_response_json: dict) -> list[dict]:
         for result in results
         if result.get("approval_status") == "PENDING" and result.get("change_request_id")
     ]
+
+
+def extract_awe_request_id(change_request_response_json: dict) -> Optional[str]:
+    """awe_request_id off get_change_request's response -- the id
+    list_tasks_for_request needs, distinct from change_request_id itself."""
+    payload = response_payload(change_request_response_json) or {}
+    return payload.get("awe_request_id")
+
+
+def actionable_task(list_tasks_response_json: dict) -> Optional[dict]:
+    """First open/claimed task from list_tasks_for_request's response.items --
+    the one submit_task_decision should act on."""
+    payload = response_payload(list_tasks_response_json) or {}
+    items = payload.get("data", {}).get("items") or []
+    for item in items:
+        if item.get("status") in ("open", "claimed") and item.get("id"):
+            return item
+    return None

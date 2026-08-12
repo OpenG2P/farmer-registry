@@ -8,7 +8,14 @@ from shared.base_user import LocustUser
 from shared.config import INTAKE_SEARCH_PAGE_SIZE, REGISTER_FARMER, SEARCH_TERMS, STAFF_API_BASE
 from shared.response_utils import safe_json
 from shared.slo_shape import SLOStepRampShape
-from intake_read_and_approve_helpers import pending_submission_ids, total_pages
+from intake_read_and_approve_helpers import (
+    actionable_task,
+    extract_awe_request_id,
+    pending_submission_ids,
+    total_pages,
+)
+
+INTAKE_ARTIFACT_TYPE = "registry.intake_form"
 
 
 class IntakeReadAndApproveRampShape(SLOStepRampShape):
@@ -22,11 +29,10 @@ class IntakeReadAndApproveUser(LocustUser):
     search_in_intake_form_submissions has no server-side way to filter by
     approval_status (see intake_read_and_approve_helpers.pending_submission_ids),
     so every page is fetched and PENDING submissions are picked out
-    client-side. For each one: get_intake_form_submission, add_verification,
-    then approve_intake_form_submission — approve_submission requires
-    number_of_verifications_done >= number_of_verifications_required (1 for
-    the farmer intake form), so it fails without the verification step.
-    Continues, page by page, until the search is exhausted.
+    client-side. For each one: get_intake_form_submission,
+    get_intake_form_documents, the two dedup checks, then
+    list_tasks_for_request/submit_task_decision last. Continues, page by
+    page, until the search is exhausted.
     """
 
     host = STAFF_API_BASE
@@ -59,13 +65,26 @@ class IntakeReadAndApproveUser(LocustUser):
             current_page += 1
 
     def _process_submission(self, submission_id: str):
-        self._get_intake_form_submission(submission_id)
-        self._get_verifications(submission_id)
-        self._add_verification(submission_id)
+        submission_response_json = safe_json(self._get_intake_form_submission(submission_id))
+
         self._get_intake_form_documents(submission_id)
         self._get_deduplication_intake_form_register_results(submission_id)
         self._get_deduplication_intake_form_intake_form_results(submission_id)
-        self._approve_intake_form_submission(submission_id)
+
+        awe_request_id = extract_awe_request_id(submission_response_json)
+        if not awe_request_id:
+            return
+
+        tasks_response_json = safe_json(self._list_tasks_for_request(awe_request_id))
+        task = actionable_task(tasks_response_json)
+        if not task:
+            return
+
+        self._submit_task_decision(
+            task_id=task["id"],
+            artifact_id=submission_id,
+            current_stage=task.get("stage_order") or 1,
+        )
 
     # ------------------------------------------------------------------
     # get_intake_form_submissions_summary (g2p_intake_form_data_controller)
@@ -111,27 +130,35 @@ class IntakeReadAndApproveUser(LocustUser):
         )
 
     # ------------------------------------------------------------------
-    # get_verifications (g2p_verification_controller)
+    # list_tasks_for_request (g2p_awe_proxy_controller)
     # ------------------------------------------------------------------
-    def _get_verifications(self, submission_id: str):
-        payload = self.build_request(request_payload={"submission_id": submission_id})
+    def _list_tasks_for_request(self, awe_request_id: str):
+        payload = self.build_request(request_payload={"request_id": awe_request_id})
         return self._post(
             STAFF_API_BASE,
-            "/verifications/get_verifications",
+            "/awe/list_tasks_for_request",
             payload,
-            name="get_verifications",
+            name="list_tasks_for_request",
         )
 
     # ------------------------------------------------------------------
-    # add_verification (g2p_verification_controller)
+    # submit_task_decision (g2p_awe_proxy_controller)
     # ------------------------------------------------------------------
-    def _add_verification(self, submission_id: str):
-        payload = self.build_request(request_payload={"submission_id": submission_id, "is_approved": True})
+    def _submit_task_decision(self, task_id: str, artifact_id: str, current_stage: int):
+        payload = self.build_request(
+            request_payload={
+                "task_id": task_id,
+                "action": "approve",
+                "artifact_id": artifact_id,
+                "artifact_type": INTAKE_ARTIFACT_TYPE,
+                "current_stage": current_stage,
+            },
+        )
         return self._post(
             STAFF_API_BASE,
-            "/verifications/add_verification",
+            "/awe/submit_task_decision",
             payload,
-            name="add_verification",
+            name="submit_task_decision",
         )
 
     # ------------------------------------------------------------------
@@ -168,16 +195,4 @@ class IntakeReadAndApproveUser(LocustUser):
             "/intake-form-data/get_deduplication_intake_form_intake_form_results",
             payload,
             name="get_deduplication_intake_form_intake_form_results",
-        )
-
-    # ------------------------------------------------------------------
-    # approve_intake_form_submission (g2p_intake_form_data_controller)
-    # ------------------------------------------------------------------
-    def _approve_intake_form_submission(self, submission_id: str):
-        payload = self.build_request(request_payload={"submission_id": submission_id})
-        return self._post(
-            STAFF_API_BASE,
-            "/intake-form-data/approve_intake_form_submission",
-            payload,
-            name="approve_intake_form_submission",
         )

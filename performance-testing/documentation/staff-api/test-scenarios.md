@@ -166,7 +166,7 @@ APIs fired, in order:
 | 4db | `get_section_ui_schema` | `/register-section-metadata/get_section_ui_schema` | Metadata-Read | Conditional — only if the change request's `section_id` is present. Repeats once per change request. |
 | 4dc | `get_change_request` | `/change-requests/get_change_request` | Change-Request-Read | Fetch one CR by id. Repeats once per change request. |
 | 4dd | `check_change_request_sequence` | `/change-requests/check_change_request_sequence` | Change-Request-Read | Repeats once per change request. |
-| 4de | `get_verifications_for_change_request` | `/change-requests/get_verifications_for_change_request` | Change-Request-Read | Repeats once per change request. |
+| 4de | `list_tasks_for_request` | `/awe/list_tasks_for_request` | Workflow-Read | AWE task list for the CR's `awe_request_id`. Conditional — only if `awe_request_id` is present. Repeats once per change request. |
 | 4df | `get_deduplication_change_request_results` | `/register-data/get_deduplication_change_request_results` | Change-Request-Read | Simple fetch of results Celery already crunched, not fuzzy-match compute. Repeats once per change request. |
 | 4dg | `get_deduplication_register_results` | `/register-data/get_deduplication_register_results` | Register-Read | Same caveat as above. Repeats once per change request. |
 | 4f | `get_number_of_versions` | `/register-data/get_number_of_versions` | Register-Read | Version/history read (joins `*_history`). Repeats once per tab. |
@@ -217,9 +217,8 @@ APIs fired:
 | 6 | `check_change_request_sequence` | `/change-requests/check_change_request_sequence` | Change-Request-Read | Read-only gate: does an earlier pending CR block approval. Repeats once per pending CR — skip the rest if blocked. |
 | 7 | `get_deduplication_change_request_results` | `/register-data/get_deduplication_change_request_results` | Change-Request-Read | Simple fetch of results Celery already crunched, not fuzzy-match compute. Repeats once per pending CR. |
 | 8 | `get_deduplication_register_results` | `/register-data/get_deduplication_register_results` | Register-Read | Same caveat as above. Repeats once per pending CR. |
-| 9 | `get_verifications_for_change_request` | `/change-requests/get_verifications_for_change_request` | Change-Request-Read | Repeats once per pending CR. |
-| 10 | `add_verification_for_change_request` | `/change-requests/add_verification_for_change_request` | Workflow-Write | CR verification. Repeats once per pending CR. |
-| 11 | `approve_change_request` | `/change-requests/approve_change_request` | Workflow-Write | May trigger AWE approval + webhook. Repeats once per pending CR. |
+| 9 | `list_tasks_for_request` | `/awe/list_tasks_for_request` | Workflow-Read | AWE task list for the CR's `awe_request_id`. Conditional — only if `awe_request_id` is present. Repeats once per pending CR. |
+| 10 | `submit_task_decision` | `/awe/submit_task_decision` | Workflow-Write | Approves the first open/claimed AWE task found in step 9. Conditional — only if such a task exists. Repeats once per pending CR. |
 
 Search anchoring: sticky per user, same as `register_read`. Finds matches
 once `cr_create` has run and created change requests against the anchored
@@ -265,12 +264,11 @@ APIs fired:
 | 1 | `get_intake_form_submissions_summary` | `/intake-form-data/get_intake_form_submissions_summary` | Intake-Submission-Read | Register-wide summary counts. Once. |
 | 2 | `search_in_intake_form_submissions` | `/intake-form-data/search_in_intake_form_submissions` | Register-Search | Anchored, walks every page. |
 | 3 | `get_intake_form_submission` | `/intake-form-data/get_intake_form_submission` | Intake-Submission-Read | Fetch one submission by id. Repeats once per pending submission. |
-| 4 | `get_verifications` | `/verifications/get_verifications` | Intake-Submission-Read | Repeats once per pending submission. |
-| 5 | `add_verification` | `/verifications/add_verification` | Workflow-Write | Intake verification. Repeats once per pending submission. |
-| 6 | `get_intake_form_documents` | `/documents/get_intake_form_documents` | Document-Fetch | Repeats once per pending submission. |
-| 7 | `get_deduplication_intake_form_register_results` | `/intake-form-data/get_deduplication_intake_form_register_results` | Intake-Submission-Read | Repeats once per pending submission. |
-| 8 | `get_deduplication_intake_form_intake_form_results` | `/intake-form-data/get_deduplication_intake_form_intake_form_results` | Intake-Submission-Read | Repeats once per pending submission. |
-| 9 | `approve_intake_form_submission` | `/intake-form-data/approve_intake_form_submission` | Workflow-Write | Requires `number_of_verifications_done >= number_of_verifications_required`, hence verification first. Repeats once per pending submission. |
+| 4 | `get_intake_form_documents` | `/documents/get_intake_form_documents` | Document-Fetch | Repeats once per pending submission. |
+| 5 | `get_deduplication_intake_form_register_results` | `/intake-form-data/get_deduplication_intake_form_register_results` | Intake-Submission-Read | Repeats once per pending submission. |
+| 6 | `get_deduplication_intake_form_intake_form_results` | `/intake-form-data/get_deduplication_intake_form_intake_form_results` | Intake-Submission-Read | Repeats once per pending submission. |
+| 7 | `list_tasks_for_request` | `/awe/list_tasks_for_request` | Workflow-Read | AWE task list for the submission's `awe_request_id`. Conditional — only if `awe_request_id` is present. Repeats once per pending submission. |
+| 8 | `submit_task_decision` | `/awe/submit_task_decision` | Workflow-Write | Approves the first open/claimed AWE task found in step 7. Conditional — only if such a task exists. Repeats once per pending submission. |
 
 Search anchoring: sticky per user; finds real matches once `intake_create`
 has run (same reasoning as `cr_read_and_approve`).
@@ -288,11 +286,12 @@ every endpoint has one unambiguous SLO.
 | Metadata-Read | `get_all_tabs`, `get_all_sections`, `get_section_ui_schema`, `get_attribute_values` | 200 ms | 400 ms |
 | Register-Read | `get_subject_record`, `get_tab_records`, `get_number_of_versions`, `get_deduplication_register_results` | 300 ms | 600 ms |
 | Change-Request-Read | `get_change_request`, `check_change_request_sequence`, `get_deduplication_change_request_results` | 300 ms | 600 ms |
-| Intake-Submission-Read | `get_intake_form_submission`, `get_intake_form_submissions_summary`, `get_verifications` | 300 ms | 600 ms |
+| Intake-Submission-Read | `get_intake_form_submission`, `get_intake_form_submissions_summary` | 300 ms | 600 ms |
 | Register-Search | `search_in_a_register`, `search_in_change_request`, `search_in_intake_form_submissions` | 1000 ms | 1500 ms |
 | Change-Request-Write | `create_change_request`, `create_change_request_for_core_data` | 800 ms | 1200 ms |
 | Intake-Submission-Write | `save_intake_form_submission`, `finalize_intake_form_submission` | 800 ms | 1200 ms |
-| Workflow-Write | `approve_change_request`, `approve_intake_form_submission`, `add_verification*` | 500 ms | 800 ms |
+| Workflow-Read | `list_tasks_for_request` | 500 ms | 800 ms |
+| Workflow-Write | `submit_task_decision` | 500 ms | 800 ms |
 | Document-Fetch | `get_file_url`, `get_change_request_documents`, `get_intake_form_documents` | 500 ms | 800 ms |
 | Document-Upload | `upload_documents` | 1500 ms (size-dependent) | — |
 

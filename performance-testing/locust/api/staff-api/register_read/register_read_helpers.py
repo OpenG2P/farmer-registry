@@ -47,6 +47,13 @@ def change_request_items(response_json: dict) -> list[dict]:
     return response_payload(response_json) or []
 
 
+def extract_awe_request_id(change_request_response_json: dict) -> Optional[str]:
+    """awe_request_id off get_change_request's response -- the id
+    list_tasks_for_request needs, distinct from change_request_id itself."""
+    payload = response_payload(change_request_response_json) or {}
+    return payload.get("awe_request_id")
+
+
 @dataclass
 class RegisterBrowseState:
     """The record + tab picked for one browse_registers_and_view_detailed_record run."""
