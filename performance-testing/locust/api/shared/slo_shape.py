@@ -80,7 +80,7 @@ class SLOStepRampShape(LoadTestShape):
     abstract = True
 
     endpoint_slo_ms: dict[str, int] = ENDPOINT_SLO_MS
-    step_seconds = 90
+    step_seconds = 60
     step_users = 1
     max_users = 30
     min_requests_for_check = 5
