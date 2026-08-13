@@ -74,12 +74,12 @@ export REGISTER_READ_ENDPOINTS="get_register_summary_data,get_subject_record,get
 # --- SLO class: Change-Request-Read ------------------------------------------
 export SLO_P95_CHANGE_REQUEST_READ_MS=1300
 export SLO_P99_CHANGE_REQUEST_READ_MS=1600
-export CHANGE_REQUEST_READ_ENDPOINTS="get_change_request,check_change_request_sequence,get_verifications_for_change_request,get_deduplication_change_request_results,get_number_of_pending_change_requests,get_change_requests,get_register_change_request_summary_data"
+export CHANGE_REQUEST_READ_ENDPOINTS="get_change_request,check_change_request_sequence,get_deduplication_change_request_results,get_number_of_pending_change_requests,get_change_requests,get_register_change_request_summary_data"
 
 # --- SLO class: Intake-Submission-Read ---------------------------------------
 export SLO_P95_INTAKE_SUBMISSION_READ_MS=1300
 export SLO_P99_INTAKE_SUBMISSION_READ_MS=1600
-export INTAKE_SUBMISSION_READ_ENDPOINTS="get_intake_form_submission,get_intake_form_submissions_summary,get_verifications,get_deduplication_intake_form_register_results,get_deduplication_intake_form_intake_form_results"
+export INTAKE_SUBMISSION_READ_ENDPOINTS="get_intake_form_submission,get_intake_form_submissions_summary,get_deduplication_intake_form_register_results,get_deduplication_intake_form_intake_form_results"
 
 # --- SLO class: Register-Search ----------------------------------------------
 export SLO_P95_REGISTER_SEARCH_MS=2000
@@ -96,10 +96,15 @@ export SLO_P95_INTAKE_SUBMISSION_WRITE_MS=1800
 export SLO_P99_INTAKE_SUBMISSION_WRITE_MS=2200
 export INTAKE_SUBMISSION_WRITE_ENDPOINTS="save_intake_form_submission,finalize_intake_form_submission"
 
+# --- SLO class: Workflow-Read -------------------------------------------------
+export SLO_P95_WORKFLOW_READ_MS=1300
+export SLO_P99_WORKFLOW_READ_MS=1600
+export WORKFLOW_READ_ENDPOINTS="list_tasks_for_request"
+
 # --- SLO class: Workflow-Write ------------------------------------------------
 export SLO_P95_WORKFLOW_WRITE_MS=1500
 export SLO_P99_WORKFLOW_WRITE_MS=1800
-export WORKFLOW_WRITE_ENDPOINTS="approve_change_request,approve_intake_form_submission,add_verification,add_verification_for_change_request"
+export WORKFLOW_WRITE_ENDPOINTS="submit_task_decision"
 
 # --- SLO class: Document-Fetch ------------------------------------------------
 export SLO_P95_DOCUMENT_FETCH_MS=1500

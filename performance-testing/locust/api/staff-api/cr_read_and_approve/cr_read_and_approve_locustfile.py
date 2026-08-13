@@ -9,13 +9,17 @@ from shared.config import CR_SEARCH_PAGE_SIZE, REGISTER_FARMER, SEARCH_TERMS, ST
 from shared.response_utils import safe_json
 from shared.slo_shape import SLOStepRampShape
 from cr_read_and_approve_helpers import (
+    actionable_task,
     approval_blocked,
+    extract_awe_request_id,
     pending_change_requests,
     response_error_code,
     response_payload,
     response_status,
     total_pages,
 )
+
+CR_ARTIFACT_TYPE = "registry.change_request"
 
 
 class CrReadAndApproveRampShape(SLOStepRampShape):
@@ -26,10 +30,10 @@ class CrReadAndApproveRampShape(SLOStepRampShape):
 class CrReadAndApproveUser(LocustUser):
     """Pages through every change request still PENDING approval and runs each one
     through the full read-and-approve sequence: get_change_request,
-    check_change_request_sequence, add_verification_for_change_request,
-    get_verifications_for_change_request, get_deduplication_register_results,
-    get_deduplication_change_request_results, approve_change_request. Continues,
-    page by page, until the search is exhausted.
+    check_change_request_sequence, get_deduplication_register_results,
+    get_deduplication_change_request_results, list_tasks_for_request,
+    submit_task_decision. Continues, page by page, until the search is
+    exhausted.
     """
 
     host = STAFF_API_BASE
@@ -68,7 +72,7 @@ class CrReadAndApproveUser(LocustUser):
         self._get_change_request_documents(change_request_id)
         if section_id:
             self._get_section_ui_schema(section_id)
-        self._get_change_request(change_request_id)
+        change_request_response_json = safe_json(self._get_change_request(change_request_id))
         sequence_response_json = safe_json(self._check_change_request_sequence(change_request_id))
         if approval_blocked(sequence_response_json):
             print(f"\nDEBUG {change_request_id} -> approval blocked by an earlier pending change request, skipping\n")
@@ -77,13 +81,25 @@ class CrReadAndApproveUser(LocustUser):
         self._get_deduplication_change_request_results(change_request_id)
         self._get_deduplication_register_results(change_request_id)
 
-        self._get_verifications_for_change_request(change_request_id)
-        self._add_verification_for_change_request(change_request_id)
+        awe_request_id = extract_awe_request_id(change_request_response_json)
+        if not awe_request_id:
+            return
 
-        approve_response_json = safe_json(self._approve_change_request(change_request_id))
+        tasks_response_json = safe_json(self._list_tasks_for_request(awe_request_id))
+        task = actionable_task(tasks_response_json)
+        if not task:
+            return
+
+        decision_response_json = safe_json(
+            self._submit_task_decision(
+                task_id=task["id"],
+                artifact_id=change_request_id,
+                current_stage=task.get("stage_order") or 1,
+            )
+        )
         print(
-            f"\nDEBUG APPROVE RESULT for {change_request_id} -> "
-            f"{response_status(approve_response_json)} {response_error_code(approve_response_json) or ''}\n"
+            f"\nDEBUG DECISION RESULT for {change_request_id} -> "
+            f"{response_status(decision_response_json)} {response_error_code(decision_response_json) or ''}\n"
         )
 
     # ------------------------------------------------------------------
@@ -155,29 +171,35 @@ class CrReadAndApproveUser(LocustUser):
         )
 
     # ------------------------------------------------------------------
-    # add_verification_for_change_request (g2p_register_change_request_controller)
+    # list_tasks_for_request (g2p_awe_proxy_controller)
     # ------------------------------------------------------------------
-    def _add_verification_for_change_request(self, change_request_id: str):
-        payload = self.build_request(
-            request_payload={"change_request_id": change_request_id, "is_approved": True},
-        )
+    def _list_tasks_for_request(self, awe_request_id: str):
+        payload = self.build_request(request_payload={"request_id": awe_request_id})
         return self._post(
             STAFF_API_BASE,
-            "/change-requests/add_verification_for_change_request",
+            "/awe/list_tasks_for_request",
             payload,
-            name="add_verification_for_change_request",
+            name="list_tasks_for_request",
         )
 
     # ------------------------------------------------------------------
-    # get_verifications_for_change_request (g2p_register_change_request_controller)
+    # submit_task_decision (g2p_awe_proxy_controller)
     # ------------------------------------------------------------------
-    def _get_verifications_for_change_request(self, change_request_id: str):
-        payload = self.build_request(request_payload={"change_request_id": change_request_id})
+    def _submit_task_decision(self, task_id: str, artifact_id: str, current_stage: int):
+        payload = self.build_request(
+            request_payload={
+                "task_id": task_id,
+                "action": "approve",
+                "artifact_id": artifact_id,
+                "artifact_type": CR_ARTIFACT_TYPE,
+                "current_stage": current_stage,
+            },
+        )
         return self._post(
             STAFF_API_BASE,
-            "/change-requests/get_verifications_for_change_request",
+            "/awe/submit_task_decision",
             payload,
-            name="get_verifications_for_change_request",
+            name="submit_task_decision",
         )
 
     # ------------------------------------------------------------------
@@ -202,13 +224,4 @@ class CrReadAndApproveUser(LocustUser):
             "/register-data/get_deduplication_change_request_results",
             payload,
             name="get_deduplication_change_request_results",
-        )
-
-    # ------------------------------------------------------------------
-    # approve_change_request (g2p_register_change_request_controller)
-    # ------------------------------------------------------------------
-    def _approve_change_request(self, change_request_id: str):
-        payload = self.build_request(request_payload={"change_request_id": change_request_id})
-        return self._post(
-            STAFF_API_BASE, "/change-requests/approve_change_request", payload, name="approve_change_request"
         )

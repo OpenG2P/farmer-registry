@@ -12,6 +12,7 @@ SLO_CLASSES = [
     "REGISTER_SEARCH",
     "CHANGE_REQUEST_WRITE",
     "INTAKE_SUBMISSION_WRITE",
+    "WORKFLOW_READ",
     "WORKFLOW_WRITE",
     "DOCUMENT_FETCH",
     "DOCUMENT_UPLOAD",
@@ -79,7 +80,7 @@ class SLOStepRampShape(LoadTestShape):
     abstract = True
 
     endpoint_slo_ms: dict[str, int] = ENDPOINT_SLO_MS
-    step_seconds = 90
+    step_seconds = 60
     step_users = 1
     max_users = 30
     min_requests_for_check = 5

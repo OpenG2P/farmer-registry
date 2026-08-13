@@ -6,7 +6,7 @@ can be read (and tested) independently of the actual HTTP calls.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 
 def response_payload(response_json: dict) -> Any:
@@ -41,3 +41,21 @@ def pending_submission_ids(search_response_json: dict) -> list[str]:
         and submission.get("approval_status") == "PENDING"
         and submission.get("submission_id")
     ]
+
+
+def extract_awe_request_id(submission_response_json: dict) -> Optional[str]:
+    """awe_request_id off get_intake_form_submission's response -- the id
+    list_tasks_for_request needs, distinct from submission_id itself."""
+    payload = response_payload(submission_response_json) or {}
+    return payload.get("awe_request_id")
+
+
+def actionable_task(list_tasks_response_json: dict) -> Optional[dict]:
+    """First open/claimed task from list_tasks_for_request's response.items --
+    the one submit_task_decision should act on."""
+    payload = response_payload(list_tasks_response_json) or {}
+    items = payload.get("data", {}).get("items") or []
+    for item in items:
+        if item.get("status") in ("open", "claimed") and item.get("id"):
+            return item
+    return None
