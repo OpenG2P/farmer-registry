@@ -1,2 +1,2 @@
 Method,Name,Error,Occurrences,First Seen,Last Seen
-POST,get_number_of_pending_change_requests,CatchResponseError('503'),1,2026-08-13T05:10:37Z,2026-08-13T05:10:37Z
+POST,get_tab_sections,CatchResponseError('503'),1,2026-08-14T04:55:15Z,2026-08-14T04:55:15Z
