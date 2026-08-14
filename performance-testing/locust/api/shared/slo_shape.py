@@ -19,42 +19,54 @@ SLO_CLASSES = [
 ]
 
 
-def _load_endpoint_slo_ms() -> dict[str, int]:
-    """One endpoint -> p95-SLO-ms map, built from env.sh's per-class
-    sections. A single shared map works for every scenario: each scenario's
-    Locust run only ever produces stats.entries for the endpoints it
-    actually fires, so SLOStepRampShape naturally only checks the subset
+def _load_endpoint_slo_ms() -> tuple[dict[str, int], dict[str, int]]:
+    """Two endpoint -> SLO-ms maps (p95, p99), built from env.sh's per-class
+    sections. A single shared pair of maps works for every scenario: each
+    scenario's Locust run only ever produces stats.entries for the endpoints
+    it actually fires, so SLOStepRampShape naturally only checks the subset
     relevant to whichever scenario is running -- no per-scenario map needed.
     """
-    mapping: dict[str, int] = {}
+    p95_mapping: dict[str, int] = {}
+    p99_mapping: dict[str, int] = {}
     for cls in SLO_CLASSES:
         p95_env = os.environ.get(f"SLO_P95_{cls}_MS")
+        p99_env = os.environ.get(f"SLO_P99_{cls}_MS")
         endpoints_env = os.environ.get(f"{cls}_ENDPOINTS", "")
         if not p95_env or not endpoints_env:
             continue
         p95 = int(p95_env)
+        p99 = int(p99_env) if p99_env else None
         for name in endpoints_env.split(","):
             name = name.strip()
-            if name:
-                mapping[name] = p95
-    return mapping
+            if not name:
+                continue
+            p95_mapping[name] = p95
+            if p99 is not None:
+                p99_mapping[name] = p99
+    return p95_mapping, p99_mapping
 
 
-ENDPOINT_SLO_MS = _load_endpoint_slo_ms()
+ENDPOINT_SLO_P95_MS, ENDPOINT_SLO_P99_MS = _load_endpoint_slo_ms()
 
 
 class SLOStepRampShape(LoadTestShape):
     """
-    Step-1 (isolated) ramp-to-failure shape, driven by ENDPOINT_SLO_MS
-    (loaded from env.sh, not hardcoded -- see documentation/staff-api/
-    test-scenarios.md §4/§5). A scenario fires endpoints from several
-    different SLO classes in one run (e.g. register_read touches
-    Metadata-Read at 200ms and Register-Search at 1000ms), so this checks
-    each endpoint against its own SLO, not the whole run against one number.
+    Step-1 (isolated) ramp-to-breach-then-soak shape, driven by
+    ENDPOINT_SLO_P95_MS / ENDPOINT_SLO_P99_MS (loaded from env.sh, not
+    hardcoded -- see documentation/staff-api/test-scenarios.md §4/§5). A
+    scenario fires endpoints from several different SLO classes in one run
+    (e.g. register_read touches Metadata-Read and Register-Search), so this
+    checks each endpoint against its own class's SLOs, not the whole run
+    against one number.
 
-    Ramps +step_users every step_seconds; stops at the first step where any
-    tracked endpoint (with enough samples this step) breaches its own p95
-    SLO or has any failure, or when max_users is reached.
+    Ramps +step_users every step_seconds. Once any tracked endpoint (with
+    enough samples this step) breaches its own p95 OR p99 SLO, the ramp
+    freezes at that user count and holds steady there for sustain_seconds
+    (a soak at the highest reached load), then stops. If max_users is
+    reached with no breach, it stops immediately without a soak.
+
+    503s/other failures are logged but do NOT stop or freeze the ramp --
+    only an SLO (p95/p99) breach does.
 
     NOTE: -u/-r/-t are ignored by Locust once a custom shape is active (see
     COMMON_OPTIONS in locust/main.py) -- this class owns its entire stop
@@ -63,9 +75,10 @@ class SLOStepRampShape(LoadTestShape):
     NOTE: register_read's get_record_history has a known upstream bug
     (SYS-ERR-001 -- see documentation/seeding-design.md) causing 100%
     failures. It's deliberately excluded from REGISTER_READ_ENDPOINTS in
-    env.sh (commented-out toggle to re-add it once fixed) -- if it were
-    included, this shape would stop register_read's ramp on the very first
-    checked step.
+    env.sh (commented-out toggle to re-add it once fixed) -- since failures
+    no longer freeze/stop the ramp on their own, this is now a labeling
+    concern rather than a ramp-killer, but it's still excluded to keep
+    register_read's failure log free of a known, unrelated noise source.
     """
 
     # Base class, not meant to be run directly -- must NOT be auto-detected
@@ -79,23 +92,38 @@ class SLOStepRampShape(LoadTestShape):
     # subclass, arbitrarily choosing one.
     abstract = True
 
-    endpoint_slo_ms: dict[str, int] = ENDPOINT_SLO_MS
+    endpoint_slo_p95_ms: dict[str, int] = ENDPOINT_SLO_P95_MS
+    endpoint_slo_p99_ms: dict[str, int] = ENDPOINT_SLO_P99_MS
     step_seconds = 60
     step_users = 1
     max_users = 30
     min_requests_for_check = 5
+    sustain_seconds = 15 * 60
 
     def __init__(self):
         super().__init__()
         self._step = -1
         self._step_start: dict[tuple[str, str], tuple[int, int]] = {}
+        self._breach_user_count: int | None = None
+        self._breach_run_time: float | None = None
 
     def tick(self):
         run_time = self.get_run_time()
+        entries = self.runner.stats.entries
+
+        if self._breach_user_count is not None:
+            # Already breached -- hold at that user count for the soak
+            # window, then stop. No further stepping, no further SLO checks.
+            if run_time - self._breach_run_time >= self.sustain_seconds:
+                print(
+                    f"[shape] stop: {self.sustain_seconds}s soak at "
+                    f"{self._breach_user_count} users complete"
+                )
+                return None
+            return (self._breach_user_count, self.step_users)
+
         step = int(run_time // self.step_seconds)
         user_count = self.step_users * (step + 1)
-
-        entries = self.runner.stats.entries
 
         if step != self._step:
             # New step: snapshot every endpoint's cumulative counters so the
@@ -104,7 +132,7 @@ class SLOStepRampShape(LoadTestShape):
             self._step_start = {key: (e.num_requests, e.num_failures) for key, e in entries.items()}
         else:
             for (name, method), entry in entries.items():
-                if name not in self.endpoint_slo_ms:
+                if name not in self.endpoint_slo_p95_ms and name not in self.endpoint_slo_p99_ms:
                     continue  # not one of this scenario's tracked endpoints
                 start_requests, start_failures = self._step_start.get((name, method), (0, 0))
                 requests_this_step = entry.num_requests - start_requests
@@ -112,13 +140,28 @@ class SLOStepRampShape(LoadTestShape):
                 if requests_this_step < self.min_requests_for_check:
                     continue
                 if failures_this_step > 0:
-                    print(f"[shape] stop: {name} had {failures_this_step} failure(s) at {user_count} users")
-                    return None
-                p95 = entry.get_current_response_time_percentile(0.95)
-                slo = self.endpoint_slo_ms[name]
-                if p95 is not None and p95 > slo:
-                    print(f"[shape] stop: {name} p95={p95}ms > SLO={slo}ms at {user_count} users")
-                    return None
+                    # Logged, not a stop/freeze condition -- only SLO breaches are.
+                    print(f"[shape] {name} had {failures_this_step} failure(s) at {user_count} users (logged, not stopping)")
+
+                breached = False
+                slo95 = self.endpoint_slo_p95_ms.get(name)
+                if slo95 is not None:
+                    p95 = entry.get_current_response_time_percentile(0.95)
+                    if p95 is not None and p95 > slo95:
+                        print(f"[shape] SLO breach: {name} p95={p95}ms > SLO-95={slo95}ms at {user_count} users")
+                        breached = True
+                slo99 = self.endpoint_slo_p99_ms.get(name)
+                if slo99 is not None:
+                    p99 = entry.get_current_response_time_percentile(0.99)
+                    if p99 is not None and p99 > slo99:
+                        print(f"[shape] SLO breach: {name} p99={p99}ms > SLO-99={slo99}ms at {user_count} users")
+                        breached = True
+
+                if breached:
+                    self._breach_user_count = user_count
+                    self._breach_run_time = run_time
+                    print(f"[shape] freezing ramp at {user_count} users, soaking for {self.sustain_seconds}s")
+                    return (user_count, self.step_users)
 
         if user_count > self.max_users:
             print(f"[shape] stop: reached max_users={self.max_users} without breaching any SLO")
