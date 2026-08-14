@@ -10,7 +10,7 @@
 # Two kinds of override:
 #   * global.*    — Helm propagates these to the subchart (and its subcharts).
 #   * registry.*  — values for the openg2p-registry subchart itself.
-repository: registry.gitlab.com/openg2p/registry/farmer-registry/staff-api
+# Everything not set here (all service wiring, keycloak/iam, db-seed machinery,
 # id-generator, demo users) is inherited from the subchart defaults.
 
 # ── Globals (propagate to the openg2p-registry subchart) ──────────────────────
@@ -18,31 +18,31 @@ global:
   registryVariant: 'farmer-registry'
   # Ingress host for this registry. Overrides the subchart's generic default.
   registryHostname: '{{ .Release.Name }}.{{ .Release.Namespace }}.openg2p.org'
-repository: registry.gitlab.com/openg2p/registry/farmer-registry/partner-api
+
 # ── openg2p-registry subchart overrides ───────────────────────────────────────
 registry:
   # Farmer-built images (each FROM the matching openg2p-registry base image).
-  repository: registry.gitlab.com/openg2p/registry/farmer-registry/celery
+  # CI rewrites these tags to the freshly built farmer version (lockstep); the
   # base image they extend is pinned by the openg2p-registry dependency version.
   staffApi:
     image:
-      repository: registry.gitlab.com/openg2p/registry/farmer-registry/celery
+      repository: registry.gitlab.com/openg2p/registry/farmer-registry/staff-api
       tag: 0.0.0-develop
   partnerApi:
     image:
-      repository: registry.gitlab.com/openg2p/registry/farmer-registry/db-seed
+      repository: registry.gitlab.com/openg2p/registry/farmer-registry/partner-api
       tag: 0.0.0-develop
   celeryWorker:
     image:
-      repository: openg2p/openg2p-farmer-registry-celery
+      repository: registry.gitlab.com/openg2p/registry/farmer-registry/celery
       tag: 0.0.0-develop
   celeryBeat:
     image:
-      repository: openg2p/openg2p-farmer-registry-celery
+      repository: registry.gitlab.com/openg2p/registry/farmer-registry/celery
       tag: 0.0.0-develop
   dbSeed:
     image:
-      repository: openg2p/openg2p-farmer-registry-db-seed
+      repository: registry.gitlab.com/openg2p/registry/farmer-registry/db-seed
       tag: 0.0.0-develop
     # The subchart defaults these OFF (minimal reference registry). Farmer ships
     # demo records/geo/images, so turn the db-seed loaders on. NB these are
@@ -71,7 +71,7 @@ registry:
             idLength: 12
           household:
             idLength: 10
-repository: registry.gitlab.com/openg2p/registry/farmer-registry/sanity-tests
+
   # staffUi and beneApi are consumed as-is from the openg2p-registry base images
   # (subchart defaults already point at openg2p/openg2p-registry-*), so they are
   # intentionally not overridden.
@@ -83,7 +83,7 @@ repository: registry.gitlab.com/openg2p/registry/farmer-registry/sanity-tests
   sanity:
     enabled: true
     image:
-      repository: openg2p/openg2p-farmer-registry-sanity-tests
+      repository: registry.gitlab.com/openg2p/registry/farmer-registry/sanity-tests
       tag: 0.0.0-develop
     regType: Farmer
     regRecordType: 'spdci-extensions-dci:Farmer'
