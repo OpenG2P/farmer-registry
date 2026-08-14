@@ -1,4 +1,0 @@
-data_volume,pods,pod_cpu,pod_mem,blended_max_rps,scaling_efficiency,node_cpu_pct,node_mem_pct,db_connections,limiting_factor,notes
-10M,1,1,4Gi,,1.00,,,,,baseline
-10M,2,1,4Gi,,,,,,,
-10M,3,1,4Gi,,,,,,,

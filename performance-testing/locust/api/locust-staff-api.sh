@@ -1,0 +1,95 @@
+#!/bin/bash
+# Fires one staff-api Locust run, driven entirely by env.sh's VOLUME_TIER /
+# POD_SCALE / STEP / ISOLATED_SCENARIO exports -- edit env.sh (uncomment the
+# one value you want per knob) rather than passing flags to this script.
+#
+# Replaces the old staff-intake-create.sh / staff-register-read.sh one-offs.
+#
+# Always runs with neither --headless nor --autostart: opens the web UI at
+# localhost:8089 and waits for you to click "Start swarming". (-t is
+# deliberately omitted -- Locust ignores --run-time unless --headless or
+# --autostart is also set, so passing it here would silently do nothing.)
+#
+# For STEP=1-isolated, each scenario locustfile defines its own SLO-driven
+# LoadTestShape (shared/slo_shape.py, config in env.sh's SLO sections) --
+# Locust auto-detects it and ramps/stops concurrency itself once you click
+# Start, ignoring the -u/-r passed below (see COMMON_OPTIONS in
+# locust/main.py); those flags only do anything for the blended/soak shim
+# locustfile.py below, which has no shape.
+set -euo pipefail
+
+# Must be *executed* (./locust-staff-api.sh), not sourced -- unlike env.sh.
+# Sourcing runs set -e in your actual interactive shell, so a Ctrl-C-killed
+# locust would exit your shell (and close the terminal) instead of just this
+# script's subshell.
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+  echo "Run this script, don't source it: ./locust-staff-api.sh (not '. ./locust-staff-api.sh')" >&2
+  return 1 2>/dev/null || exit 1
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+# env.sh echoes $SEED_MANIFEST without exporting it (that default lives in
+# shared/config.py instead) -- relax -u just for the source so that doesn't
+# trip us up.
+set +u
+source ./env.sh
+set -u
+
+# STEP is "<ordinal>-<name>", e.g. "1-isolated" -- strip the ordinal, it's
+# just for readable ordering in env.sh, not part of any path.
+STEP_NAME="${STEP#*-}"
+
+# ISOLATED_SCENARIO uses hyphens (register-read); folder/file names use
+# underscores (register_read).
+SCENARIO_DIR="${ISOLATED_SCENARIO//-/_}"
+
+# DEBUG: print the run configuration up front, before deriving anything or
+# firing Locust, so a misconfigured env.sh is obvious immediately.
+echo "=== DEBUG: run configuration ==="
+echo "INGRESS:     ${INGRESS}"
+echo "VOLUME_TIER: ${VOLUME_TIER}"
+echo "POD_SCALE:   ${POD_SCALE}"
+echo "STEP:        ${STEP}"
+if [ "$STEP_NAME" = isolated ]; then
+  echo "SCENARIO:    ${ISOLATED_SCENARIO}"
+fi
+echo "================================="
+
+case "$STEP_NAME" in
+  isolated)
+    LOCUSTFILE="staff-api/${SCENARIO_DIR}/${SCENARIO_DIR}_locustfile.py"
+    CSV_PREFIX="results/staff-api/${INGRESS}/${VOLUME_TIER}/pod-${POD_SCALE}/${STEP}/${SCENARIO_DIR}/${SCENARIO_DIR}"
+    ;;
+  blended)
+    echo "WARNING: no combined blended-mix locustfile exists yet (see" >&2
+    echo "documentation/staff-api/test-scenarios.md §4) -- using the" >&2
+    echo "compatibility shim locustfile.py, which does nothing." >&2
+    LOCUSTFILE="locustfile.py"
+    CSV_PREFIX="results/staff-api/${INGRESS}/${VOLUME_TIER}/pod-${POD_SCALE}/${STEP}/blended"
+    ;;
+  soak)
+    echo "WARNING: no combined blended-mix locustfile exists yet (see" >&2
+    echo "documentation/staff-api/test-scenarios.md §4) -- using the" >&2
+    echo "compatibility shim locustfile.py, which does nothing." >&2
+    LOCUSTFILE="locustfile.py"
+    CSV_PREFIX="results/staff-api/${INGRESS}/${VOLUME_TIER}/pod-${POD_SCALE}/${STEP}/soak"
+    ;;
+  db-sweep)
+    echo "db-sweep is not a Locust-fired step -- it's a separate exercise" >&2
+    echo "varying PostgreSQL tuning, not something this script drives. See" >&2
+    echo "documentation/staff-api/test-scenarios.md §3/§7 \"db-sweep\"." >&2
+    exit 1
+    ;;
+  *)
+    echo "Unrecognized STEP='${STEP}' in env.sh (expected 1-isolated |" >&2
+    echo "2-blended | 3-soak | 4-db-sweep)" >&2
+    exit 1
+    ;;
+esac
+
+mkdir -p "$(dirname "$CSV_PREFIX")"
+
+echo "locust -f ${LOCUSTFILE} --csv ${CSV_PREFIX}"
+
+locust -f "$LOCUSTFILE" --host "$STAFF_API_BASE" -u 1 -r 1 --csv "$CSV_PREFIX"
