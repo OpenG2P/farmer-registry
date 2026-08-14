@@ -18,8 +18,8 @@ def total_pages(search_response_json: dict) -> int:
     return pagination.get("number_of_pages") or 1
 
 
-def pending_submission_ids(search_response_json: dict) -> list[str]:
-    """submission_ids of submissions on this page ready to approve.
+def pending_submissions(search_response_json: dict) -> list[dict]:
+    """Submissions on this page ready to approve (full result dicts).
 
     search_in_intake_form_submissions has no server-side way to filter by
     approval_status/draft_status: pagination_request.filter_by is validated
@@ -35,12 +35,53 @@ def pending_submission_ids(search_response_json: dict) -> list[str]:
     """
     submissions = response_payload(search_response_json) or []
     return [
-        submission["submission_id"]
+        submission
         for submission in submissions
         if submission.get("draft_status") == "FINAL"
         and submission.get("approval_status") == "PENDING"
         and submission.get("submission_id")
     ]
+
+
+def pending_submission_ids(search_response_json: dict) -> list[str]:
+    """submission_ids of submissions on this page ready to approve."""
+    return [submission["submission_id"] for submission in pending_submissions(search_response_json)]
+
+
+def sort_pending_oldest_first(pending: list[dict]) -> list[dict]:
+    """Oldest FINAL+PENDING submissions first (by first_created_at).
+
+    Default search order is last_updated_at DESC, so page-order processing
+    tends to hit newest drafts/approvals first. Prefer creation order for a
+    stable approve queue.
+    """
+    return sorted(
+        pending,
+        key=lambda row: (
+            row.get("first_created_at") or row.get("created_at") or "",
+            row.get("submission_id") or "",
+        ),
+    )
+
+
+def search_term_candidates(
+    search_terms: list[str],
+    start_index: int = 0,
+    max_anchor_probes: int = 10,
+) -> list[str]:
+    """Ordered search texts to try on the ~80% hit path.
+
+    Probe up to max_anchor_probes pool anchors (aligned with intake_create's
+    sticky embeds), then "" — empty search_text skips ILIKE and returns all
+    submissions for the register. The ~20% miss path does NOT use this list;
+    it searches a unique xmiss* token instead (see locustfile).
+    """
+    terms = [term for term in search_terms if term]
+    if not terms:
+        return [""]
+    start = start_index % len(terms)
+    rotated = terms[start:] + terms[:start]
+    return rotated[:max_anchor_probes] + [""]
 
 
 def extract_awe_request_id(submission_response_json: dict) -> Optional[str]:

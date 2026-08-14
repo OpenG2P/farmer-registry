@@ -82,6 +82,11 @@ TAB_ITERATION_MAX_WAIT_SECONDS = float(os.environ.get("TAB_ITERATION_MAX_WAIT_SE
 
 # Intake read-and-approve flow (staff-api/intake_read_and_approve/intake_read_and_approve_locustfile.py)
 INTAKE_SEARCH_PAGE_SIZE = int(os.environ.get("INTAKE_SEARCH_PAGE_SIZE", "20"))
+# Fraction of intake_create submissions that embed a pool search_term (findable
+# by approve searches), and fraction of intake_read_and_approve tasks that
+# intentionally search for a hit. The remaining ~20% create with a unique
+# miss-token / search with a miss-token so empty-result path is exercised.
+INTAKE_SEARCH_HIT_RATE = float(os.environ.get("INTAKE_SEARCH_HIT_RATE", "0.8"))
 
 # CR read-and-approve flow (staff-api/cr_read_and_approve/cr_read_and_approve_locustfile.py)
 CR_SEARCH_PAGE_SIZE = int(os.environ.get("CR_SEARCH_PAGE_SIZE", "20"))

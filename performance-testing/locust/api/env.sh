@@ -39,11 +39,11 @@ export STEP=1-isolated
 
 # Only used when STEP=1-isolated (picks which of the 5 scenarios to fire).
 # Uncomment exactly one.
-export ISOLATED_SCENARIO=register-read
+# export ISOLATED_SCENARIO=register-read
 # export ISOLATED_SCENARIO=cr-create
 # export ISOLATED_SCENARIO=cr-read-and-approve
 # export ISOLATED_SCENARIO=intake-create
-# export ISOLATED_SCENARIO=intake-read-and-approve
+export ISOLATED_SCENARIO=intake-read-and-approve
 
 # =============================================================================
 # SLOs -- documentation/staff-api/test-scenarios.md §5. One section per

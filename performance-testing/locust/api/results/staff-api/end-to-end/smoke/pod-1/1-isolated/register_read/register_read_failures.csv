@@ -1,3 +1,4 @@
 Method,Name,Error,Occurrences,First Seen,Last Seen
-POST,get_versions_for_a_date,CatchResponseError('503'),1,2026-08-14T05:04:01Z,2026-08-14T05:04:01Z
-POST,get_tab_sections,CatchResponseError('503'),1,2026-08-14T04:55:15Z,2026-08-14T04:55:15Z
+POST,get_version_dates,CatchResponseError('503'),1,2026-08-14T07:24:20Z,2026-08-14T07:24:20Z
+POST,get_versions_for_a_date,CatchResponseError('503'),1,2026-08-14T07:27:23Z,2026-08-14T07:27:23Z
+POST,get_register_summary_data,CatchResponseError('503'),1,2026-08-14T07:34:12Z,2026-08-14T07:34:12Z

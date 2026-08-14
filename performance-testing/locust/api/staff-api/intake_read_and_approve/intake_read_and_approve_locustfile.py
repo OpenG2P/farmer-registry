@@ -1,17 +1,27 @@
 from __future__ import annotations
 
 import random
+import uuid
 
 from locust import tag, task
 
 from shared.base_user import LocustUser
-from shared.config import INTAKE_SEARCH_PAGE_SIZE, REGISTER_FARMER, SEARCH_TERMS, STAFF_API_BASE
+from shared.config import (
+    INTAKE_SEARCH_HIT_RATE,
+    INTAKE_SEARCH_PAGE_SIZE,
+    REGISTER_FARMER,
+    SEARCH_TERMS,
+    STAFF_API_BASE,
+)
 from shared.response_utils import safe_json
 from shared.slo_shape import SLOStepRampShape
 from intake_read_and_approve_helpers import (
     actionable_task,
     extract_awe_request_id,
-    pending_submission_ids,
+    pending_submissions,
+    response_payload,
+    search_term_candidates,
+    sort_pending_oldest_first,
     total_pages,
 )
 
@@ -24,45 +34,88 @@ class IntakeReadAndApproveRampShape(SLOStepRampShape):
 
 
 class IntakeReadAndApproveUser(LocustUser):
-    """Pages through every intake submission for the Farmer register and approves each one still PENDING.
+    """Approves FINAL+PENDING intake submissions found via search.
 
-    search_in_intake_form_submissions has no server-side way to filter by
-    approval_status (see intake_read_and_approve_helpers.pending_submission_ids),
-    so every page is fetched and PENDING submissions are picked out
-    client-side. For each one: get_intake_form_submission,
-    get_intake_form_documents, the two dedup checks, then
-    list_tasks_for_request/submit_task_decision last. Continues, page by
-    page, until the search is exhausted.
+    ~INTAKE_SEARCH_HIT_RATE of tasks search for real work (pool anchors,
+    then broad '' fallback) and approve oldest-first. The remaining ~20%
+    deliberately search a unique miss-token so empty-result latency is
+    measured without approving. Matches intake_create's 80/20 embed rate.
     """
 
     host = STAFF_API_BASE
 
     def on_start(self):
         super().on_start()
-        # Sticky per user for its whole session -- see
-        # staff-api/register_read/register_read_locustfile.py /
-        # documentation/seeding-design.md "Search-text anchors". Finds real
-        # matches once intake_create has run (it embeds an anchor into every
-        # generated farmer's first_name).
-        self.search_text = random.choice(SEARCH_TERMS)
-        print(f"\nDEBUG SEARCH_TERM anchored -> {self.search_text}\n")
+        self.search_terms = list(SEARCH_TERMS)
+        random.shuffle(self.search_terms)
+        self._term_index = 0
+        self.search_text = self.search_terms[0] if self.search_terms else ""
+        print(f"\nDEBUG SEARCH_TERM initial -> {self.search_text!r}\n")
 
     @tag("intake", "write")
     @task
     def read_and_approve_pending_intakes(self):
         self._get_intake_form_submissions_summary()
 
+        # ~20%: exercise empty search path only (no approve).
+        if random.random() >= INTAKE_SEARCH_HIT_RATE:
+            self.search_text = f"xmiss{uuid.uuid4().hex[:12]}"
+            search_response_json = safe_json(self._search_in_intake_form_submissions(1))
+            pending = pending_submissions(search_response_json)
+            print(
+                f"\nDEBUG intentional miss term={self.search_text!r} -> "
+                f"{len(pending)} PENDING (expect 0)\n"
+            )
+            return
+
+        page1_json = self._find_search_with_pending()
+        if page1_json is None:
+            print(
+                "\nDEBUG search_in_intake_form_submissions -> "
+                "no FINAL+PENDING submissions for any search term (incl. broad '')\n"
+            )
+            return
+
+        all_pending: list[dict] = []
         current_page = 1
-        pages_total = 1
+        pages_total = total_pages(page1_json)
         while current_page <= pages_total:
-            search_response = self._search_in_intake_form_submissions(current_page)
-            search_response_json = safe_json(search_response)
+            search_response_json = (
+                page1_json if current_page == 1 else safe_json(self._search_in_intake_form_submissions(current_page))
+            )
             pages_total = total_pages(search_response_json)
-
-            for submission_id in pending_submission_ids(search_response_json):
-                self._process_submission(submission_id)
-
+            all_pending.extend(pending_submissions(search_response_json))
             current_page += 1
+
+        ordered = sort_pending_oldest_first(all_pending)
+        print(f"\nDEBUG approving {len(ordered)} FINAL+PENDING intakes oldest-first (term={self.search_text!r})\n")
+        for submission in ordered:
+            self._process_submission(submission["submission_id"])
+
+    def _find_search_with_pending(self) -> dict | None:
+        """Probe page 1 for each candidate term until FINAL+PENDING results appear.
+
+        Reuses the successful page-1 response so the task does not double-fetch.
+        Empty search_text is last resort: API skips ILIKE and returns all
+        submissions for the register.
+        """
+        candidates = search_term_candidates(self.search_terms, self._term_index)
+        for term in candidates:
+            self.search_text = term
+            search_response_json = safe_json(self._search_in_intake_form_submissions(1))
+            pending = pending_submissions(search_response_json)
+            print(
+                f"\nDEBUG search_in_intake_form_submissions term={term!r} -> "
+                f"{len(pending)} FINAL+PENDING on page 1 "
+                f"(payload_len={len(response_payload(search_response_json) or [])})\n"
+            )
+            if pending:
+                if term and self.search_terms:
+                    self._term_index = self.search_terms.index(term)
+                return search_response_json
+            if term and self.search_terms:
+                self._term_index = (self._term_index + 1) % len(self.search_terms)
+        return None
 
     def _process_submission(self, submission_id: str):
         submission_response_json = safe_json(self._get_intake_form_submission(submission_id))

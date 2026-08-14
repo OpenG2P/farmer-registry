@@ -54,6 +54,43 @@ def pending_change_requests(search_response_json: dict) -> list[dict]:
     ]
 
 
+def sort_pending_oldest_first(pending: list[dict]) -> list[dict]:
+    """Oldest CRs first so check_change_request_sequence does not block.
+
+    search_in_change_request defaults to created_at DESC (newest first). For a
+    given internal_record_id, approving a newer PENDING CR while an older one
+    is still open returns approval_decision_blocked — so page-order processing
+    skips almost everything. Sort by created_at ASC (then change_request_id)
+    across the collected set before approving.
+    """
+    return sorted(
+        pending,
+        key=lambda row: (row.get("created_at") or "", row.get("change_request_id") or ""),
+    )
+
+
+def search_term_candidates(
+    search_terms: list[str],
+    start_index: int = 0,
+    max_anchor_probes: int = 10,
+) -> list[str]:
+    """Ordered search texts to try for cr_read_and_approve.
+
+    Farmer-seed anchors alone often miss pending CRs: cr_create edits many
+    non-farmer sections whose payload search_text never contains first_name
+    anchors, and a sticky random anchor may have zero pending CRs even when
+    others do. Probe up to max_anchor_probes anchors (starting at
+    start_index), then fall back to "" — the API builds `%<text>%`, so empty
+    matches all rows with any search_text (ILIKE '%%').
+    """
+    terms = [term for term in search_terms if term]
+    if not terms:
+        return [""]
+    start = start_index % len(terms)
+    rotated = terms[start:] + terms[:start]
+    return rotated[:max_anchor_probes] + [""]
+
+
 def extract_awe_request_id(change_request_response_json: dict) -> Optional[str]:
     """awe_request_id off get_change_request's response -- the id
     list_tasks_for_request needs, distinct from change_request_id itself."""

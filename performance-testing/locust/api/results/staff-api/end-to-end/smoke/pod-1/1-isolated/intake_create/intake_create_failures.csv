@@ -1,1 +1,3 @@
 Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,render_intake_form,CatchResponseError('503'),1,2026-08-14T10:41:10Z,2026-08-14T10:41:10Z
+POST,save_intake_form_submission,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),39,2026-08-14T10:35:09Z,2026-08-14T10:46:15Z

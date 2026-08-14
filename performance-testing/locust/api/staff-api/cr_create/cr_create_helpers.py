@@ -140,8 +140,19 @@ def attribute_value_options(attribute_values_response_json: dict) -> list[dict]:
     return [{"label": value.get("value_display"), "value": value.get("value_id")} for value in values]
 
 
-def generate_new_value(field_name: str, old_value: Any, enum_options: Optional[list[dict]]) -> Any:
-    """A value guaranteed to differ from old_value where possible."""
+def generate_new_value(
+    field_name: str,
+    old_value: Any,
+    enum_options: Optional[list[dict]],
+    search_anchor: Optional[str] = None,
+) -> Any:
+    """A value guaranteed to differ from old_value where possible.
+
+    When search_anchor is set, free-text values include it so
+    search_in_change_request(`%<anchor>%`) finds CRs on non-farmer sections
+    (land/crop/…), whose payload search_text would otherwise never contain
+    the farmer first_name anchors from seed_manifest.
+    """
     if enum_options:
         candidates = [option["value"] for option in enum_options if option.get("value") != old_value]
         return random.choice(candidates) if candidates else enum_options[0]["value"]
@@ -153,7 +164,10 @@ def generate_new_value(field_name: str, old_value: Any, enum_options: Optional[l
         return random.choice(candidates)
     if field_name == "functional_record_id":
         return str(uuid.uuid4())
-    return f"{field_name}_updated_{random.randint(1000, 9999)}"
+    suffix = f"{field_name}_updated_{random.randint(1000, 9999)}"
+    if search_anchor:
+        return f"{search_anchor}{suffix}"
+    return suffix
 
 
 def build_change_payload(internal_record_id: str, field_name: str, new_value: Any) -> list[dict]:

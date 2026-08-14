@@ -18,7 +18,7 @@ import random
 from datetime import date
 from typing import Any, Optional
 
-from shared.config import HOUSEHOLD_IDS, REGISTER_FARMER, SEARCH_TERMS
+from shared.config import HOUSEHOLD_IDS, REGISTER_FARMER
 
 HOUSEHOLD_LOOKUP_SECTION_ID = "farmer_household_lookup_section_01"
 PERSONAL_IDENTIFICATION_SECTION_ID = "farmer_farmer_personal_identification_section_01"
@@ -36,22 +36,21 @@ def _age_from_birth_date(birth_date: str) -> int:
     return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
 
 
-def _embed_search_term(base_name: str) -> str:
-    """Splices a random seed_manifest.json search_term into base_name at a
-    random position -- mirrors performance-testing/seeding/search_anchors.py
-    embed_anchor(), so intake-created farmers are findable by the same
-    anchors cr_read_and_approve/intake_read_and_approve/register_read search
-    for. Unlike seeding's round-robin assignment (spreading a fixed farmer
-    count evenly across anchors), each call here picks independently at
-    random -- there's no fixed total to spread evenly over a live run.
+def _embed_search_term(base_name: str, search_anchor: str) -> str:
+    """Splices search_anchor into base_name at a random position.
+
+    Mirrors performance-testing/seeding/search_anchors.py embed_anchor().
+    intake_create passes either a sticky pool term (findable ~80% of the
+    time) or a unique miss-token (never matched by pool-term searches).
     """
-    anchor = random.choice(SEARCH_TERMS)
+    if not search_anchor:
+        return base_name
     position = random.randint(0, len(base_name))
-    return base_name[:position] + anchor + base_name[position:]
+    return base_name[:position] + search_anchor + base_name[position:]
 
 
-def _random_name() -> tuple[str, str, str]:
-    first_name = _embed_search_term(random.choice(FIRST_NAMES))
+def _random_name(search_anchor: str) -> tuple[str, str, str]:
+    first_name = _embed_search_term(random.choice(FIRST_NAMES), search_anchor)
     return first_name, random.choice(MIDDLE_NAMES), random.choice(LAST_NAMES)
 
 # section_register_id + a standard (baseline) payload per section, keyed by
@@ -227,12 +226,19 @@ def choose_random_attribute_override() -> tuple[str, str, Any]:
 
 
 def build_section_payload(
-    section_id: str, attribute_name: str, section_with_override: str, value: Any, household_id: str
+    section_id: str,
+    attribute_name: str,
+    section_with_override: str,
+    value: Any,
+    household_id: str,
+    search_anchor: str = "",
 ) -> dict:
     """This section's own fields, with the chosen attribute override applied if it's this section's turn.
 
     Does not include fields carried over from other sections — see
-    merge_with_accumulated for that.
+    merge_with_accumulated for that. search_anchor is embedded in first_name
+    on the personal-identification section so search_in_intake_form_submissions
+    can find the submission.
     """
     payload = copy.deepcopy(SECTION_DEFS[section_id]["standard_payload"])
     if section_id == section_with_override:
@@ -240,7 +246,7 @@ def build_section_payload(
     if section_id == HOUSEHOLD_LOOKUP_SECTION_ID:
         payload["link_internal_record_id"] = household_id
     if section_id == PERSONAL_IDENTIFICATION_SECTION_ID:
-        payload["first_name"], payload["middle_name"], payload["last_name"] = _random_name()
+        payload["first_name"], payload["middle_name"], payload["last_name"] = _random_name(search_anchor)
     return payload
 
 

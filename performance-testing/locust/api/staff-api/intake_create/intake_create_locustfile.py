@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import random
+import uuid
+
 from locust import tag, task
 
 from shared.base_user import LocustUser
@@ -7,7 +10,9 @@ from shared.config import (
     DOCUMENT_UPLOAD_BUCKET,
     FARMER_INTAKE_FORM_ID,
     FARMER_INTAKE_TAB_ID,
+    INTAKE_SEARCH_HIT_RATE,
     REGISTER_FARMER,
+    SEARCH_TERMS,
     STAFF_API_BASE,
 )
 from shared.document_helpers import build_document_attachments, build_document_upload_files, extract_document_ids
@@ -36,9 +41,24 @@ class IntakeCreateUser(LocustUser):
     9 attributes is randomized per invocation (everything else in its section
     keeps a standard baseline value). All sections share one submission_id,
     captured from the first save_intake_form_submission response.
+
+    Search-text: sticky pool term per user. ~INTAKE_SEARCH_HIT_RATE of
+    submissions embed that term (findable by intake_read_and_approve);
+    the rest embed a unique miss-token so empty-result searches stay realistic.
     """
 
     host = STAFF_API_BASE
+
+    def on_start(self):
+        super().on_start()
+        self.search_text = random.choice(SEARCH_TERMS) if SEARCH_TERMS else ""
+        print(f"\nDEBUG SEARCH_TERM sticky -> {self.search_text!r}\n")
+
+    def _search_anchor_for_create(self) -> str:
+        """Pool term ~80% of the time; unique miss-token otherwise."""
+        if self.search_text and random.random() < INTAKE_SEARCH_HIT_RATE:
+            return self.search_text
+        return f"xmiss{uuid.uuid4().hex[:10]}"
 
     @tag("intake", "write")
     @task
@@ -58,6 +78,8 @@ class IntakeCreateUser(LocustUser):
 
         attribute_name, section_with_override, value = choose_random_attribute_override()
         household_id = choose_household_id()
+        search_anchor = self._search_anchor_for_create()
+        print(f"\nDEBUG CREATE search_anchor -> {search_anchor!r}\n")
 
         submission_id = None
         accumulated_by_register: dict = {}
@@ -68,7 +90,12 @@ class IntakeCreateUser(LocustUser):
                 continue
 
             own_payload = build_section_payload(
-                section_id, attribute_name, section_with_override, value, household_id
+                section_id,
+                attribute_name,
+                section_with_override,
+                value,
+                household_id,
+                search_anchor=search_anchor,
             )
             section_payload = merge_with_accumulated(
                 section_def["section_register_id"], own_payload, accumulated_by_register

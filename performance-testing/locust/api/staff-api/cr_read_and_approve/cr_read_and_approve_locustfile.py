@@ -16,6 +16,8 @@ from cr_read_and_approve_helpers import (
     response_error_code,
     response_payload,
     response_status,
+    search_term_candidates,
+    sort_pending_oldest_first,
     total_pages,
 )
 
@@ -40,30 +42,71 @@ class CrReadAndApproveUser(LocustUser):
 
     def on_start(self):
         super().on_start()
-        # Sticky per user for its whole session -- see
-        # staff-api/register_read/register_read_locustfile.py /
-        # documentation/seeding-design.md "Search-text anchors". Finds real
-        # matches once cr_create has run (it edits bulk-seeded farmers, which
-        # do have anchors embedded).
-        self.search_text = random.choice(SEARCH_TERMS)
-        print(f"\nDEBUG SEARCH_TERM anchored -> {self.search_text}\n")
+        # Shuffle so concurrent users spread across anchors; rotation below
+        # recovers when the sticky term has no pending CRs (common when
+        # cr_create mostly edited non-farmer sections). See
+        # cr_read_and_approve_helpers.search_term_candidates.
+        self.search_terms = list(SEARCH_TERMS)
+        random.shuffle(self.search_terms)
+        self._term_index = 0
+        self.search_text = self.search_terms[0] if self.search_terms else ""
+        print(f"\nDEBUG SEARCH_TERM initial -> {self.search_text!r}\n")
 
     @tag("change_request", "write")
     @task
     def read_and_approve_change_requests(self):
         self._get_register_change_request_summary_data()
 
+        page1_json = self._find_search_with_pending()
+        if page1_json is None:
+            print("\nDEBUG search_in_change_request -> no PENDING CRs for any search term (incl. broad '')\n")
+            return
+
+        # Collect every PENDING CR across pages, then approve oldest first.
+        # API search order is created_at DESC; processing that order hits
+        # approval_decision_blocked for newer CRs on the same record.
+        all_pending: list[dict] = []
         current_page = 1
-        pages_total = 1
+        pages_total = total_pages(page1_json)
         while current_page <= pages_total:
-            search_response_json = safe_json(self._search_in_change_request(current_page))
-            print(f"\nDEBUG search_in_change_request response_payload -> {response_payload(search_response_json)}\n")
+            search_response_json = (
+                page1_json if current_page == 1 else safe_json(self._search_in_change_request(current_page))
+            )
             pages_total = total_pages(search_response_json)
-
-            for change_request in pending_change_requests(search_response_json):
-                self._process_change_request(change_request)
-
+            all_pending.extend(pending_change_requests(search_response_json))
             current_page += 1
+
+        ordered = sort_pending_oldest_first(all_pending)
+        print(f"\nDEBUG approving {len(ordered)} PENDING CRs oldest-first\n")
+        for change_request in ordered:
+            self._process_change_request(change_request)
+
+    def _find_search_with_pending(self) -> dict | None:
+        """Probe page 1 for each candidate term until PENDING results appear.
+
+        Reuses the successful page-1 response so the task does not double-fetch.
+        Advances self._term_index so the next task starts near the last hit.
+        """
+        candidates = search_term_candidates(self.search_terms, self._term_index)
+        for term in candidates:
+            self.search_text = term
+            search_response_json = safe_json(self._search_in_change_request(1))
+            pending = pending_change_requests(search_response_json)
+            print(
+                f"\nDEBUG search_in_change_request term={term!r} -> "
+                f"{len(pending)} PENDING on page 1 "
+                f"(payload_len={len(response_payload(search_response_json) or [])})\n"
+            )
+            if pending:
+                # Keep sticky on the matching anchor (not "") when possible so
+                # subsequent tasks stay on a real Register-Search term.
+                if term and self.search_terms:
+                    self._term_index = self.search_terms.index(term)
+                return search_response_json
+            # Only advance among real anchors; "" is last-resort and not sticky.
+            if term and self.search_terms:
+                self._term_index = (self._term_index + 1) % len(self.search_terms)
+        return None
 
     def _process_change_request(self, change_request: dict):
         change_request_id = change_request["change_request_id"]
