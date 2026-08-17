@@ -115,7 +115,7 @@ class CrCreateUser(LocustUser):
                 attribute_values_response_json = safe_json(self._get_attribute_values(attribute_id))
                 print(f"\nDEBUG get_attribute_values({attribute_id}) response -> {attribute_values_response_json}\n")
                 enum_options = attribute_value_options(attribute_values_response_json)
-        new_value = generate_new_value(field_name, old_value, enum_options)
+        new_value = generate_new_value(field_name, old_value, enum_options, search_anchor=self.search_text)
         print(f"\nDEBUG FIELD {field_name} -> old={old_value!r} new={new_value!r}\n")
 
         documents = None

@@ -1,1 +1,4 @@
 Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,submit_task_decision,CatchResponseError('REQ-VAL-001: There are earlier pending change requests for this record'),1,2026-08-14T09:16:50Z,2026-08-14T09:16:50Z
+POST,check_change_request_sequence,CatchResponseError('503'),1,2026-08-14T09:16:49Z,2026-08-14T09:16:49Z
+POST,get_register_change_request_summary_data,CatchResponseError('503'),2,2026-08-14T09:26:35Z,2026-08-14T09:28:32Z

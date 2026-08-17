@@ -61,11 +61,13 @@ class SLOStepRampShape(LoadTestShape):
     checks each endpoint against its own class's SLOs, not the whole run
     against one number.
 
-    Ramps +step_users every step_seconds. Once any tracked endpoint (with
-    enough samples this step) breaches its own p95 OR p99 SLO, the ramp
-    freezes at that user count and holds steady there for sustain_seconds
-    (a soak at the highest reached load), then stops. If max_users is
-    reached with no breach, it stops immediately without a soak.
+    Starts with warmup_seconds at warmup_users with NO SLO checks (cold
+    cache / first-connection noise is discarded). Then ramps +step_users
+    every step_seconds. Once any tracked endpoint (with enough *successful*
+    samples this step) breaches its own p95 OR p99 SLO, the ramp freezes at
+    that user count and holds steady there for sustain_seconds, then stops.
+    If max_users is reached with no breach, it stops immediately without a
+    soak.
 
     503s/other failures are logged but do NOT stop or freeze the ramp, and
     do NOT feed the p95/p99 calculation used to decide a breach either --
@@ -106,8 +108,14 @@ class SLOStepRampShape(LoadTestShape):
     step_seconds = 60
     step_users = 1
     max_users = 30
-    min_requests_for_check = 5
-    sustain_seconds = 15 * 60
+    # Docs §7: warm 1–5 min and discard. Hold at warmup_users with no SLO
+    # checks so cold-start latency cannot freeze the ramp.
+    warmup_seconds = 1 * 60
+    warmup_users = 1
+    # Need enough success samples for a meaningful percentile; 5 made p95
+    # ≈ max-of-5 and let a single outlier freeze the ramp.
+    min_requests_for_check = 100
+    sustain_seconds = 5 * 60
 
     def __init__(self):
         super().__init__()
@@ -117,6 +125,7 @@ class SLOStepRampShape(LoadTestShape):
         self._breach_user_count: int | None = None
         self._breach_run_time: float | None = None
         self._listener_registered = False
+        self._warmup_done_logged = False
         self._tracked_names = set(self.endpoint_slo_p95_ms) | set(self.endpoint_slo_p99_ms)
 
     def _on_request(self, request_type, name, response_time, response_length, exception=None, **_kwargs):
@@ -127,6 +136,10 @@ class SLOStepRampShape(LoadTestShape):
         if exception is not None:
             return
         if name not in self._tracked_names:
+            return
+        # Warmup traffic is discarded — do not accumulate samples that
+        # would leak into the first ramp step's percentile check.
+        if self.get_run_time() < self.warmup_seconds:
             return
         self._step_success_times.setdefault((name, request_type), []).append(response_time)
 
@@ -159,7 +172,27 @@ class SLOStepRampShape(LoadTestShape):
                 return None
             return (self._breach_user_count, self.step_users)
 
-        step = int(run_time // self.step_seconds)
+        # Warmup: fixed low concurrency, no SLO checks, samples discarded
+        # (see _on_request). Matches documentation/staff-api/test-scenarios.md
+        # §7 prep ("warm up 3–5 min … discard this window").
+        if run_time < self.warmup_seconds:
+            return (self.warmup_users, self.step_users)
+
+        if not self._warmup_done_logged:
+            self._warmup_done_logged = True
+            # Reset step bookkeeping so the first ramp step starts clean.
+            self._step = -1
+            self._step_start = {}
+            self._step_success_times = {}
+            print(
+                f"[shape] warmup complete ({self.warmup_seconds}s at "
+                f"{self.warmup_users} users); starting ramp "
+                f"(SLO check needs ≥{self.min_requests_for_check} successes/endpoint/step)"
+            )
+
+        # Ramp clock starts after warmup so step 0 is not mixed with cold traffic.
+        ramp_time = run_time - self.warmup_seconds
+        step = int(ramp_time // self.step_seconds)
         user_count = self.step_users * (step + 1)
 
         if step != self._step:
@@ -178,33 +211,45 @@ class SLOStepRampShape(LoadTestShape):
                 requests_this_step = entry.num_requests - start_requests
                 failures_this_step = entry.num_failures - start_failures
                 success_times = self._step_success_times.get((name, method), [])
-                if requests_this_step < self.min_requests_for_check:
-                    continue
-                if failures_this_step > 0:
+                if failures_this_step > 0 and requests_this_step >= self.min_requests_for_check:
                     # Logged, not a stop/freeze condition -- only SLO breaches
                     # (computed from successful requests only) are.
-                    print(f"[shape] {name} had {failures_this_step} failure(s) at {user_count} users (logged, not stopping)")
-                if not success_times:
-                    continue  # nothing successful to check SLOs against this step
+                    print(
+                        f"[shape] {name} had {failures_this_step} failure(s) "
+                        f"at {user_count} users (logged, not stopping)"
+                    )
+                # Gate on successful samples used for percentiles, not raw
+                # request count (failures must not unlock a thin p95).
+                if len(success_times) < self.min_requests_for_check:
+                    continue
 
                 breached = False
                 slo95 = self.endpoint_slo_p95_ms.get(name)
                 if slo95 is not None:
                     p95 = self._percentile(name, method, 0.95)
                     if p95 is not None and p95 > slo95:
-                        print(f"[shape] SLO breach: {name} p95={p95}ms > SLO-95={slo95}ms at {user_count} users")
+                        print(
+                            f"[shape] SLO breach: {name} p95={p95}ms > SLO-95={slo95}ms "
+                            f"at {user_count} users (n={len(success_times)})"
+                        )
                         breached = True
                 slo99 = self.endpoint_slo_p99_ms.get(name)
                 if slo99 is not None:
                     p99 = self._percentile(name, method, 0.99)
                     if p99 is not None and p99 > slo99:
-                        print(f"[shape] SLO breach: {name} p99={p99}ms > SLO-99={slo99}ms at {user_count} users")
+                        print(
+                            f"[shape] SLO breach: {name} p99={p99}ms > SLO-99={slo99}ms "
+                            f"at {user_count} users (n={len(success_times)})"
+                        )
                         breached = True
 
                 if breached:
                     self._breach_user_count = user_count
                     self._breach_run_time = run_time
-                    print(f"[shape] freezing ramp at {user_count} users, soaking for {self.sustain_seconds}s")
+                    print(
+                        f"[shape] freezing ramp at {user_count} users, "
+                        f"soaking for {self.sustain_seconds}s"
+                    )
                     return (user_count, self.step_users)
 
         if user_count > self.max_users:
