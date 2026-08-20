@@ -132,6 +132,102 @@ registry:
     crSectionId: "farmer_farmer_personal_identification_section_01"
 
 
+  # ── Verifiable credentials (agent-issued farmer credential) ────────────────
+  #
+  # MASTER SWITCH: agentPortalApi.enabled.
+  #   false (default) → nothing at all: no Agent Portal API, no UI, no route, no
+  #                     card ConfigMap, no credential_config registration. The
+  #                     farmer_vc_view is still created by the db-seed (it is a
+  #                     view over existing columns and costs nothing unread), but
+  #                     nothing reads it. A registry that does not issue
+  #                     credentials is completely unaffected.
+  #   true            → the Agent Portal is deployed. vcIssuance.enabled then
+  #                     controls whether the issuance routes are mounted inside
+  #                     it, so the portal can be run without issuance if ever
+  #                     needed.
+  #
+  # Before turning it on, the environment also needs (see the VC Issuance docs):
+  #   * Inji Certify installed (commons layer) and global.vcIssuer.did set to the
+  #     SAME DID — the chart refuses to install with it empty;
+  #   * the Keycloak `agent` realm (uncomment keycloak-init.realms.agent in the
+  #     registry subchart) and iam-agent-portal-api enabled in the IAM chart;
+  #   * an eSignet provider row for registrant authentication.
+  agentPortalApi:
+    enabled: false
+    vcIssuance:
+      enabled: false
+      # The register credentials are issued from. Farmer records live in the
+      # Farmer register — same id the sanity suite uses.
+      registerId: a1a4d25a-1cd4-4356-abac-985a0b3c6bcd
+    # Card designs shipped by this chart (templates/vc-card-templates-configmap.yaml).
+    svgConfigMap: '{{ .Release.Name }}-vc-card-templates'
+    pdf:
+      title: "Farmer Registry Credential"
+      issuerName: "Department of Agriculture"
+
+    # The farmer credential. Identity fields only — see the header of
+    # farmer-extension/.../meta_data/vc-views/farmer_vc_view.sql for why the rest
+    # of the farmer profile is deliberately not on the card.
+    vcDefinitions:
+      - config_id: OpenG2PFarmerCredential
+        credential_types: ["VerifiableCredential", "OpenG2PFarmerCredential"]
+        view: farmer_vc_view
+        claim_columns: ["functionalRecordId", "fullName", "dateOfBirth", "gender"]
+        svg_template: farmer-card.svg
+        display_name: "Farmer Credential"
+        # Registered with Certify by the subchart's credential-config-register
+        # Job. The issuer (DID + signing key) is added from global.vcIssuer —
+        # deliberately not repeated here, since it is environment-level.
+        certifyConfig:
+          credentialConfigKeyId: OpenG2PFarmerCredential
+          credentialFormat: ldp_vc
+          credentialTypes: ["VerifiableCredential", "OpenG2PFarmerCredential"]
+          contextURLs: ["https://www.w3.org/2018/credentials/v1"]
+          scope: openg2p_farmer_vc_ldp
+          displayOrder: ["functionalRecordId", "fullName", "dateOfBirth", "gender"]
+          metaDataDisplay:
+            - name: "OpenG2P Farmer Credential"
+              locale: en
+          credentialSubjectDefinition:
+            functionalRecordId: { display: [{ name: "Farmer ID", locale: en }] }
+            fullName: { display: [{ name: "Full Name", locale: en }] }
+            dateOfBirth: { display: [{ name: "Date of Birth", locale: en }] }
+            gender: { display: [{ name: "Gender", locale: en }] }
+          # Authored as readable JSON so a reviewer can see exactly what a farmer
+          # credential contains; the register Job base64-encodes it for Certify.
+          # ${_issuer} / ${_holderId} / ${validFrom} / ${validUntil} are filled by
+          # Certify; the rest are the pushed claims.
+          vcTemplateJson: |
+            {
+              "@context": [
+                "https://www.w3.org/2018/credentials/v1",
+                {
+                  "OpenG2PFarmerCredential": "https://openg2p.org/ns#OpenG2PFarmerCredential",
+                  "functionalRecordId": "https://schema.org/identifier",
+                  "fullName": "https://schema.org/name",
+                  "dateOfBirth": "https://schema.org/birthDate",
+                  "gender": "https://schema.org/gender"
+                },
+                "https://w3id.org/security/suites/ed25519-2020/v1"
+              ],
+              "issuer": "${_issuer}",
+              "type": ["VerifiableCredential", "OpenG2PFarmerCredential"],
+              "issuanceDate": "${validFrom}",
+              "expirationDate": "${validUntil}",
+              "credentialSubject": {
+                "id": "${_holderId}",
+                "functionalRecordId": "${functionalRecordId}",
+                "fullName": "${fullName}",
+                "dateOfBirth": "${dateOfBirth}",
+                "gender": "${gender}"
+              }
+            }
+
+  # The agent's reference web portal. Follows the API switch.
+  agentPortalUi:
+    enabled: false
+
+
 # ── Analytics: sample data, reporting views, dashboards ──────────────────────
 # Runs after the registry db-seed (hook weight 10) as 15 -> 20 -> 30.
 #

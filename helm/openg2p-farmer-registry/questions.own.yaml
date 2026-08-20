@@ -24,3 +24,55 @@
   default: "0 * * * *"
   group: "Analytics"
   show_if: "analytics.reportingViews.enabled=true"
+
+# ── Verifiable credentials ───────────────────────────────────────────────────
+# The master switch is the first question: with it off nothing is deployed and
+# the other two are hidden. Enabling it also needs an installed Inji Certify,
+# the Keycloak `agent` realm and an eSignet provider — see the VC Issuance docs.
+
+- variable: registry.agentPortalApi.enabled
+  label: "Farmer credential issuance"
+  description: >-
+    Let agents issue a printed, offline-verifiable farmer credential. The
+    beneficiary authenticates in person via eSignet before anything is issued.
+    Off by default; turning it off removes the portal, its route and the card
+    templates entirely.
+  type: boolean
+  default: false
+  group: "Verifiable Credentials"
+
+- variable: registry.agentPortalApi.vcIssuance.enabled
+  label: "Enable issuance endpoints"
+  description: >-
+    Mount the issuance endpoints inside the Agent Portal. Separate from the
+    switch above so the portal can be deployed without issuance if needed.
+  type: boolean
+  default: false
+  group: "Verifiable Credentials"
+  show_if: "registry.agentPortalApi.enabled=true"
+
+- variable: registry.agentPortalUi.enabled
+  label: "Agent portal web UI"
+  description: The reference web client agents use to issue credentials.
+  type: boolean
+  default: false
+  group: "Verifiable Credentials"
+  show_if: "registry.agentPortalApi.enabled=true"
+
+- variable: registry.global.vcIssuer.did
+  label: "Issuer DID"
+  description: >-
+    Identity every credential is signed under. MUST match the DID configured at
+    Inji Certify install — the chart refuses to install with it empty rather
+    than signing credentials no verifier can validate.
+  type: string
+  group: "Verifiable Credentials"
+  show_if: "registry.agentPortalApi.vcIssuance.enabled=true"
+
+- variable: registry.agentPortalApi.pdf.issuerName
+  label: "Issuing authority"
+  description: Authority name printed on the credential card.
+  type: string
+  default: "Department of Agriculture"
+  group: "Verifiable Credentials"
+  show_if: "registry.agentPortalApi.vcIssuance.enabled=true"

@@ -1,0 +1,29 @@
+{{- /*
+  The card designs for printed farmer credentials.
+
+  Gated on the SAME switch as the Agent Portal API itself, so turning VC issuance
+  off leaves nothing behind — no ConfigMap, no pod, no route. Built from real
+  .svg files in files/pdf-templates/ so a designer owns the artwork rather than
+  a template string inside a chart.
+
+  The registry subchart mounts this by name at /app/pdf-templates
+  (registry.agentPortalApi.svgConfigMap).
+*/ -}}
+{{- if and .Values.registry.agentPortalApi.enabled .Values.registry.agentPortalApi.vcIssuance.enabled }}
+{{- $cards := .Files.Glob "files/pdf-templates/*.svg" }}
+{{- if $cards }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-vc-card-templates
+  labels:
+    app.kubernetes.io/name: vc-card-templates
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+{{- range $path, $_ := $cards }}
+  {{ base $path }}: |-
+{{ $.Files.Get $path | indent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}
