@@ -153,8 +153,17 @@ registry:
   #     registry subchart) and iam-agent-portal-api enabled in the IAM chart;
   #   * an eSignet provider row for registrant authentication.
   agentPortalApi:
-    enabled: false
+    # ON by default: the Farmer Registry ships the agent portal as part of the
+    # product. Set to false to remove it entirely.
+    enabled: true
     vcIssuance:
+      # OFF by default, and it cannot sensibly be otherwise: issuance needs
+      # global.vcIssuer.did, which is environment-specific (it must equal the DID
+      # configured at Inji Certify install) and has no meaningful default. The
+      # chart deliberately FAILS the install if this is on with an empty DID,
+      # rather than registering credential configs that sign with a blank issuer.
+      #
+      # To turn issuance on: set global.vcIssuer.did, then set this true.
       enabled: false
       # The register credentials are issued from. Farmer records live in the
       # Farmer register — same id the sanity suite uses.
@@ -223,9 +232,10 @@ registry:
               }
             }
 
-  # The agent's reference web portal. Follows the API switch.
+  # The agent's reference web portal — the only way an agent actually uses the
+  # portal, so it follows the API rather than being opt-in separately.
   agentPortalUi:
-    enabled: false
+    enabled: true
 
 
 # ── Analytics: sample data, reporting views, dashboards ──────────────────────
