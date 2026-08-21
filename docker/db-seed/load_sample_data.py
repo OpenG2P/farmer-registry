@@ -26,6 +26,21 @@ import psycopg2.extras
 from psycopg2.extras import Json
 
 
+def _clean_id(value):
+    """Strip whitespace from a foundational ID.
+
+    The ID must be byte-identical to the one held by the ID system: eSignet
+    matches it exactly, and the registrant-authentication binding then compares
+    the authenticated subject against this column. A grouped ID ("4028 6914
+    8701") seeded here can only be authenticated by typing the spaces, which is
+    not how the number is entered. Master Data now normalises on load; this
+    keeps an already-seeded MDS from reintroducing the grouped form.
+    """
+    if not isinstance(value, str):
+        return value
+    return "".join(value.split()) or None
+
+
 def to_json(value):
     return None if value is None else Json(value)
 
@@ -317,7 +332,7 @@ def load_people_from_mds() -> tuple:
             "estimated_age": i.get("age"),
             "marital_status": i.get("marital_status"),
             "education_level": i.get("education_level"),
-            "foundational_id": i.get("national_id"),
+            "foundational_id": _clean_id(i.get("national_id")),
             "foundational_id_masked": None,
             "phone_numbers": ([{"type": "personal", "number": i["phone"], "is_primary": True}]
                               if i.get("phone") else None),
