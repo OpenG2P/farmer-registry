@@ -551,7 +551,10 @@ def search_text_person(p: dict) -> str:
         p.get("foundational_id") or "", p.get("gender") or "",
         p.get("birth_date") or "", p.get("marital_status") or "",
     ]
-    return " ".join(x for x in parts if x)
+    # str() every part: master-data now returns birth_date as a real date rather
+    # than the "<year>-01-01" string this used to synthesise, and join() rejects a
+    # non-str — which failed the whole seed with zero records loaded.
+    return " ".join(str(x) for x in parts if x)
 
 
 def insert_farmers(cur, individuals: list, extras_by_id: dict) -> None:

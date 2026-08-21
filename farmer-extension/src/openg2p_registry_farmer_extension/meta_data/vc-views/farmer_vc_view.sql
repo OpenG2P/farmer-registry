@@ -36,10 +36,13 @@ SELECT
     -- identifiers, and these must match the ${...} variables in the credential
     -- template exactly.
     r.functional_record_id                                 AS "functionalRecordId",
-    NULLIF(TRIM(BOTH ' ' FROM
-        COALESCE(r.first_name, '')  || ' ' ||
-        COALESCE(r.middle_name, '') || ' ' ||
-        COALESCE(r.last_name, '')
+    -- concat_ws skips NULLs outright; NULLIF maps '' to NULL so an empty
+    -- middle name collapses too. Concatenating with literal spaces instead
+    -- leaves "Abebe  Berhanu" (two spaces) printed on the credential.
+    NULLIF(CONCAT_WS(' ',
+        NULLIF(r.first_name, ''),
+        NULLIF(r.middle_name, ''),
+        NULLIF(r.last_name, '')
     ), '')                                                 AS "fullName",
     -- Dates as text so the credential carries clean string values rather than a
     -- driver-dependent rendering.
