@@ -9,7 +9,14 @@
   The registry subchart mounts this by name at /app/pdf-templates
   (registry.agentPortalApi.svgConfigMap).
 */ -}}
-{{- if and .Values.registry.agentPortalApi.enabled .Values.registry.agentPortalApi.vcIssuance.enabled }}
+{{- /*
+  Gated on the portal being deployed, NOT on vcIssuance. The registry subchart
+  mounts this ConfigMap whenever agentPortalApi.svgConfigMap is set, so gating it
+  on issuance left the pod mounting a ConfigMap that was never created and stuck
+  in ContainerCreating. The cards are portal assets; a few KB of unread SVG when
+  issuance is off is cheaper than that failure mode.
+*/ -}}
+{{- if .Values.registry.agentPortalApi.enabled }}
 {{- $cards := .Files.Glob "files/pdf-templates/*.svg" }}
 {{- if $cards }}
 apiVersion: v1
