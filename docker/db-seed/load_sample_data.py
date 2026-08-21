@@ -304,9 +304,16 @@ def load_people_from_mds() -> tuple:
             "last_name": i.get("fathers_name"),
             "given_name": i.get("given_name"),
             "gender": i.get("gender"),
-            # Only a birth year is carried; a made-up day and month would read as
-            # a precision the sample does not have.
-            "birth_date": f"{i['birth_year']}-01-01" if i.get("birth_year") else None,
+            # The pack carries a full birth_date. Older packs carry only
+            # birth_year, and this fell back to 1 January for them — which put
+            # every sample person in the country on the same birthday, so any
+            # chart binned by month or day showed one enormous January spike.
+            # The fallback stays for those packs; it is not a precision the
+            # sample has, it is the only date its column can hold.
+            "birth_date": (
+                i.get("birth_date")
+                or (f"{i['birth_year']}-01-01" if i.get("birth_year") else None)
+            ),
             "estimated_age": i.get("age"),
             "marital_status": i.get("marital_status"),
             "education_level": i.get("education_level"),
