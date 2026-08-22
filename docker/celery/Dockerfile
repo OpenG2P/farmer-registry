@@ -7,7 +7,7 @@
 # runs as worker or beat, selected at runtime via CELERY_APP.
 #
 # Build context = repo root (so farmer-extension/ is reachable).
-ARG RP_VERSION=0.0.0-develop.403
+ARG RP_VERSION=0.0.0-develop.404
 FROM registry.gitlab.com/openg2p/registry/registry-platform/celery:${RP_VERSION}
 
 # Option C: select farmer's domain model (coexists with the base image's
