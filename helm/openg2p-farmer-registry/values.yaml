@@ -164,7 +164,7 @@ registry:
       # rather than registering credential configs that sign with a blank issuer.
       #
       # To turn issuance on: set global.vcIssuer.did, then set this true.
-      enabled: false
+      enabled: true
       # The register credentials are issued from. Farmer records live in the
       # Farmer register — same id the sanity suite uses.
       registerId: a1a4d25a-1cd4-4356-abac-985a0b3c6bcd
