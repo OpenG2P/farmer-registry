@@ -35,7 +35,14 @@ global:
   masterDataDB: 'master_data'
   masterDataDBPort: 5432
   masterDataDBUser: 'master_data_user'
-  masterDataDBSecret: 'master-data'
+  # Must be 'master-data-db', NOT 'master-data': keycloak-init names its
+  # client-secret Secret after the clientId, and a 'master-data' Keycloak client
+  # exists. Both templates create-if-absent with resource-policy keep, so
+  # whichever ran first won and the other silently skipped — leaving a Secret
+  # holding only client_secret. Every consumer then failed to start with
+  # "couldn't find key master-data-db-user in Secret master-data".
+  # commons-services renamed it; this must match.
+  masterDataDBSecret: 'master-data-db'
   masterDataDBUserPasswordKey: 'master-data-db-user'
 
 # ── openg2p-registry subchart overrides ───────────────────────────────────────
