@@ -1221,7 +1221,7 @@ def main() -> None:
     approver2 = env("INTAKE_SEED_APPROVER_2", "nina.patel")
     ingest_timeout = env_int("INTAKE_SEED_INGEST_TIMEOUT", 180)
     approve_timeout = env_int("INTAKE_SEED_APPROVE_TIMEOUT", 180)
-    max_hh = env_int("INTAKE_SEED_MAX_HOUSEHOLDS", 50)
+    max_hh = env_int("INTAKE_SEED_MAX_HOUSEHOLDS", 25)
 
     if already_seeded() and not env_bool("INTAKE_SEED_FORCE"):
         log("register already has household + farmer rows — skip (INTAKE_SEED_FORCE=true to redo).")
