@@ -59,7 +59,7 @@ maintainers:
 dependencies:
   - name: openg2p-registry
     alias: registry
-    version: 0.0.0-develop.409
+    version: 0.0.0-develop.411
     repository: https://gitlab.com/api/v4/projects/84460547/packages/helm/stable
 
 # Rancher catalog branding
