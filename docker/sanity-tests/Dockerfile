@@ -20,7 +20,7 @@
 # farmer images and the openg2p-registry chart dependency.
 #
 # Build context = repo root.
-ARG RP_VERSION=0.0.0-develop.415
+ARG RP_VERSION=0.0.0-develop.417
 FROM registry.gitlab.com/openg2p/registry/registry-platform/sanity-tests:${RP_VERSION}
 
 COPY test/sanity/sanity/fixtures.py                /app/sanity/fixtures.py
