@@ -56,7 +56,7 @@ registry:
       submitUser: alex.carter
       approver1: alex.carter
       approver2: nina.patel
-      maxHouseholds: 50
+      maxHouseholds: 25
     resources:
       requests:
         cpu: 50m

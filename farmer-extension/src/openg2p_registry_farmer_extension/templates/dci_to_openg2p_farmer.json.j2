@@ -20,7 +20,7 @@
 {% elif gender_value == "FEMALE" %}
   {% set gender_value = "FEMALE" %}
 {% elif gender_value in ["OTHER", "OTHERS"] %}
-  {% set gender_value = "OTHERS" %}
+  {% set gender_value = "OTHER" %}
 {% else %}
   {% set gender_value = "UNKNOWN" %}
 {% endif %}
@@ -30,13 +30,13 @@
   {% set marital_status = "UNKNOWN" %}
 {% endif %}
 
-{% set source_of_income = "OTHERS" %}
+{% set source_of_income = "SOI_OTHERS" %}
 {% if farm_details %}
   {% set first_activity = (first_farm.get("farming_activities", []) | first) or {} %}
   {% if first_activity.get("crop_production") %}
-    {% set source_of_income = "CROP_PRODUCTION" %}
+    {% set source_of_income = "SOI_CROP_PRODUCTION" %}
   {% elif first_activity.get("animal_production") %}
-    {% set source_of_income = "LIVESTOCK_PRODUCTION" %}
+    {% set source_of_income = "SOI_LIVESTOCK_PRODUCTION" %}
   {% endif %}
 {% endif %}
 
@@ -87,7 +87,10 @@
     {% set member_name = member_demo.get("name", {}) %}
     {% set member_identifier = member_demo.get("identifier", (member.get("member_identifier", []) | first) or {}) %}
     {% set member_gender = (member_demo.get("gender", member_demo.get("sex", "")) or "UNKNOWN") | upper %}
-    {% if member_gender not in ["MALE", "FEMALE", "OTHERS", "UNKNOWN"] %}
+    {% if member_gender == "OTHERS" %}
+      {% set member_gender = "OTHER" %}
+    {% endif %}
+    {% if member_gender not in ["MALE", "FEMALE", "OTHER", "UNKNOWN"] %}
       {% set member_gender = "UNKNOWN" %}
     {% endif %}
     {

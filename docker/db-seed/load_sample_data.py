@@ -57,25 +57,31 @@ ARTIFACT_INTAKE = "registry.intake_form"
 
 EDU_MAP = {
     "NONE": "ILLITERATE",
-    "PRIMARY": "BASIC",
-    "SECONDARY": "INTERMEDIARY",
-    "TERTIARY": "HIGHER_EDUCATION",
     "VOCATIONAL": "CAN_READ_AND_WRITE",
     "ILLITERATE": "ILLITERATE",
     "CAN_READ_AND_WRITE": "CAN_READ_AND_WRITE",
+    "NON_FORMAL": "NON_FORMAL",
+    "NEVER_ATTEND": "NEVER_ATTEND",
     "BASIC": "BASIC",
+    "PRIMARY": "PRIMARY",
     "INTERMEDIARY": "INTERMEDIARY",
+    "SECONDARY": "SECONDARY",
+    "TERTIARY": "TERTIARY",
     "HIGHER_EDUCATION": "HIGHER_EDUCATION",
 }
 INCOME_MAP = {
-    "CROP_PRODUCTION": "CROP_PRODUCTION",
-    "LIVESTOCK_PRODUCTION": "LIVESTOCK_PRODUCTION",
-    "LIVESTOCK": "LIVESTOCK_PRODUCTION",
-    "GOVERNMENT_NGO_SUPPORT": "GOVERNMENT_NGO_SUPPORT",
-    "OTHERS": "OTHERS",
-    "REMITTANCES": "OTHERS",
-    "WAGE_LABOR": "OTHERS",
-    "BUSINESS_TRADE": "OTHERS",
+    "CROP_PRODUCTION": "SOI_CROP_PRODUCTION",
+    "SOI_CROP_PRODUCTION": "SOI_CROP_PRODUCTION",
+    "LIVESTOCK_PRODUCTION": "SOI_LIVESTOCK_PRODUCTION",
+    "SOI_LIVESTOCK_PRODUCTION": "SOI_LIVESTOCK_PRODUCTION",
+    "LIVESTOCK": "SOI_LIVESTOCK_PRODUCTION",
+    "GOVERNMENT_NGO_SUPPORT": "SOI_GOVERNMENT_NGO_SUPPORT",
+    "SOI_GOVERNMENT_NGO_SUPPORT": "SOI_GOVERNMENT_NGO_SUPPORT",
+    "OTHERS": "SOI_OTHERS",
+    "SOI_OTHERS": "SOI_OTHERS",
+    "REMITTANCES": "SOI_OTHERS",
+    "WAGE_LABOR": "SOI_OTHERS",
+    "BUSINESS_TRADE": "SOI_OTHERS",
 }
 LANG_MAP = {
     "ENGLISH": "ENGLISH",
@@ -248,92 +254,13 @@ def _map_edu(value: str | None) -> str:
 
 
 def _map_income(value: str | None) -> str:
-    key = (value or "CROP_PRODUCTION").upper()
-    return INCOME_MAP.get(key, "CROP_PRODUCTION")
+    key = (value or "SOI_CROP_PRODUCTION").upper()
+    return INCOME_MAP.get(key, "SOI_CROP_PRODUCTION")
 
 
 def _map_lang(value: str | None) -> str:
     key = (value or "ENGLISH").upper()
     return LANG_MAP.get(key, "ENGLISH")
-
-
-def load_people_from_mds() -> tuple[list, list]:
-    conn = _md_connect()
-    if conn is None:
-        return [], []
-    try:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            for table in ("g2p_sample_individuals", "g2p_sample_households"):
-                cur.execute("select to_regclass(%s)", (f"public.{table}",))
-                if cur.fetchone()["to_regclass"] is None:
-                    return [], []
-            cur.execute("select * from g2p_sample_individuals order by individual_id")
-            inds = [dict(r) for r in cur.fetchall()]
-            cur.execute("select * from g2p_sample_households order by household_id")
-            hhs = [dict(r) for r in cur.fetchall()]
-    except Exception as exc:  # noqa: BLE001
-        log(f"could not read master-data samples ({exc}).")
-        return [], []
-    finally:
-        conn.close()
-    if not inds:
-        return [], []
-
-    individuals = []
-    for i in inds:
-        birth = f"{i['birth_year']}-01-01" if i.get("birth_year") else "1985-01-01"
-        individuals.append(
-            {
-                "internal_record_id": i["individual_id"],
-                "household_id": i.get("household_id"),
-                "full_name": i.get("full_name") or f"{i.get('given_name') or ''} {i.get('fathers_name') or ''}".strip(),
-                "first_name": i.get("given_name") or "Farmer",
-                "middle_name": None,
-                "last_name": i.get("fathers_name") or "Seed",
-                "given_name": i.get("given_name") or "Farmer",
-                "gender": (i.get("gender") or "MALE").upper(),
-                "birth_date": birth,
-                "estimated_age": i.get("age") or _age_from_birth(birth, 40),
-                "marital_status": (i.get("marital_status") or "MARRIED").upper(),
-                "education_level": _map_edu(i.get("education_level")),
-                "foundational_id": i.get("national_id") or f"NID-{i['individual_id'][-6:]}",
-                "phone": i.get("phone"),
-                "latitude": i.get("latitude"),
-                "longitude": i.get("longitude"),
-                "address_line_1": _address_line(i.get("address_parts")),
-                "country_code": i.get("country"),
-                "geo_pcode": i.get("geo_pcode"),
-            }
-        )
-
-    by_hh: dict[str, list] = {}
-    for i in individuals:
-        by_hh.setdefault(i.get("household_id"), []).append(i)
-
-    households = []
-    head_of = {h["household_id"]: h.get("head_individual_id") for h in hhs}
-    for h in hhs:
-        members = by_hh.get(h["household_id"], [])
-        head = next(
-            (m for m in members if m["internal_record_id"] == head_of.get(h["household_id"])),
-            members[0] if members else None,
-        )
-        if not members or not head:
-            continue
-        households.append(
-            {
-                "household_id": h["household_id"],
-                "head": head,
-                "members": members,
-                "latitude": h.get("latitude") or head.get("latitude"),
-                "longitude": h.get("longitude") or head.get("longitude"),
-                "address_line_1": _address_line(h.get("address_parts")) or head.get("address_line_1"),
-                "country_code": h.get("country") or head.get("country_code"),
-                "geo_pcode": h.get("geo_pcode") or head.get("geo_pcode"),
-            }
-        )
-    log(f"master-data samples: {len(individuals)} individuals, {len(households)} households.")
-    return individuals, households
 
 
 def _read_csv_rows(path: Path, json_columns: set) -> list:
@@ -513,7 +440,9 @@ def geo_fields(rec: dict) -> dict:
 
 def person_fields(person: dict, *, extra: dict | None = None) -> dict:
     gender = (person.get("gender") or "MALE").upper()
-    if gender not in ("MALE", "FEMALE", "OTHERS", "UNKNOWN"):
+    if gender == "OTHERS":
+        gender = "OTHER"
+    if gender not in ("MALE", "FEMALE", "OTHER", "UNKNOWN"):
         gender = "MALE"
     marital = (person.get("marital_status") or "MARRIED").upper()
     if marital not in ("SINGLE", "MARRIED", "DIVORCED", "WIDOWED", "SEPARATED", "UNKNOWN"):
@@ -971,7 +900,12 @@ def member_payload(member: dict, household_intake_id: str) -> dict:
 
 def farmer_extra(index: int) -> dict:
     disabled = index % 4 == 0
-    income = ("CROP_PRODUCTION", "LIVESTOCK_PRODUCTION", "GOVERNMENT_NGO_SUPPORT", "OTHERS")[index % 4]
+    income = (
+        "SOI_CROP_PRODUCTION",
+        "SOI_LIVESTOCK_PRODUCTION",
+        "SOI_GOVERNMENT_NGO_SUPPORT",
+        "SOI_OTHERS",
+    )[index % 4]
     return {
         "estimated_age": None,  # filled from birth
         "has_personal_phone": True,
@@ -979,7 +913,7 @@ def farmer_extra(index: int) -> dict:
         "disability_type": "MOBILITY" if disabled else None,
         "disability_severity": "SOME_DIFFICULTY" if disabled else None,
         "source_of_income": income,
-        "source_of_income_other": "Seasonal work" if income == "OTHERS" else None,
+        "source_of_income_other": "Seasonal work" if income == "SOI_OTHERS" else None,
         "language_spoken": ("ENGLISH", "HINDI", "FRENCH", "SPANISH")[index % 4],
         "national_id_masked": "XXXXXX1234",
     }
@@ -995,11 +929,11 @@ def land_payload(hh: dict, farmer_id: str, index: int) -> dict:
         "certificate_storage_id": None,
         "land_size": 2.5 + index,
         "unit": "HECTARE",
-        "soil_fertility": ("HIGH", "MEDIUM", "LOW")[index % 3],
+        "soil_fertility": ("SF_HIGH", "SF_MEDIUM", "SF_LOW")[index % 3],
         "current_land_use": "AGRICULTURAL",
         "farming_type": "MIXED",
         "year_of_acquisition": 2018,
-        "means_of_acquisition": "INHERITANCE",
+        "means_of_acquisition": "MOA_INHERITANCE",
         **geo,
         "shape_type": "POINT",
         "shape_coordinates_json": {"type": "Point", "coordinates": [lon, lat]},
@@ -1007,23 +941,23 @@ def land_payload(hh: dict, farmer_id: str, index: int) -> dict:
 
 
 def crop_payload(land_id: str, index: int) -> dict:
-    commodity = ("MAIZE", "WHEAT", "TEFF")[index % 3]
+    commodity = ("CROP_MAIZE", "CROP_WHEAT", "CROP_TEFF")[index % 3]
     planted = (date.today() - timedelta(days=40)).isoformat()
     return {
         "link_internal_record_id": land_id,
         "commodity": commodity,
         "planted_date": planted,
-        "season": "SUMMER",
+        "season": "SEASON_SUMMER",
         "end_use": "FOOD_HUMAN_CONSUMPTION",
     }
 
 
 def livestock_payload(land_id: str, index: int) -> dict:
-    kind = ("GOAT", "CATTLE", "SHEEP")[index % 3]
+    kind = ("LSTK_GOAT", "LSTK_CATTLE", "LSTK_SHEEP")[index % 3]
     return {
         "link_internal_record_id": land_id,
         "livestock_type": kind,
-        "breed": "LOCAL",
+        "breed": "BREED_LOCAL",
         "head_count": 6 + index,
         "livestock_system": "MIXED",
     }
@@ -1036,7 +970,7 @@ def farm_inputs_payload(land_id: str) -> dict:
         "pesticide_use": False,
         "insecticide_use": False,
         "improved_seed_use": True,
-        "water_source": "WELL_GROUND_WATER",
+        "water_source": "WS_WELL_GROUND",
         "access_to_machinery": True,
         "access_to_finance": False,
     }
@@ -1221,16 +1155,14 @@ def main() -> None:
     approver2 = env("INTAKE_SEED_APPROVER_2", "nina.patel")
     ingest_timeout = env_int("INTAKE_SEED_INGEST_TIMEOUT", 180)
     approve_timeout = env_int("INTAKE_SEED_APPROVE_TIMEOUT", 180)
-    max_hh = env_int("INTAKE_SEED_MAX_HOUSEHOLDS", 50)
+    max_hh = env_int("INTAKE_SEED_MAX_HOUSEHOLDS", 25)
 
     if already_seeded() and not env_bool("INTAKE_SEED_FORCE"):
         log("register already has household + farmer rows — skip (INTAKE_SEED_FORCE=true to redo).")
         return
 
     load_geo_indexes()
-    _, households = load_people_from_mds()
-    if not households:
-        _, households = load_people_from_csv()
+    _, households = load_people_from_csv()
     if not households:
         households = synthetic_households(max_hh)
     households = households[:max_hh]
