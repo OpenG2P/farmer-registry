@@ -12,7 +12,7 @@
 #
 # Build context = repo root (so farmer-extension/ is reachable).
 ARG RP_VERSION=1.2.0-rc.434
-FROM openg2p/openg2p-farmer-registry-staff-api:${RP_VERSION}
+FROM openg2p/openg2p-registry-staff-api:${RP_VERSION}
 
 # Option C: select farmer's domain model (coexists with the base image's
 # reference extension; env picks farmer, no uninstall needed).

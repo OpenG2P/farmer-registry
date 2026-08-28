@@ -21,7 +21,7 @@
 #
 # Build context = repo root.
 ARG RP_VERSION=1.2.0-rc.434
-FROM openg2p/openg2p-farmer-registry-sanity-tests:${RP_VERSION}
+FROM openg2p/openg2p-registry-sanity-tests:${RP_VERSION}
 
 COPY test/sanity/sanity/fixtures.py                /app/sanity/fixtures.py
 COPY test/sanity/sanity/data_seed.py               /app/sanity/data_seed.py
