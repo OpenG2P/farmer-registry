@@ -26,23 +26,23 @@ registry:
   # base image they extend is pinned by the openg2p-registry dependency version.
   staffApi:
     image:
-      repository: registry.gitlab.com/openg2p/registry/farmer-registry/staff-api
+      repository: openg2p/openg2p-farmer-registry-staff-api
       tag: 0.0.0-develop
   partnerApi:
     image:
-      repository: registry.gitlab.com/openg2p/registry/farmer-registry/partner-api
+      repository: openg2p/openg2p-farmer-registry-partner-api
       tag: 0.0.0-develop
   celeryWorker:
     image:
-      repository: registry.gitlab.com/openg2p/registry/farmer-registry/celery
+      repository: openg2p/openg2p-farmer-registry-celery
       tag: 0.0.0-develop
   celeryBeat:
     image:
-      repository: registry.gitlab.com/openg2p/registry/farmer-registry/celery
+      repository: openg2p/openg2p-farmer-registry-celery
       tag: 0.0.0-develop
   dbSeed:
     image:
-      repository: registry.gitlab.com/openg2p/registry/farmer-registry/db-seed
+      repository: openg2p/openg2p-farmer-registry-db-seed
       tag: 0.0.0-develop
     # The subchart defaults these OFF (minimal reference registry). Farmer ships
     # demo records/geo/images, so turn the db-seed loaders on. NB these are
@@ -94,7 +94,7 @@ registry:
   sanity:
     enabled: true
     image:
-      repository: registry.gitlab.com/openg2p/registry/farmer-registry/sanity-tests
+      repository: openg2p/openg2p-farmer-registry-sanity-tests
       tag: 0.0.0-develop
     regType: Farmer
     regRecordType: 'spdci-extensions-dci:Farmer'
