@@ -22,22 +22,13 @@ CHART_DIR="helm/openg2p-farmer-registry"
 
 REGISTRY_CHART="openg2p-registry"
 
-# registry-platform now publishes to GitLab, not GitHub Pages + Docker Hub: the
-# chart goes to the shared `openg2p/charts` Helm registry, the images to
-# registry-platform's own container registry. The old openg2p-helm Pages index and
-# the openg2p/* Docker Hub repos are frozen at the pre-move versions, so a bump
-# that still read them could never see anything new.
-#
-# Both projects are public -- every read below is anonymous, no token needed.
-# Project PATHS are used (url-encoded) rather than numeric ids so this stays
-# readable. To eyeball a release by hand instead:
-#   https://openg2p.gitlab.io/versions/registry-registry-platform/CHANGELOG.html
-#   https://gitlab.com/groups/openg2p/-/packages
-GL_API="https://gitlab.com/api/v4"
-CHARTS_PROJECT="openg2p%2Fcharts"                     # shared Helm registry
-CHART_CHANNEL="stable"
-RP_PROJECT="openg2p%2Fregistry%2Fregistry-platform"   # container registry
-HELM_INDEX="${GL_API}/projects/${CHARTS_PROJECT}/packages/helm/${CHART_CHANNEL}/index.yaml"
+# registry-platform publishes its chart to the openg2p-helm Pages index and its
+# images to Docker Hub. Both are public, so every read below is anonymous.
+# To eyeball a release by hand instead:
+#   https://openg2p.github.io/versions/registry-platform/CHANGELOG.html
+#   https://hub.docker.com/u/openg2p
+HELM_INDEX="https://openg2p.github.io/openg2p-helm/index.yaml"
+HUB_API="https://hub.docker.com/v2/repositories/openg2p"
 # One representative platform image; all are published together at the same tag.
 PROBE_IMAGE="sanity-tests"
 
@@ -97,25 +88,14 @@ chart_versions() {
 }
 
 image_versions() {
-  # The tags endpoint is keyed by the container repository's numeric id, so look
-  # that up from the path first -- ids are assigned per project and would rot if
-  # hardcoded here.
-  local repo_id
-  repo_id=$(curl -fsSL "${GL_API}/projects/${RP_PROJECT}/registry/repositories?per_page=100" 2>/dev/null \
-    | python3 -c "
-import sys, json
-want = sys.argv[1]
-for r in json.load(sys.stdin):
-    if r.get('path','').rsplit('/',1)[-1] == want:
-        print(r['id']); break
-" "$PROBE_IMAGE") || return 1
-  [ -n "$repo_id" ] || return 1
+  # Docker Hub addresses repositories by name, so no id lookup is needed.
+  local repo_id="openg2p-registry-${PROBE_IMAGE}"
 
   # paginate tags (100/page is the max)
   local page=1 body names
   while :; do
-    body=$(curl -fsSL "${GL_API}/projects/${RP_PROJECT}/registry/repositories/${repo_id}/tags?per_page=100&page=${page}" 2>/dev/null) || break
-    names=$(printf '%s' "$body" | python3 -c "import sys,json; [print(t['name']) for t in json.load(sys.stdin)]" 2>/dev/null) || break
+    body=$(curl -fsSL "${HUB_API}/${repo_id}/tags?page_size=100&page=${page}" 2>/dev/null) || break
+    names=$(printf '%s' "$body" | python3 -c "import sys,json; [print(t['name']) for t in json.load(sys.stdin).get('results',[])]" 2>/dev/null) || break
     [ -n "$names" ] || break
     printf '%s\n' "$names"
     page=$((page+1))
