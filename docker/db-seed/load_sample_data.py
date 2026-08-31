@@ -641,6 +641,7 @@ def insert_households(cur, households: list) -> None:
         "geo_lowest_level_value_id", "geo_code_hierarchy_json",
         "household_head", "size_of_group", "number_of_children",
         "number_of_female_members", "number_of_male_members", "other_land_owner",
+        "elderly_member_present",
     ]
     rows = []
     for hh in households:
@@ -648,6 +649,7 @@ def insert_households(cur, households: list) -> None:
             _as_int(hh.get("size_school_age")) or 0
         )
         other_land_owner = "TRUE" if _seq(hh) % 3 == 0 else "FALSE"
+        elderly_member_present = "TRUE" if _seq(hh) % 4 == 0 else "FALSE"
         rows.append(
             (
                 hh["internal_record_id"], hh["functional_record_id"],
@@ -662,6 +664,7 @@ def insert_households(cur, households: list) -> None:
                 hh["head_name"], _as_int(hh.get("size_total")), num_children,
                 _as_int(hh.get("number_of_female_members")),
                 _as_int(hh.get("number_of_male_members")), other_land_owner,
+                elderly_member_present,
             )
         )
     sql = (
@@ -694,9 +697,12 @@ def insert_household_members(cur, members: list, ind_by_id: dict, remap: dict) -
         "latitude", "longitude", "altitude", "plus_code",
         "address_line_1", "address_line_2", "postal_code", "country_code",
         "geo_lowest_level_value_id", "geo_code_hierarchy_json", "is_disabled",
+        "has_national_id", "is_head", "relationship_to_the_head",
     ]
     rows = []
     skipped = 0
+    heads_assigned = set()
+    relationships = ("CHILD", "SPOUSE", "OTHER")
     for m in members:
         # member_individual_id names a person in the FIXTURE's id space — the same
         # space link_internal_record_id uses. remap_links repoints only the link,
@@ -713,16 +719,24 @@ def insert_household_members(cur, members: list, ind_by_id: dict, remap: dict) -
         if ind is None:
             skipped += 1
             continue
+        household_id = m["link_internal_record_id"]
+        is_head = household_id not in heads_assigned
+        if is_head:
+            heads_assigned.add(household_id)
+        has_national_id = bool(ind.get("foundational_id"))
+        relationship = None if is_head else relationships[_seq(m) % 3]
+        gender = (ind.get("gender") or "").upper()
+        prefix = "MR" if gender == "MALE" else "MRS" if gender == "FEMALE" else None
         rows.append(
             (
                 m["internal_record_id"], m["functional_record_id"],
-                m["link_internal_record_id"], None,
+                household_id, None,
                 ind["full_name"], None,
                 SEEDER, CREATED_AT, CREATED_AT, SEEDER,
                 search_text_person(ind), "ACTIVE", None,
                 ind.get("foundational_id"), ind["first_name"],
                 ind.get("middle_name"), ind["last_name"], ind["given_name"],
-                None, None, ind["gender"], ind["birth_date"],
+                prefix, None, ind["gender"], ind["birth_date"],
                 to_json(ind.get("phone_numbers")),
                 to_json([{"type": "personal", "address": ind["emails"], "is_primary": True}]
                         if ind.get("emails") else None),
@@ -733,6 +747,9 @@ def insert_household_members(cur, members: list, ind_by_id: dict, remap: dict) -
                 ind["postal_code"], ind["country_code"],
                 geo_lowest_id(ind), geo_hierarchy(ind),
                 m.get("is_disabled"),
+                "TRUE" if has_national_id else "FALSE",
+                "TRUE" if is_head else "FALSE",
+                relationship,
             )
         )
     sql = (

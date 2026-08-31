@@ -1,5 +1,5 @@
 from openg2p_registry_core.models.g2p_intake_form import G2PIntakeForm
-from sqlalchemy import Boolean, select
+from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_registry_core.models import (
     G2PRegister, G2PRegisterHistory, G2PPerson, G2PGeo,
@@ -10,6 +10,9 @@ from ..services import G2PRegisterDomainServiceHouseholdMember
 class G2PHouseholdMember:
 
     is_disabled: Mapped[bool] = mapped_column(Boolean, nullable=True)
+    has_national_id: Mapped[bool] = mapped_column(Boolean, nullable=True)
+    is_head: Mapped[bool] = mapped_column(Boolean, nullable=True)
+    relationship_to_the_head: Mapped[str] = mapped_column(String, nullable=True)  # Attribute lookup
 
 # All Register classes should have the prefix G2PRegister
 class G2PRegisterHouseholdMember(G2PRegister, G2PPerson, G2PGeo, G2PHouseholdMember):

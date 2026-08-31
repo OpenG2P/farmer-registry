@@ -16,5 +16,7 @@ INSERT INTO "public"."g2p_attributes" ("attribute_id","attribute_code","attribut
 ('FARMER_CLUSTER_ROLE','FARMER_CLUSTER_ROLE','Farmer Cluster Role','FALSE'),
 ('GENDER','GENDER','Gender','FALSE'),
 ('MARITAL_STATUS','MARITAL_STATUS','Marital Status','FALSE'),
-('SOURCE_OF_INCOME','SOURCE_OF_INCOME','Source Of Income','FALSE')
+('SOURCE_OF_INCOME','SOURCE_OF_INCOME','Source Of Income','FALSE'),
+('PREFIX','PREFIX','Prefix','FALSE'),
+('RELATIONSHIP_TO_THE_HEAD','RELATIONSHIP_TO_THE_HEAD','Relationship To The Head','FALSE')
 ON CONFLICT (attribute_id) DO NOTHING;

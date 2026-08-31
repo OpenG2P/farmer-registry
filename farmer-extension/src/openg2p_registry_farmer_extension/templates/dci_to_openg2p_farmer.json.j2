@@ -78,7 +78,8 @@
       "number_of_children": {{ family_members | length }},
       "number_of_female_members": 0,
       "number_of_male_members": 0,
-      "other_land_owner": false
+      "other_land_owner": false,
+      "elderly_member_present": false
     }
   ],
   "household_members": [
@@ -89,6 +90,10 @@
     {% set member_gender = (member_demo.get("gender", member_demo.get("sex", "")) or "UNKNOWN") | upper %}
     {% if member_gender not in ["MALE", "FEMALE", "OTHERS", "UNKNOWN"] %}
       {% set member_gender = "UNKNOWN" %}
+    {% endif %}
+    {% set member_rel = (member.get("relationship_to_head", member.get("relationship_to_the_head", "")) or "OTHER") | upper %}
+    {% if member_rel not in ["CHILD", "SPOUSE", "OTHER"] %}
+      {% set member_rel = "OTHER" %}
     {% endif %}
     {
       "record_name": "{{ ((member_name.get('first_name', member_name.get('given_name', ''))) ~ ' ' ~ (member_name.get('last_name', member_name.get('surname', '')))).strip() }}",
@@ -102,6 +107,9 @@
       "birth_date": "{{ (member_demo.get('date_of_birth', member_demo.get('birth_date', '')) or '').split('T')[0] }}",
       "gender": "{{ member_gender }}",
       "is_disabled": {{ "true" if member.get("is_disabled") else "false" }},
+      "has_national_id": {{ "true" if member_identifier.get("identifier_value") else "false" }},
+      "is_head": false,
+      "relationship_to_the_head": "{{ member_rel }}",
       "registration_date": "{{ (member.get('registration_date', family.get('registration_date', '')) or '').split('T')[0] }}"
     }{% if not loop.last %},{% endif %}
 {% endfor %}

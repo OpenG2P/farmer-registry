@@ -9,6 +9,7 @@ SEARCH_TEXT_FIELDS = [
     "gender", "birth_date", "marital_status", "occupation", "education_level",
     "latitude", "longitude", "altitude", "plus_code", "address_line_1",
     "address_line_2", "postal_code", "country_code", "is_disabled",
+    "has_national_id", "is_head", "relationship_to_the_head",
 ]
 
 
@@ -19,6 +20,15 @@ def generate(household_row: dict) -> dict:
     row.update(random_person_fields())
     row.update(random_geo())
     row["is_disabled"] = random.random() < 0.08
+    row["has_national_id"] = bool(row.get("foundational_id")) and random.random() < 0.7
+    row["is_head"] = random.random() < 0.35
+    row["relationship_to_the_head"] = (
+        None if row["is_head"] else random.choice(["CHILD", "SPOUSE", "OTHER"])
+    )
+    if row.get("gender") == "MALE":
+        row["prefix"] = "MR"
+    elif row.get("gender") == "FEMALE":
+        row["prefix"] = random.choice(["MRS", "MISS"])
 
     row["record_name"] = " ".join(
         p for p in (row["first_name"], row["last_name"]) if p

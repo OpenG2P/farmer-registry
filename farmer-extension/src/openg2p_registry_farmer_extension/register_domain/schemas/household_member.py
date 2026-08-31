@@ -10,6 +10,9 @@ from openg2p_registry_core.schemas import (
 class G2PSchemaHouseholdMember:
 
     is_disabled: Optional[bool] = None
+    has_national_id: Optional[bool] = None
+    is_head: Optional[bool] = None
+    relationship_to_the_head: Optional[str] = None
 
 
 class G2PRegisterSchemaHouseholdMember(G2PRegisterBaseSchema, G2PPersonSchema, G2PGeoSchema, G2PSchemaHouseholdMember):

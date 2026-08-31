@@ -41,6 +41,9 @@ class G2PRegisterDomainServiceHouseholdMember(G2PRegisterDomainService):
             "postal_code",
             "country_code",
             "is_disabled",
+            "has_national_id",
+            "is_head",
+            "relationship_to_the_head",
         ]
         search_text = []
         if extra:
