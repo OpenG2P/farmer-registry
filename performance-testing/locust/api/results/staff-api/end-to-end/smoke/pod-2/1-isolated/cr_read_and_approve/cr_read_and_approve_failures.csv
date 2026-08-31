@@ -1,0 +1,30 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,get_change_request,CatchResponseError('503'),1,2026-08-31T14:41:35Z,2026-08-31T14:41:35Z
+POST,submit_task_decision,CatchResponseError('401'),2,2026-08-31T14:30:26Z,2026-08-31T14:31:45Z
+POST,get_section_ui_schema,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),21,2026-08-31T14:40:36Z,2026-08-31T14:51:01Z
+POST,get_deduplication_change_request_results,CatchResponseError('503'),1,2026-08-31T14:46:52Z,2026-08-31T14:46:52Z
+POST,get_change_request_documents,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),19,2026-08-31T14:40:22Z,2026-08-31T14:50:55Z
+POST,get_register_change_request_summary_data,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),3,2026-08-31T14:43:05Z,2026-08-31T14:49:10Z
+POST,get_deduplication_change_request_results,CatchResponseError('401'),3,2026-08-31T14:29:33Z,2026-08-31T14:32:28Z
+POST,get_register_change_request_summary_data,CatchResponseError('401'),2,2026-08-31T14:29:25Z,2026-08-31T14:31:27Z
+POST,get_change_request,CatchResponseError('401'),1,2026-08-31T14:34:46Z,2026-08-31T14:34:46Z
+POST,list_tasks_for_request,CatchResponseError('401'),2,2026-08-31T14:32:28Z,2026-08-31T14:34:26Z
+POST,get_section_ui_schema,CatchResponseError('403'),6,2026-08-31T14:30:26Z,2026-08-31T14:34:32Z
+POST,get_deduplication_register_results,CatchResponseError('403'),4,2026-08-31T14:33:30Z,2026-08-31T14:34:32Z
+POST,get_change_request,CatchResponseError('403'),3,2026-08-31T14:32:48Z,2026-08-31T14:33:51Z
+POST,get_change_request_documents,CatchResponseError('503'),1,2026-08-31T14:48:54Z,2026-08-31T14:48:54Z
+POST,list_tasks_for_request,CatchResponseError('AWE-ERR-006: AWE_REQUEST_FAILED: upstream connect error or disconnect/reset before headers. reset reason: connection termination (url=https://awe.perftest.openg2p.org/v1/awe/tasks?assignee=me&page=1&page_size=20&request_id=11e061af-f4c7-4e02-952e-8291c4aa76f6)'),1,2026-08-31T14:32:22Z,2026-08-31T14:32:22Z
+POST,get_change_request_documents,CatchResponseError('403'),5,2026-08-31T14:30:26Z,2026-08-31T14:33:50Z
+POST,get_deduplication_change_request_results,CatchResponseError('403'),1,2026-08-31T14:33:51Z,2026-08-31T14:33:51Z
+POST,search_in_change_request,CatchResponseError('403'),1,2026-08-31T14:29:36Z,2026-08-31T14:29:36Z
+POST,submit_task_decision,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),28,2026-08-31T14:39:05Z,2026-08-31T14:50:52Z
+POST,search_in_change_request,CatchResponseError('401'),2,2026-08-31T14:29:26Z,2026-08-31T14:29:36Z
+POST,search_in_change_request,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),8,2026-08-31T14:43:21Z,2026-08-31T14:49:58Z
+POST,get_section_ui_schema,CatchResponseError('503'),1,2026-08-31T14:45:56Z,2026-08-31T14:45:56Z
+POST,get_deduplication_change_request_results,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),24,2026-08-31T14:40:36Z,2026-08-31T14:50:56Z
+POST,get_change_request_documents,CatchResponseError('401'),1,2026-08-31T14:32:44Z,2026-08-31T14:32:44Z
+POST,get_register_change_request_summary_data,CatchResponseError('403'),1,2026-08-31T14:32:48Z,2026-08-31T14:32:48Z
+POST,get_deduplication_register_results,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),22,2026-08-31T14:38:55Z,2026-08-31T14:50:52Z
+POST,submit_task_decision,CatchResponseError('503'),2,2026-08-31T14:48:43Z,2026-08-31T14:49:18Z
+POST,get_change_request,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),14,2026-08-31T14:42:42Z,2026-08-31T14:50:38Z
+POST,get_deduplication_register_results,CatchResponseError('401'),1,2026-08-31T14:31:45Z,2026-08-31T14:31:45Z

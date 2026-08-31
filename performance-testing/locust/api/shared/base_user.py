@@ -5,7 +5,7 @@ from locust import HttpUser, between
 from shared.token_cache import TokenCache
 from shared.config import STAFF_API_BASE
 from shared.request_builder import build_g2p_request
-from shared.response_utils import safe_json
+from shared.response_utils import is_expected_business_error, safe_json
 
 
 class LocustUser(HttpUser):
@@ -62,7 +62,14 @@ class LocustUser(HttpUser):
         else:
             header = safe_json(response).get("response_header", {})
             if header.get("response_status") == "ERROR":
-                response.failure(f"{header.get('response_error_code')}: {header.get('response_error_message')}")
+                if is_expected_business_error(header):
+                    # Sequence-check / already-decided task: HTTP 200, domain
+                    # rejection. Latency is a valid sample; do not mark fail.
+                    response.success()
+                else:
+                    response.failure(
+                        f"{header.get('response_error_code')}: {header.get('response_error_message')}"
+                    )
             else:
                 response.success()
 

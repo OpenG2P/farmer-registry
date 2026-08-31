@@ -1,0 +1,31 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,get_attribute_values,CatchResponseError('401'),1,2026-08-31T14:19:31Z,2026-08-31T14:19:31Z
+POST,get_all_sections,CatchResponseError('403'),3,2026-08-31T14:08:12Z,2026-08-31T14:22:46Z
+POST,get_all_tabs,CatchResponseError('401'),1,2026-08-31T14:15:29Z,2026-08-31T14:15:29Z
+POST,get_subject_record,CatchResponseError('403'),3,2026-08-31T14:06:24Z,2026-08-31T14:22:46Z
+POST,get_attribute_values,CatchResponseError('500'),4,2026-08-31T14:15:38Z,2026-08-31T14:22:11Z
+POST,get_tab_sections,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),91,2026-08-31T14:10:38Z,2026-08-31T14:23:22Z
+POST,get_subject_record,CatchResponseError('401'),2,2026-08-31T14:21:31Z,2026-08-31T14:22:14Z
+POST,get_tab_sections,CatchResponseError('401'),14,2026-08-31T14:07:08Z,2026-08-31T14:23:14Z
+POST,create_change_request_for_core_data,CatchResponseError('403'),1,2026-08-31T14:18:42Z,2026-08-31T14:18:42Z
+POST,get_tab_records,CatchResponseError('403'),16,2026-08-31T14:07:09Z,2026-08-31T14:22:28Z
+POST,get_subject_record,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),8,2026-08-31T14:11:08Z,2026-08-31T14:21:58Z
+POST,get_attribute_values,CatchResponseError('403'),1,2026-08-31T14:19:27Z,2026-08-31T14:19:27Z
+POST,get_register_summary_data,CatchResponseError('401'),2,2026-08-31T14:06:05Z,2026-08-31T14:20:17Z
+POST,create_change_request,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),44,2026-08-31T14:10:59Z,2026-08-31T14:23:15Z
+POST,get_tab_sections,CatchResponseError('403'),13,2026-08-31T14:07:08Z,2026-08-31T14:22:28Z
+POST,search_in_a_register,CatchResponseError('403'),9,2026-08-31T14:06:07Z,2026-08-31T14:22:43Z
+POST,create_change_request_for_core_data,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),3,2026-08-31T14:11:25Z,2026-08-31T14:19:36Z
+POST,get_tab_records,CatchResponseError('503'),1,2026-08-31T14:20:03Z,2026-08-31T14:20:03Z
+POST,get_tab_records,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),486,2026-08-31T14:08:31Z,2026-08-31T14:23:17Z
+POST,get_tab_records,CatchResponseError('401'),10,2026-08-31T14:07:24Z,2026-08-31T14:21:13Z
+POST,create_change_request,CatchResponseError('403'),7,2026-08-31T14:06:21Z,2026-08-31T14:21:29Z
+POST,search_in_a_register,CatchResponseError('401'),6,2026-08-31T14:06:05Z,2026-08-31T14:21:13Z
+POST,get_register_summary_data,CatchResponseError('503'),1,2026-08-31T14:18:02Z,2026-08-31T14:18:02Z
+POST,get_register_summary_data,CatchResponseError('403'),2,2026-08-31T14:14:33Z,2026-08-31T14:18:42Z
+POST,get_all_sections,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),19,2026-08-31T14:11:08Z,2026-08-31T14:22:31Z
+POST,create_change_request,CatchResponseError('401'),4,2026-08-31T14:11:13Z,2026-08-31T14:22:14Z
+POST,get_all_sections,CatchResponseError('401'),2,2026-08-31T14:13:29Z,2026-08-31T14:20:12Z
+POST,search_in_a_register,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),20,2026-08-31T14:10:24Z,2026-08-31T14:21:58Z
+POST,get_all_tabs,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),19,2026-08-31T14:11:39Z,2026-08-31T14:22:41Z
+POST,create_change_request_for_core_data,CatchResponseError('401'),1,2026-08-31T14:21:13Z,2026-08-31T14:21:13Z

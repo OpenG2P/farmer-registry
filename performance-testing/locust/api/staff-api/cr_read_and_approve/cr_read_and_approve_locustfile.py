@@ -43,7 +43,9 @@ class CrReadAndApproveUser(LocustUser):
     Two concurrent users landing on the same search term converge on the same
     oldest-first pending pool and race AWE for the same task (same failure
     mode as intake_read_and_approve: submit_task_decision AWE-007 "already
-    completed"). _terms_in_use is a class-level set -- shared across every
+    completed"). Those envelope ERRORs are expected business rejections and
+    are counted as Locust successes (see is_expected_business_error).
+    _terms_in_use is a class-level set -- shared across every
     user greenlet in this one Locust process (Locust users are gevent
     greenlets, not OS threads, and this file is always run single-process,
     `locust -f ...` with no --processes/--master/--worker -- see

@@ -1,0 +1,11 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,finalize_intake_form_submission,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),5,2026-08-31T15:01:34Z,2026-08-31T15:06:25Z
+POST,save_intake_form_submission,CatchResponseError('503'),1,2026-08-31T15:03:15Z,2026-08-31T15:03:15Z
+POST,finalize_intake_form_submission,CatchResponseError('AWE-ERR-006: AWE_REQUEST_FAILED: Internal Server Error (url=https://awe.perftest.openg2p.org/v1/awe/requests)'),1,2026-08-31T15:05:59Z,2026-08-31T15:05:59Z
+POST,save_intake_form_submission,"CatchResponseError(""REQ-VAL-000: No parent records exist in this submission; cannot link child row for register 'Livestock'"")",10,2026-08-31T15:01:11Z,2026-08-31T15:07:04Z
+POST,get_intake_form_submission,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),5,2026-08-31T15:02:41Z,2026-08-31T15:07:32Z
+POST,save_intake_form_submission,"CatchResponseError(""REQ-VAL-000: No parent records exist in this submission; cannot link child row for register 'FarmInputs'"")",10,2026-08-31T15:01:11Z,2026-08-31T15:07:03Z
+POST,render_intake_form,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),6,2026-08-31T15:00:13Z,2026-08-31T15:06:10Z
+POST,save_intake_form_submission,"CatchResponseError(""REQ-VAL-000: No parent records exist in this submission; cannot link child row for register 'Crop'"")",9,2026-08-31T15:01:11Z,2026-08-31T15:07:03Z
+POST,save_intake_form_submission,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),128,2026-08-31T14:56:10Z,2026-08-31T15:08:09Z
+POST,get_intake_form_submissions_summary,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),8,2026-08-31T15:00:24Z,2026-08-31T15:06:37Z

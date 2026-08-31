@@ -1,0 +1,9 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,get_deduplication_intake_form_intake_form_results,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),1,2026-08-31T15:13:42Z,2026-08-31T15:13:42Z
+POST,get_intake_form_documents,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),2,2026-08-31T15:13:44Z,2026-08-31T15:13:47Z
+POST,get_intake_form_submission,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),1,2026-08-31T15:13:44Z,2026-08-31T15:13:44Z
+POST,submit_task_decision,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),1,2026-08-31T15:13:49Z,2026-08-31T15:13:49Z
+POST,search_in_intake_form_submissions,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),208,2026-08-31T15:13:43Z,2026-08-31T15:31:14Z
+POST,get_deduplication_intake_form_register_results,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),1,2026-08-31T15:13:50Z,2026-08-31T15:13:50Z
+POST,get_intake_form_submissions_summary,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),27,2026-08-31T15:13:46Z,2026-08-31T15:31:16Z
+POST,search_in_intake_form_submissions,CatchResponseError('403'),1,2026-08-31T15:27:08Z,2026-08-31T15:27:08Z
