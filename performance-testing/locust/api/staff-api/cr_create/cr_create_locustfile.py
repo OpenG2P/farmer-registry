@@ -28,6 +28,7 @@ from cr_create_helpers import (
     old_field_value,
     response_error_code,
     response_status,
+    section_ui_schema_from_tab_sections,
     static_enum_options,
     total_pages,
 )
@@ -49,13 +50,39 @@ class CrCreateUser(LocustUser):
 
     host = STAFF_API_BASE
 
+    # Shared across all CrCreateUser greenlets in this process: how many
+    # currently-live users are sticky on each term, so on_start can join
+    # whichever term is least contended right now. Spreads users across more
+    # distinct records, reducing (not eliminating -- there's no server-side
+    # per-section pending-CR uniqueness guard confirmed yet) the odds that two
+    # concurrent users independently create change requests against the same
+    # record's same section. True exclusivity isn't achievable here anyway
+    # once concurrent users outnumber len(SEARCH_TERMS), which a
+    # ramp-to-failure run is designed to do.
+    _term_usage_counts: dict[str, int] = {}
+
     def on_start(self):
         super().on_start()
         # Sticky per user for its whole session -- see
         # staff-api/register_read/register_read_locustfile.py /
         # documentation/seeding-design.md "Search-text anchors".
-        self.search_text = random.choice(SEARCH_TERMS)
+        self.search_text = self._claim_least_used_term()
         print(f"\nDEBUG SEARCH_TERM anchored -> {self.search_text}\n")
+
+    def on_stop(self):
+        if self.search_text:
+            self._term_usage_counts[self.search_text] = max(
+                0, self._term_usage_counts.get(self.search_text, 0) - 1
+            )
+
+    def _claim_least_used_term(self) -> str:
+        if not SEARCH_TERMS:
+            return ""
+        min_count = min(self._term_usage_counts.get(term, 0) for term in SEARCH_TERMS)
+        least_used = [term for term in SEARCH_TERMS if self._term_usage_counts.get(term, 0) == min_count]
+        term = random.choice(least_used)
+        self._term_usage_counts[term] = self._term_usage_counts.get(term, 0) + 1
+        return term
 
     @tag("change_request", "write")
     @task
@@ -86,7 +113,8 @@ class CrCreateUser(LocustUser):
             self._create_change_request_for_tab(internal_record_id, tab_id, section_metadata)
 
     def _create_change_request_for_tab(self, internal_record_id: str, tab_id: str, section_metadata: dict):
-        tab_section_ids = extract_tab_section_ids(safe_json(self._get_tab_sections(tab_id)))
+        tab_sections_response_json = safe_json(self._get_tab_sections(tab_id))
+        tab_section_ids = extract_tab_section_ids(tab_sections_response_json)
         configured_section_ids = [sid for sid in tab_section_ids if sid in CR_FIELD_BY_SECTION]
         if not configured_section_ids:
             print(f"\nDEBUG TAB {tab_id} -> no configured section, skipping\n")
@@ -105,7 +133,7 @@ class CrCreateUser(LocustUser):
             print(f"\nDEBUG section {section_id} -> no record to edit, skipping\n")
             return
 
-        schema_response_json = safe_json(self._get_section_ui_schema(section_id))
+        schema_response_json = section_ui_schema_from_tab_sections(tab_sections_response_json, section_id)
         enum_options = static_enum_options(schema_response_json, field_name)
         print(f"\nDEBUG static_enum_options for {field_name} -> {enum_options}\n")
         if enum_options is None:
@@ -209,23 +237,14 @@ class CrCreateUser(LocustUser):
         return self._post(STAFF_API_BASE, "/register-data/get_tab_records", payload, name="get_tab_records")
 
     # ------------------------------------------------------------------
-    # 5c — get_section_ui_schema (g2p_register_section_metadata_controller)
-    # ------------------------------------------------------------------
-    def _get_section_ui_schema(self, section_id: str):
-        payload = self.build_request(request_payload={"section_id": section_id, "register_id": REGISTER_FARMER})
-        return self._post(
-            STAFF_API_BASE, "/register-section-metadata/get_section_ui_schema", payload, name="get_section_ui_schema"
-        )
-
-    # ------------------------------------------------------------------
-    # 5d — get_attribute_values (g2p_attribute_controller) — allowed values for API-sourced enum fields
+    # 5c — get_attribute_values (g2p_attribute_controller) — allowed values for API-sourced enum fields
     # ------------------------------------------------------------------
     def _get_attribute_values(self, attribute_id: str):
         payload = self.build_request(request_payload={"attribute_id": attribute_id})
         return self._post(STAFF_API_BASE, "/attributes/get_attribute_values", payload, name="get_attribute_values")
 
     # ------------------------------------------------------------------
-    # 5e — upload_documents (g2p_document_controller) — raw multipart, not the
+    # 5d — upload_documents (g2p_document_controller) — raw multipart, not the
     # usual JSON G2PRequest envelope. Same document(s) uploaded for every
     # section with documents_required=True.
     # ------------------------------------------------------------------
@@ -239,7 +258,7 @@ class CrCreateUser(LocustUser):
         )
 
     # ------------------------------------------------------------------
-    # 5f — create_change_request (g2p_register_change_request_controller) — non-core sections
+    # 5e — create_change_request (g2p_register_change_request_controller) — non-core sections
     # ------------------------------------------------------------------
     def _create_change_request(
         self,
@@ -268,7 +287,8 @@ class CrCreateUser(LocustUser):
         return self._post(STAFF_API_BASE, "/change-requests/create_change_request", payload, name="create_change_request")
 
     # ------------------------------------------------------------------
-    # 5f — create_change_request_for_core_data (g2p_change_request_core_controller) — core sections
+    # 5f — create_change_request_for_core_data (g2p_change_request_core_controller) — core sections; routes to
+    # this or 5e (mutually exclusive) based on section_metadata's is_core_section
     # ------------------------------------------------------------------
     def _create_change_request_for_core_data(
         self,

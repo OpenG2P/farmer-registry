@@ -40,6 +40,19 @@ class RegisterUser(LocustUser):
 
     host = STAFF_API_BASE
 
+    # Shared across all RegisterUser greenlets in this process: how many
+    # currently-live users are sticky on each term, so on_start can join
+    # whichever term is least contended right now instead of picking blind.
+    # This is read-only, so many concurrent users piling on one hot term
+    # doesn't cause a race the way it does in the *_read_and_approve flows
+    # (nothing here writes or claims a resource another user could collide
+    # on) -- it's purely to keep search load spread out the way real staff
+    # traffic would be, rather than an artifact of everyone randomly
+    # clustering on the same few terms. True exclusivity isn't achievable
+    # here anyway once concurrent users outnumber len(SEARCH_TERMS), which a
+    # ramp-to-failure run is designed to do.
+    _term_usage_counts: dict[str, int] = {}
+
     def on_start(self):
         super().on_start()
         self.total_pages = None
@@ -48,8 +61,23 @@ class RegisterUser(LocustUser):
         # own searches stay on one term (mirrors a staff user repeatedly
         # searching similar things in one sitting). See
         # performance-testing/seeding/README.md "Search-text anchors".
-        self.search_text = random.choice(SEARCH_TERMS)
+        self.search_text = self._claim_least_used_term()
         print(f"\nDEBUG SEARCH_TERM anchored -> {self.search_text}\n")
+
+    def on_stop(self):
+        if self.search_text:
+            self._term_usage_counts[self.search_text] = max(
+                0, self._term_usage_counts.get(self.search_text, 0) - 1
+            )
+
+    def _claim_least_used_term(self) -> str:
+        if not SEARCH_TERMS:
+            return ""
+        min_count = min(self._term_usage_counts.get(term, 0) for term in SEARCH_TERMS)
+        least_used = [term for term in SEARCH_TERMS if self._term_usage_counts.get(term, 0) == min_count]
+        term = random.choice(least_used)
+        self._term_usage_counts[term] = self._term_usage_counts.get(term, 0) + 1
+        return term
 
     @tag("search", "register", "read")
     @task
