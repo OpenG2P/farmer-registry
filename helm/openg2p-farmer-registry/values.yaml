@@ -183,6 +183,15 @@ registry:
       # The register credentials are issued from. Farmer records live in the
       # Farmer register — same id the sanity suite uses.
       registerId: a1a4d25a-1cd4-4356-abac-985a0b3c6bcd
+    # Checking a credential a citizen presents. Independent of issuance: unlike
+    # issuance it needs no issuer DID and no per-registry configuration -- the
+    # verifier resolves the issuer's key itself -- so the only requirement is
+    # that openg2p-inji-verify is deployed and reachable at serviceUrl.
+    #
+    # OFF by default so a deployment without that service does not offer agents
+    # a button that cannot work.
+    vcVerification:
+      enabled: false
     # Card designs shipped by this chart (templates/vc-card-templates-configmap.yaml).
     svgConfigMap: '{{ .Release.Name }}-vc-card-templates'
     pdf:
