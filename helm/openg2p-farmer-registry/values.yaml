@@ -226,9 +226,22 @@ registry:
           # The entry KEY ("claim169") names the payload. The inner keys must be
           # claim-169 attribute names from MOSIP's pixelpass mapper and nothing
           # else: "Full Name", "Date of Birth", "Gender", "Address",
-          # "Phone Number", "Binary Image" (the optional photo), and so on. There
-          # is no slot for a programme id, so functionalRecordId stays in the
-          # JSON-LD credential only.
+          # "Phone Number", "Binary Image" (the optional photo), and so on.
+          # PixelPass rewrites each label to its registry NUMBER on the way into
+          # the CBOR, so an invented label is not a small liberty -- it leaves the
+          # format.
+          #
+          # The registry has no identifier key: no ID, UIN or document number.
+          # The Farmer ID therefore travels in "Data", the registry's generic
+          # issuer-defined slot, paired with "Data issuer" to say whose id it is.
+          # That keeps the QR strict claim-169 -- a stock Inji verifier still
+          # reads it, labelled "Data" rather than "Farmer ID".
+          #
+          # It has to be IN here to be worth anything: the QR is the only thing an
+          # offline verifier sees, so an id that lives solely in the JSON-LD
+          # credential cannot be checked against the card in the field. Without
+          # it a genuine QR paired with a card showing someone else's Farmer ID
+          # still verifies.
           #
           # Certify exposes the signed result to the template as
           # ${claim_169_values}, which is why vcTemplateJson below reads
@@ -241,6 +254,8 @@ registry:
                 Full Name: '${fullName}'
                 Date of Birth: '${dateOfBirth}'
                 Gender: '${gender}'
+                Data: '${functionalRecordId}'
+                Data issuer: 'OpenG2P Farmer Registry'
           # COSE algorithm for the QR signature. Must be one of Certify's
           # key-alias-mapper entries: RS256 | EdDSA | ES256K | ES256.
           qrSignatureAlgo: ES256
