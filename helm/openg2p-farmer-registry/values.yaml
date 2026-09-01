@@ -188,10 +188,18 @@ registry:
     # verifier resolves the issuer's key itself -- so the only requirement is
     # that openg2p-inji-verify is deployed and reachable at serviceUrl.
     #
-    # OFF by default so a deployment without that service does not offer agents
-    # a button that cannot work.
+    # ON, because verify-service now ships WITH the stack: openg2p-inji-verify is
+    # a dependency of commons-services (enabled by default), the same release
+    # that brings Certify. The two are halves of one feature -- an environment
+    # issuing credentials is the one that wants to check them -- so defaulting
+    # this off left agents without the card on a cluster that could serve it.
+    #
+    # Turn it off for a registry that issues but never verifies, or one pointed
+    # at a commons install with openg2p-inji-verify disabled; the serviceUrl
+    # above must resolve or the card refuses with G2P-VC-502 rather than
+    # reporting a good credential invalid.
     vcVerification:
-      enabled: false
+      enabled: true
     # Card designs shipped by this chart (templates/vc-card-templates-configmap.yaml).
     svgConfigMap: '{{ .Release.Name }}-vc-card-templates'
     pdf:
