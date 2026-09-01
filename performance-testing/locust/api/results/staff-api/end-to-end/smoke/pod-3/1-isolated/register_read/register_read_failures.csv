@@ -1,7 +1,1 @@
 Method,Name,Error,Occurrences,First Seen,Last Seen
-POST,get_versions_for_a_date,CatchResponseError('503'),1,2026-09-01T16:37:13Z,2026-09-01T16:37:13Z
-POST,get_tab_sections,CatchResponseError('503'),1,2026-09-01T16:36:08Z,2026-09-01T16:36:08Z
-POST,get_tab_records,CatchResponseError('503'),1,2026-09-01T16:38:52Z,2026-09-01T16:38:52Z
-POST,get_register_summary_data,CatchResponseError('503'),1,2026-09-01T16:37:04Z,2026-09-01T16:37:04Z
-POST,get_section_ui_schema,CatchResponseError('503'),1,2026-09-01T16:50:17Z,2026-09-01T16:50:17Z
-POST,check_change_request_sequence,CatchResponseError('503'),1,2026-09-01T16:43:41Z,2026-09-01T16:43:41Z
