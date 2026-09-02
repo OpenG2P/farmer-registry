@@ -216,6 +216,10 @@ registry:
         claim_columns: ["functionalRecordId", "fullName", "dateOfBirth", "gender"]
         svg_template: farmer-card.svg
         display_name: "Farmer Credential"
+        # What this registry calls the id the QR carries in claim-169's generic
+        # "Data" slot. The Registry Platform cannot know it -- the same code
+        # serves every manifestation -- so each registry names its own.
+        qr_data_label: "Farmer ID"
         # Registered with Certify by the subchart's credential-config-register
         # Job. The issuer (DID + signing key) is added from global.vcIssuer —
         # deliberately not repeated here, since it is environment-level.
@@ -262,8 +266,13 @@ registry:
                 Full Name: '${fullName}'
                 Date of Birth: '${dateOfBirth}'
                 Gender: '${gender}'
+                # 'Data' only. NOT 'Data issuer': PixelPass numbers the Data*
+                # group in its own key space (Data=0, format=1, sub format=2,
+                # issuer=3), so at top level 'Data issuer' is written as key 3 --
+                # which is Language. Setting it silently REPLACED the language
+                # with the issuer name and lost 'eng' from every credential.
+                # Verified against an issued QR; keep this to the one key.
                 Data: '${functionalRecordId}'
-                Data issuer: 'OpenG2P Farmer Registry'
           # COSE algorithm for the QR signature. Must be one of Certify's
           # key-alias-mapper entries: RS256 | EdDSA | ES256K | ES256.
           qrSignatureAlgo: ES256
