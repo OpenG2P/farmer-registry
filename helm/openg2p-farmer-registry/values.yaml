@@ -16,9 +16,17 @@
 
 # ── Globals (propagate to the openg2p-registry subchart) ──────────────────────
 global:
+  # THE single source of truth for every public hostname. Declared here as well
+  # as in the openg2p-registry subchart because Helm globals flow parent -> child
+  # only: without this, the parent's own templates resolve it to "" and hosts
+  # render as 'fr.' with no domain at all.
+  baseDomain: '{{ .Release.Namespace }}.openg2p.org'
+
   registryVariant: 'farmer-registry'
   # Ingress host for this registry. Overrides the subchart's generic default.
-  registryHostname: '{{ .Release.Name }}.{{ .Release.Namespace }}.openg2p.org'
+  # Derived from baseDomain (defaulted by the openg2p-registry subchart) so that
+  # overriding the domain once moves every host, here and in the platform chart.
+  registryHostname: '{{ .Release.Name }}.{{ tpl .Values.global.baseDomain $ }}'
 
   # Database wiring, mirroring openg2p-registry's own defaults. Declared here
   # rather than inherited because a parent chart's templates cannot read a
