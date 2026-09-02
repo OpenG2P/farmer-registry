@@ -874,6 +874,7 @@ def household_payload(hh: dict) -> dict:
     males = sum(1 for m in members if (m.get("gender") or "").upper() == "MALE")
     females = sum(1 for m in members if (m.get("gender") or "").upper() == "FEMALE")
     children = sum(1 for m in members if (m.get("estimated_age") or 0) < 18)
+    elderly = sum(1 for m in members if (m.get("estimated_age") or 0) >= 60)
     size = males + females
     if size == 0:
         size = len(members) or 1
@@ -883,6 +884,7 @@ def household_payload(hh: dict) -> dict:
         "household_head": hh["head"]["full_name"],
         "size_of_group": size,
         "number_of_children": children,
+        "number_of_elderly_members": elderly,
         "number_of_male_members": males,
         "number_of_female_members": females,
         "other_land_owner": False,
@@ -890,10 +892,21 @@ def household_payload(hh: dict) -> dict:
     }
 
 
-def member_payload(member: dict, household_intake_id: str) -> dict:
+def member_payload(member: dict, household_intake_id: str, *, is_head: bool = False) -> dict:
+    age = member.get("estimated_age") or 0
+    if is_head:
+        relationship = None
+    elif age < 18:
+        relationship = "CHILD"
+    elif (member.get("marital_status") or "").upper() == "MARRIED":
+        relationship = "SPOUSE"
+    else:
+        relationship = "OTHER"
     return {
         **person_fields(member),
         "is_disabled": False,
+        "is_head": is_head,
+        "relationship_to_the_head": relationship,
         "link_internal_record_id": household_intake_id,
     }
 
@@ -1011,7 +1024,15 @@ def submit_household(client: StaffClient, hh: dict) -> tuple[str, str]:
         register_id=HOUSEHOLD_REGISTER_ID,
         records=[loc],
     )
-    members = [member_payload(m, hh_id) for m in hh["members"]]
+    head_id = hh["head"].get("internal_record_id")
+    members = [
+        member_payload(
+            m,
+            hh_id,
+            is_head=m.get("internal_record_id") == head_id,
+        )
+        for m in hh["members"]
+    ]
     save_section(
         client,
         submission_id=submission_id,

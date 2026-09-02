@@ -76,6 +76,7 @@
       "household_head": "{{ (family_head_name.get('first_name', '') ~ ' ' ~ family_head_name.get('last_name', '')).strip() }}",
       "size_of_group": {{ family.get("group_size", 0) | int }},
       "number_of_children": {{ family_members | length }},
+      "number_of_elderly_members": 0,
       "number_of_female_members": 0,
       "number_of_male_members": 0,
       "other_land_owner": false
@@ -105,6 +106,8 @@
       "birth_date": "{{ (member_demo.get('date_of_birth', member_demo.get('birth_date', '')) or '').split('T')[0] }}",
       "gender": "{{ member_gender }}",
       "is_disabled": {{ "true" if member.get("is_disabled") else "false" }},
+      "is_head": {{ "true" if member.get("is_head") else "false" }},
+      "relationship_to_the_head": "{{ member.get('relationship_to_the_head', member.get('relationship_to_head', '')) }}",
       "registration_date": "{{ (member.get('registration_date', family.get('registration_date', '')) or '').split('T')[0] }}"
     }{% if not loop.last %},{% endif %}
 {% endfor %}

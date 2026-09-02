@@ -93,3 +93,9 @@ class EducationalLevelEnum(StrEnum):
     SECONDARY = "SECONDARY"
     TERTIARY = "TERTIARY"
     HIGHER_EDUCATION = "HIGHER_EDUCATION"
+
+
+class RelationshipToTheHeadEnum(StrEnum):
+    CHILD = "CHILD"
+    SPOUSE = "SPOUSE"
+    OTHER = "OTHER"
