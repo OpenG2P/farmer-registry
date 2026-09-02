@@ -59,7 +59,7 @@ maintainers:
 dependencies:
   - name: openg2p-registry
     alias: registry
-    version: 0.0.0-develop.426
+    version: 0.0.0-develop.428
     repository: https://openg2p.github.io/openg2p-helm
 
 # Rancher catalog branding
