@@ -1,6 +1,8 @@
 Method,Name,Error,Occurrences,First Seen,Last Seen
-POST,save_intake_form_submission,CatchResponseError('503'),3,2026-09-01T17:55:13Z,2026-09-01T17:59:42Z
-POST,save_intake_form_submission,"CatchResponseError(""REQ-VAL-000: No parent records exist in this submission; cannot link child row for register 'Livestock'"")",1,2026-09-01T17:58:57Z,2026-09-01T17:58:57Z
-POST,save_intake_form_submission,"CatchResponseError(""REQ-VAL-000: No parent records exist in this submission; cannot link child row for register 'FarmInputs'"")",1,2026-09-01T17:58:56Z,2026-09-01T17:58:56Z
-POST,save_intake_form_submission,"CatchResponseError(""REQ-VAL-000: No parent records exist in this submission; cannot link child row for register 'Crop'"")",1,2026-09-01T17:58:56Z,2026-09-01T17:58:56Z
-POST,save_intake_form_submission,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),119,2026-09-01T17:46:28Z,2026-09-01T18:01:22Z
+POST,save_intake_form_submission,"CatchResponseError(""REQ-VAL-000: No parent records exist in this submission; cannot link child row for register 'MembershipDetails'"")",6,2026-09-02T15:02:09Z,2026-09-02T15:06:30Z
+POST,save_intake_form_submission,"CatchResponseError(""REQ-VAL-000: No parent records exist in this submission; cannot link child row for register 'Land'"")",4,2026-09-02T15:03:47Z,2026-09-02T15:06:46Z
+POST,save_intake_form_submission,CatchResponseError('503'),1,2026-09-02T15:04:17Z,2026-09-02T15:04:17Z
+POST,save_intake_form_submission,"CatchResponseError(""REQ-VAL-000: No parent records exist in this submission; cannot link child row for register 'Livestock'"")",6,2026-09-02T15:02:09Z,2026-09-02T15:06:47Z
+POST,save_intake_form_submission,"CatchResponseError(""REQ-VAL-000: No parent records exist in this submission; cannot link child row for register 'FarmInputs'"")",5,2026-09-02T15:03:47Z,2026-09-02T15:06:46Z
+POST,save_intake_form_submission,"CatchResponseError(""REQ-VAL-000: No parent records exist in this submission; cannot link child row for register 'Crop'"")",5,2026-09-02T15:03:47Z,2026-09-02T15:06:46Z
+POST,save_intake_form_submission,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),418,2026-09-02T15:00:44Z,2026-09-02T15:06:59Z

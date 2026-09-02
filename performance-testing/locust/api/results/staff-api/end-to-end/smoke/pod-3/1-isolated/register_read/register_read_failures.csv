@@ -1,1 +1,7 @@
 Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,get_deduplication_change_request_results,CatchResponseError('503'),1,2026-09-02T14:08:54Z,2026-09-02T14:08:54Z
+POST,get_version_dates,CatchResponseError('503'),1,2026-09-02T14:10:23Z,2026-09-02T14:10:23Z
+POST,get_versions_for_a_date,CatchResponseError('503'),1,2026-09-02T14:10:53Z,2026-09-02T14:10:53Z
+POST,list_tasks_for_request,CatchResponseError('AWE-ERR-006: AWE_REQUEST_FAILED: upstream connect error or disconnect/reset before headers. reset reason: connection termination (url=https://awe.perftest.openg2p.org/v1/awe/tasks?assignee=%2A&page=1&page_size=20&request_id=606c885a-3d81-4cf7-ab3a-e0fdb8e019ed)'),1,2026-09-02T14:07:34Z,2026-09-02T14:07:34Z
+POST,get_section_ui_schema,CatchResponseError('503'),1,2026-09-02T14:09:01Z,2026-09-02T14:09:01Z
+POST,get_change_requests,CatchResponseError('503'),1,2026-09-02T14:09:29Z,2026-09-02T14:09:29Z

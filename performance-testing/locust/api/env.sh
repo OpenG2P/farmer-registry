@@ -28,8 +28,8 @@ export VOLUME_TIER=smoke
 
 # Pod-Scale -- app replica count under test. Uncomment exactly one.
 # export POD_SCALE=1
-export POD_SCALE=2
-# export POD_SCALE=3
+# export POD_SCALE=2
+export POD_SCALE=3
 
 # Step -- see documentation/staff-api/test-scenarios.md §3/§7. Uncomment exactly one.
 export STEP=1-isolated
@@ -42,8 +42,8 @@ export STEP=1-isolated
 # export ISOLATED_SCENARIO=register-read
 # export ISOLATED_SCENARIO=cr-create
 # export ISOLATED_SCENARIO=cr-read-and-approve
-export ISOLATED_SCENARIO=intake-create
-# export ISOLATED_SCENARIO=intake-read-and-approve
+# export ISOLATED_SCENARIO=intake-create
+export ISOLATED_SCENARIO=intake-read-and-approve
 
 # =============================================================================
 # SLOs -- documentation/staff-api/test-scenarios.md §5. One section per

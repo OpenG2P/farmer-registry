@@ -107,7 +107,7 @@ class SLOStepRampShape(LoadTestShape):
     endpoint_slo_p99_ms: dict[str, int] = ENDPOINT_SLO_P99_MS
     step_seconds = 30
     step_users = 4
-    max_users = 50
+    max_users = 100
     # Docs §7: warm 1–5 min and discard. Hold at warmup_users with no SLO
     # checks so cold-start latency cannot freeze the ramp.
     warmup_seconds = 1 * 60
