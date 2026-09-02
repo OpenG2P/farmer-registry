@@ -192,12 +192,11 @@ APIs fired:
 | 3 | `get_subject_record` | `/register-data/get_subject_record` | Register-Read | Fetch one record by id. |
 | 4 | `get_all_sections` | `/register-section-metadata/get_all_sections` | Metadata-Read | Register-wide — also the source of `documents_required` per section. |
 | 5 | `get_all_tabs` | `/register-tab-metadata/get_all_tabs` | Metadata-Read | |
-| 5a | `get_tab_sections` | `/register-tab-metadata/get_sections` | Metadata-Read | Repeats once per tab. |
+| 5a | `get_tab_sections` | `/register-tab-metadata/get_sections` | Metadata-Read | Repeats once per tab. Response embeds each section's `section_ui_schema` (`section_data.section_ui_schema`) — verified the staff-portal UI reads it from here rather than calling `get_section_ui_schema` separately, so this locustfile does the same; no dedicated `get_section_ui_schema` call in this scenario. |
 | 5b | `get_tab_records` | `/register-data/get_tab_records` | Register-Read | Tab materialisation. Repeats once per tab. |
-| 5c | `get_section_ui_schema` | `/register-section-metadata/get_section_ui_schema` | Metadata-Read | Repeats once per tab. |
-| 5d | `get_attribute_values` | `/attributes/get_attribute_values` | Metadata-Read | Conditional — only if the field's enum is API-sourced. Repeats once per tab. |
-| 5e | `upload_documents` | `/documents/upload_documents` | Document-Upload | Streams to MinIO, raw multipart. Conditional — only if the chosen section's `documents_required` is true; 3 files in one call. Repeats once per tab. |
-| 5f | `create_change_request` or `create_change_request_for_core_data` | `/change-requests/create_change_request` or `/change-requests-core-data/create_change_request_for_core_data` | Change-Request-Write | EDIT route; writes record + `*_history`. Core vs. non-core section decides which; uploaded documents attached via `documents` field. Repeats once per tab (one CR per tab). |
+| 5c | `get_attribute_values` | `/attributes/get_attribute_values` | Metadata-Read | Conditional — only if the field's enum is API-sourced. Repeats once per tab. |
+| 5d | `upload_documents` | `/documents/upload_documents` | Document-Upload | Streams to MinIO, raw multipart. Conditional — only if the chosen section's `documents_required` is true; 3 files in one call. Repeats once per tab. |
+| 5e | `create_change_request` or `create_change_request_for_core_data` | `/change-requests/create_change_request` or `/change-requests-core-data/create_change_request_for_core_data` | Change-Request-Write | EDIT route; writes record + `*_history`. Core vs. non-core section decides which; uploaded documents attached via `documents` field. Repeats once per tab (one CR per tab). |
 
 Search anchoring: same sticky-per-user pattern as `register_read`.
 
@@ -214,11 +213,17 @@ APIs fired:
 | 3 | `get_change_request_documents` | `/documents/get_change_request_documents` | Document-Fetch | Repeats once per pending CR. |
 | 4 | `get_section_ui_schema` | `/register-section-metadata/get_section_ui_schema` | Metadata-Read | Conditional — only if the CR's `section_id` is present. Repeats once per pending CR. |
 | 5 | `get_change_request` | `/change-requests/get_change_request` | Change-Request-Read | Fetch one CR by id. Repeats once per pending CR. |
-| 6 | `check_change_request_sequence` | `/change-requests/check_change_request_sequence` | Change-Request-Read | Read-only gate: does an earlier pending CR block approval. Repeats once per pending CR — skip the rest if blocked. |
-| 7 | `get_deduplication_change_request_results` | `/register-data/get_deduplication_change_request_results` | Change-Request-Read | Simple fetch of results Celery already crunched, not fuzzy-match compute. Repeats once per pending CR. |
-| 8 | `get_deduplication_register_results` | `/register-data/get_deduplication_register_results` | Register-Read | Same caveat as above. Repeats once per pending CR. |
-| 9 | `list_tasks_for_request` | `/awe/list_tasks_for_request` | Workflow-Read | AWE task list for the CR's `awe_request_id`. Conditional — only if `awe_request_id` is present. Repeats once per pending CR. |
-| 10 | `submit_task_decision` | `/awe/submit_task_decision` | Workflow-Write | Approves the first open/claimed AWE task found in step 9. Conditional — only if such a task exists. Repeats once per pending CR. |
+| 6 | `get_deduplication_change_request_results` | `/register-data/get_deduplication_change_request_results` | Change-Request-Read | Simple fetch of results Celery already crunched, not fuzzy-match compute. Repeats once per pending CR. |
+| 7 | `get_deduplication_register_results` | `/register-data/get_deduplication_register_results` | Register-Read | Same caveat as above. Repeats once per pending CR. |
+| 8 | `list_tasks_for_request` | `/awe/list_tasks_for_request` | Workflow-Read | AWE task list for the CR's `awe_request_id`. Conditional — only if `awe_request_id` is present. Repeats once per pending CR. |
+| 9 | `submit_task_decision` | `/awe/submit_task_decision` | Workflow-Write | Approves the first open/claimed AWE task found in step 8. Conditional — only if such a task exists. Repeats once per pending CR; still enforces the sequence check server-side (an earlier pending CR on the same `internal_record_id` blocks). |
+
+No client-side `check_change_request_sequence` call — multiple pending CRs on
+the same section are no longer possible, so the advisory pre-check can't
+block anything and was removed. Processing still goes oldest-first
+(`sort_pending_oldest_first`) since `submit_task_decision`'s server-side
+check is scoped by `internal_record_id`, not `section_id` — broader than the
+new invariant, and unchanged as of this pull.
 
 Search anchoring: sticky per user, same as `register_read`. Finds matches
 once `cr_create` has run and created change requests against the anchored

@@ -26,15 +26,6 @@ def total_pages(search_response_json: dict) -> int:
     return pagination.get("number_of_pages") or 1
 
 
-def approval_blocked(sequence_check_response_json: dict) -> bool:
-    """True if check_change_request_sequence says an earlier, still-unapproved
-    change request exists on the same internal_record_id — approving this one
-    out of order would be wrong, so it should be skipped.
-    """
-    payload = response_payload(sequence_check_response_json) or {}
-    return bool(payload.get("approval_decision_blocked"))
-
-
 def pending_change_requests(search_response_json: dict) -> list[dict]:
     """Full result dicts (change_request_id, section_id, etc.) on this page
     whose approval_status is PENDING.
@@ -55,13 +46,16 @@ def pending_change_requests(search_response_json: dict) -> list[dict]:
 
 
 def sort_pending_oldest_first(pending: list[dict]) -> list[dict]:
-    """Oldest CRs first so check_change_request_sequence does not block.
+    """Oldest CRs first so submit_task_decision's server-side sequence check does not block.
 
     search_in_change_request defaults to created_at DESC (newest first). For a
     given internal_record_id, approving a newer PENDING CR while an older one
-    is still open returns approval_decision_blocked — so page-order processing
-    skips almost everything. Sort by created_at ASC (then change_request_id)
-    across the collected set before approving.
+    is still open is rejected by submit_task_decision (approval_decision_blocked)
+    — so page-order processing skips almost everything. Sort by created_at ASC
+    (then change_request_id) across the collected set before approving. No
+    client-side pre-check for this anymore (multiple pending CRs on the same
+    section are no longer possible), but the server still enforces the
+    broader internal_record_id-scoped rule at submit time.
     """
     return sorted(
         pending,

@@ -1,4 +1,5 @@
 Method,Name,Error,Occurrences,First Seen,Last Seen
-POST,get_tab_sections,CatchResponseError('503'),1,2026-08-14T06:44:11Z,2026-08-14T06:44:11Z
-POST,get_number_of_pending_change_requests,CatchResponseError('503'),2,2026-08-14T06:37:41Z,2026-08-14T06:46:42Z
-POST,get_change_requests,CatchResponseError('503'),2,2026-08-14T06:24:40Z,2026-08-14T06:43:50Z
+POST,search_in_a_register,CatchResponseError('503'),1,2026-09-01T13:30:24Z,2026-09-01T13:30:24Z
+POST,get_versions_for_a_date,CatchResponseError('503'),1,2026-09-01T13:27:05Z,2026-09-01T13:27:05Z
+POST,get_tab_sections,CatchResponseError('503'),1,2026-09-01T13:16:20Z,2026-09-01T13:16:20Z
+POST,get_change_requests,CatchResponseError('503'),1,2026-09-01T13:21:41Z,2026-09-01T13:21:41Z

@@ -1,0 +1,2 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,get_section_ui_schema,CatchResponseError('503'),1,2026-09-01T14:33:52Z,2026-09-01T14:33:52Z

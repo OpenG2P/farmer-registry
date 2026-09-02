@@ -51,6 +51,28 @@ def extract_tab_section_ids(tab_sections_response_json: dict) -> list[str]:
     return [section["section_id"] for section in ordered]
 
 
+def section_ui_schema_from_tab_sections(tab_sections_response_json: dict, section_id: str) -> dict:
+    """section_ui_schema for one section, already embedded in get_tab_sections' response
+    (section_data.section_ui_schema per tab-section) -- the real staff-portal UI reads it
+    from there too, it doesn't call get_section_ui_schema separately. Reshaped into the
+    same {'response_body': {'response_payload': {...}}} envelope static_enum_options /
+    api_enum_attribute_id expect, so those helpers don't need to change.
+    """
+    sections = response_payload(tab_sections_response_json) or []
+    for section in sections:
+        if section.get("section_id") == section_id:
+            section_data = section.get("section_data") or {}
+            return {
+                "response_body": {
+                    "response_payload": {
+                        "section_id": section_id,
+                        "section_ui_schema": section_data.get("section_ui_schema"),
+                    }
+                }
+            }
+    return {}
+
+
 def build_section_metadata(all_sections_response_json: dict) -> dict[str, dict]:
     """section_id -> {is_core_section, section_register_id, documents_required},
     from the register-wide section list (G2PRegisterSectionData)."""

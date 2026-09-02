@@ -1,0 +1,6 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,save_intake_form_submission,CatchResponseError('503'),3,2026-09-01T15:06:01Z,2026-09-01T15:14:13Z
+POST,save_intake_form_submission,"CatchResponseError(""REQ-VAL-000: No parent records exist in this submission; cannot link child row for register 'Livestock'"")",1,2026-09-01T15:06:03Z,2026-09-01T15:06:03Z
+POST,save_intake_form_submission,"CatchResponseError(""REQ-VAL-000: No parent records exist in this submission; cannot link child row for register 'FarmInputs'"")",1,2026-09-01T15:06:02Z,2026-09-01T15:06:02Z
+POST,save_intake_form_submission,"CatchResponseError(""REQ-VAL-000: No parent records exist in this submission; cannot link child row for register 'Crop'"")",1,2026-09-01T15:06:01Z,2026-09-01T15:06:01Z
+POST,save_intake_form_submission,CatchResponseError('SYS-ERR-001: UNEXPECTED_ERROR'),88,2026-09-01T15:00:17Z,2026-09-01T15:15:33Z
