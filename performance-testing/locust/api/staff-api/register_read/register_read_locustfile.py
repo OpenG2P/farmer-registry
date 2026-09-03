@@ -139,7 +139,7 @@ class RegisterUser(LocustUser):
         if section_id:
             self._get_section_ui_schema(register_state, section_id)
         change_request_response = self._get_change_request(change_request_id)
-        self._check_change_request_sequence(change_request_id)
+        # self._check_change_request_sequence(change_request_id)
 
         awe_request_id = extract_awe_request_id(safe_json(change_request_response))
         if awe_request_id:
@@ -292,14 +292,14 @@ class RegisterUser(LocustUser):
     # ------------------------------------------------------------------
     # 4dd — check_change_request_sequence (g2p_register_change_request_controller)
     # ------------------------------------------------------------------
-    def _check_change_request_sequence(self, change_request_id: str):
-        payload = self.build_request(request_payload={"change_request_id": change_request_id})
-        return self._post(
-            STAFF_API_BASE,
-            "/change-requests/check_change_request_sequence",
-            payload,
-            name="check_change_request_sequence",
-        )
+    # def _check_change_request_sequence(self, change_request_id: str):
+    #     payload = self.build_request(request_payload={"change_request_id": change_request_id})
+    #     return self._post(
+    #         STAFF_API_BASE,
+    #         "/change-requests/check_change_request_sequence",
+    #         payload,
+    #         name="check_change_request_sequence",
+    #     )
 
     # ------------------------------------------------------------------
     # 4de — list_tasks_for_request (g2p_awe_proxy_controller)

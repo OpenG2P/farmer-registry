@@ -1,4 +1,4 @@
 Method,Name,Error,Occurrences,First Seen,Last Seen
-POST,get_change_request,CatchResponseError('503'),1,2026-09-01T17:29:07Z,2026-09-01T17:29:07Z
-POST,get_deduplication_register_results,CatchResponseError('503'),1,2026-09-01T17:19:42Z,2026-09-01T17:19:42Z
-POST,submit_task_decision,CatchResponseError('503'),1,2026-09-01T17:22:48Z,2026-09-01T17:22:48Z
+POST,get_deduplication_change_request_results,CatchResponseError('503'),1,2026-09-02T14:46:44Z,2026-09-02T14:46:44Z
+POST,list_tasks_for_request,CatchResponseError('AWE-ERR-006: AWE_REQUEST_FAILED: upstream connect error or disconnect/reset before headers. reset reason: connection termination (url=https://awe.perftest.openg2p.org/v1/awe/tasks?assignee=%2A&page=1&page_size=20&request_id=df40ccdf-38a2-4465-b0bc-e346748b9f29)'),1,2026-09-02T14:43:44Z,2026-09-02T14:43:44Z
+POST,list_tasks_for_request,CatchResponseError('AWE-ERR-006: AWE_REQUEST_FAILED: upstream connect error or disconnect/reset before headers. reset reason: connection termination (url=https://awe.perftest.openg2p.org/v1/awe/tasks?assignee=%2A&page=1&page_size=20&request_id=64b0381b-06db-4406-9493-5c9658a5160d)'),1,2026-09-02T14:47:18Z,2026-09-02T14:47:18Z

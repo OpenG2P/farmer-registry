@@ -1,3 +1,2 @@
 Method,Name,Error,Occurrences,First Seen,Last Seen
-POST,search_in_intake_form_submissions,CatchResponseError('503'),2,2026-09-01T15:37:59Z,2026-09-01T15:39:49Z
-POST,get_intake_form_submission,CatchResponseError('503'),1,2026-09-01T15:31:07Z,2026-09-01T15:31:07Z
+POST,search_in_intake_form_submissions,CatchResponseError('503'),2,2026-09-02T12:22:31Z,2026-09-02T12:24:37Z

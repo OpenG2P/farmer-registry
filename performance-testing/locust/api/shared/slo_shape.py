@@ -105,17 +105,17 @@ class SLOStepRampShape(LoadTestShape):
 
     endpoint_slo_p95_ms: dict[str, int] = ENDPOINT_SLO_P95_MS
     endpoint_slo_p99_ms: dict[str, int] = ENDPOINT_SLO_P99_MS
-    step_seconds = 60
-    step_users = 1
-    max_users = 30
+    step_seconds = 30
+    step_users = 4
+    max_users = 100
     # Docs §7: warm 1–5 min and discard. Hold at warmup_users with no SLO
     # checks so cold-start latency cannot freeze the ramp.
     warmup_seconds = 1 * 60
-    warmup_users = 1
+    warmup_users = 2
     # Need enough success samples for a meaningful percentile; 5 made p95
     # ≈ max-of-5 and let a single outlier freeze the ramp.
     min_requests_for_check = 100
-    sustain_seconds = 5 * 60
+    sustain_seconds = 2 * 60
 
     def __init__(self):
         super().__init__()
