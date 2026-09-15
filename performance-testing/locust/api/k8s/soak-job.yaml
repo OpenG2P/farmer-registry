@@ -1,0 +1,94 @@
+# 8h in-cluster soak. Locust users stay at SOAK_USERS. A headless Service
+# lets each user keep-alive to one pod (round-robin) so CPU stays even.
+# SOAK_MAX_RPS holds total HTTP rate so pods stay near 1.7-1.8 cores.
+apiVersion: v1
+kind: Service
+metadata:
+  name: locust-staff-api-pods
+  namespace: perftest
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/component: staff-portal-api
+    app.kubernetes.io/instance: farmer-registry
+    app.kubernetes.io/name: registry
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: locust-staff-soak
+  namespace: perftest
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  activeDeadlineSeconds: 32400
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: locust
+          image: vin0dkhichar/locust-staff-soak:latest
+          imagePullPolicy: Always
+          workingDir: /app
+          args:
+            - locust
+            - -f
+            - staff-api/blended/soak_locustfile.py
+            - --headless
+            - --host
+            - $(STAFF_API_BASE)
+            - -u
+            - $(SOAK_USERS)
+            - -r
+            - "2"
+            - -t
+            - 8h
+            - --csv
+            - /results/soak
+          env:
+            - name: STAFF_API_BASE
+              value: http://farmer-registry-staff-portal-api.perftest.svc.cluster.local
+            - name: IN_CLUSTER_SOAK
+              value: "1"
+            - name: STAFF_API_HEADLESS
+              value: locust-staff-api-pods.perftest.svc.cluster.local
+            - name: STAFF_API_POD_PORT
+              value: "8000"
+            - name: SOAK_USERS
+              value: "32"
+            - name: SOAK_MAX_RPS
+              value: "152"
+            - name: PERF_SEED_DIR
+              value: /perf-seed
+            - name: KEYCLOAK_BASE
+              value: http://commons-keycloak.perftest.svc.cluster.local
+            - name: KEYCLOAK_REALM
+              value: staff
+            - name: OIDC_CLIENT_ID
+              value: farmer-registry-staff-portal
+          envFrom:
+            - secretRef:
+                name: locust-staff-soak
+          volumeMounts:
+            - name: perf-seed
+              mountPath: /perf-seed
+              readOnly: true
+            - name: results
+              mountPath: /results
+          resources:
+            requests:
+              cpu: "1"
+              memory: 2Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+      volumes:
+        - name: perf-seed
+          configMap:
+            name: locust-perf-seed
+        - name: results
+          emptyDir: {}

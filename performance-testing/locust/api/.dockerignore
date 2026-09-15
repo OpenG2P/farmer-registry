@@ -1,0 +1,6 @@
+results
+k8s
+__pycache__
+*.pyc
+.venv
+*.csv
