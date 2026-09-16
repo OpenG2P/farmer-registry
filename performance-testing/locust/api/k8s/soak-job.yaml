@@ -1,6 +1,15 @@
 # 8h in-cluster soak. Locust users stay at SOAK_USERS. A headless Service
 # lets each user keep-alive to one pod (round-robin) so CPU stays even.
 # SOAK_MAX_RPS holds total HTTP rate so pods stay near 1.7-1.8 cores.
+#
+# Locust writes CSVs to emptyDir. When Locust exits the container MUST stay
+# Running (sleep) or kubectl cp fails and the files are gone. Morning copy:
+#   kubectl -n perftest logs job/locust-staff-soak | grep SOAK_FINISHED
+#   POD=$(kubectl -n perftest get pod -l job-name=locust-staff-soak -o jsonpath='{.items[0].metadata.name}')
+#   kubectl -n perftest cp "$POD:/results/staff-api/in-cluster/." \
+#     ./results/staff-api/in-cluster/
+# Then delete the Job. activeDeadlineSeconds is 24h so a hung run dies, but
+# an 8h soak plus morning collection still fits.
 apiVersion: v1
 kind: Service
 metadata:
@@ -24,8 +33,7 @@ metadata:
   namespace: perftest
 spec:
   backoffLimit: 0
-  ttlSecondsAfterFinished: 86400
-  activeDeadlineSeconds: 32400
+  activeDeadlineSeconds: 86400
   template:
     spec:
       restartPolicy: Never
@@ -34,21 +42,26 @@ spec:
           image: vin0dkhichar/locust-staff-soak:latest
           imagePullPolicy: Always
           workingDir: /app
+          command: ["/bin/bash", "-lc"]
           args:
-            - locust
-            - -f
-            - staff-api/blended/soak_locustfile.py
-            - --headless
-            - --host
-            - $(STAFF_API_BASE)
-            - -u
-            - $(SOAK_USERS)
-            - -r
-            - "2"
-            - -t
-            - 8h
-            - --csv
-            - /results/soak
+            - |
+              set -uo pipefail
+              CSV_PREFIX="/results/staff-api/in-cluster/primary/pod-3/3-soak/soak"
+              mkdir -p "$(dirname "$CSV_PREFIX")"
+              echo "=== soak ==="
+              echo "SOAK_USERS=${SOAK_USERS} SOAK_MAX_RPS=${SOAK_MAX_RPS} -t 8h"
+              echo "csv=${CSV_PREFIX}"
+              echo "STAFF_API=${STAFF_API_BASE}"
+              echo "======================"
+              set +e
+              locust -f staff-api/blended/soak_locustfile.py --headless \
+                --host "$STAFF_API_BASE" \
+                -u "$SOAK_USERS" -r 2 -t 8h --csv "$CSV_PREFIX"
+              locust_rc=$?
+              set -e
+              echo "SOAK_FINISHED rc=${locust_rc} csv=${CSV_PREFIX}"
+              echo "sleeping so kubectl cp can collect /results; delete the Job when done"
+              sleep infinity
           env:
             - name: STAFF_API_BASE
               value: http://farmer-registry-staff-portal-api.perftest.svc.cluster.local
@@ -59,9 +72,9 @@ spec:
             - name: STAFF_API_POD_PORT
               value: "8000"
             - name: SOAK_USERS
-              value: "32"
+              value: "36"
             - name: SOAK_MAX_RPS
-              value: "152"
+              value: "172"
             - name: PERF_SEED_DIR
               value: /perf-seed
             - name: KEYCLOAK_BASE
@@ -74,9 +87,6 @@ spec:
             - secretRef:
                 name: locust-staff-soak
           volumeMounts:
-            - name: perf-seed
-              mountPath: /perf-seed
-              readOnly: true
             - name: results
               mountPath: /results
           resources:
@@ -87,8 +97,5 @@ spec:
               cpu: "2"
               memory: 4Gi
       volumes:
-        - name: perf-seed
-          configMap:
-            name: locust-perf-seed
         - name: results
           emptyDir: {}

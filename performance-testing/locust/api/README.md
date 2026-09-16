@@ -131,11 +131,17 @@ kubectl -n perftest apply -f k8s/soak-job.yaml
 kubectl -n perftest logs -f job/locust-staff-soak
 ```
 
-You can close the laptop. Copy CSVs when it finishes:
+You can close the laptop. Locust still writes CSVs while it runs, but
+**do not wait for the Job to Complete** — a finished container cannot be
+`kubectl cp`'d and `emptyDir` dies with the pod. The Job sleeps after 8h
+and stays Running until you collect:
 
 ```bash
+kubectl -n perftest logs job/locust-staff-soak | grep SOAK_FINISHED
 POD=$(kubectl -n perftest get pod -l job-name=locust-staff-soak -o jsonpath='{.items[0].metadata.name}')
-kubectl -n perftest cp "$POD:/results" ./results/staff-api/in-cluster/primary/pod-3/3-soak
+mkdir -p ./results/staff-api/in-cluster
+kubectl -n perftest cp "$POD:/results/staff-api/in-cluster/." ./results/staff-api/in-cluster/
+kubectl -n perftest delete job locust-staff-soak
 ```
 
 Do not schedule this Job on the same node as `farmer-registry-staff-portal-api`
