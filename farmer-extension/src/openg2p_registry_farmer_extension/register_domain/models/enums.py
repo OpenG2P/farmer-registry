@@ -96,6 +96,16 @@ class EducationalLevelEnum(StrEnum):
 
 
 class RelationshipToTheHeadEnum(StrEnum):
-    CHILD = "CHILD"
+    """Relationship of a household member to the household head.
+
+    Mirrors the master-data code list RELATIONSHIP_TO_HEAD, which is what the
+    members table offers in the intake form; SELF marks the head.
+    """
+
+    SELF = "SELF"
     SPOUSE = "SPOUSE"
-    OTHER = "OTHER"
+    CHILD = "CHILD"
+    PARENT = "PARENT"
+    SIBLING = "SIBLING"
+    OTHER_RELATIVE = "OTHER_RELATIVE"
+    NON_RELATIVE = "NON_RELATIVE"

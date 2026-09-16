@@ -2,12 +2,16 @@ import logging
 
 from openg2p_registry_core.services import G2PRegisterDomainService
 
+from .land_link_validation import validate_land_link
+
+from .domain_validation_utils import fallback_record_name
+
 _logger = logging.getLogger("g2p-register-domain-service")
 
 
 class G2PRegisterDomainServiceFarmInputs(G2PRegisterDomainService):
     async def validate_domain_attributes(self, records: list[dict]):
-        return
+        await validate_land_link(records, "Farm input")
 
     def construct_search_text(self, payload: dict, extra: list[str] = None) -> str:
         _logger.info("Constructing search text for farm inputs")
@@ -41,4 +45,4 @@ class G2PRegisterDomainServiceFarmInputs(G2PRegisterDomainService):
             if str(payload.get(key) or "").strip()
         )
 
-        return " ".join(record_name).strip()
+        return " ".join(record_name).strip() or fallback_record_name(payload, "Farm inputs")

@@ -2,14 +2,25 @@ import logging
 
 from openg2p_registry_core.services import G2PRegisterDomainService
 
-from .domain_validation_utils import as_bool, is_blank, validation_error
+
+from .domain_validation_utils import as_bool, fallback_record_name, is_blank, validate_enum_values, validation_error
 
 _logger = logging.getLogger("g2p-register-domain-service")
+
+
+
+def _enum_fields() -> dict:
+    # Imported lazily: ..models imports these services at module level, so a
+    # top-level import here would be circular whenever services load first.
+    from ..models.enums import FarmerClusterRoleEnum
+
+    return {"farmer_cluster_role": FarmerClusterRoleEnum}
 
 
 class G2PRegisterDomainServiceMembershipDetails(G2PRegisterDomainService):
     async def validate_domain_attributes(self, records: list[dict]):
         for record in records:
+            validate_enum_values(record, _enum_fields())
             self._validate_cooperative_membership(record)
             self._validate_union_membership(record)
             self._validate_cluster_membership(record)
@@ -69,4 +80,4 @@ class G2PRegisterDomainServiceMembershipDetails(G2PRegisterDomainService):
             if str(payload.get(key) or "").strip()
         )
 
-        return " ".join(record_name).strip()
+        return " ".join(record_name).strip() or fallback_record_name(payload, "Membership")

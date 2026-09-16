@@ -2,14 +2,29 @@ import logging
 
 from openg2p_registry_core.services import G2PRegisterDomainService
 
-from .domain_validation_utils import validation_error
+
+from .land_link_validation import validate_land_link
+
+from .domain_validation_utils import fallback_record_name, validate_enum_values, validation_error
 
 _logger = logging.getLogger("g2p-register-domain-service")
 
 
+
+def _enum_fields() -> dict:
+    # Imported lazily: ..models imports these services at module level, so a
+    # top-level import here would be circular whenever services load first.
+    from ..models.enums import LivestockSystemEnum
+
+    return {"livestock_system": LivestockSystemEnum}
+
+
 class G2PRegisterDomainServiceLivestock(G2PRegisterDomainService):
     async def validate_domain_attributes(self, records: list[dict]):
+        for record in records:
+            validate_enum_values(record, _enum_fields())
         self._validate_no_duplicate_livestock_type(records)
+        await validate_land_link(records, "Livestock")
 
     def _validate_no_duplicate_livestock_type(self, records: list[dict]) -> None:
         seen: set[str] = set()
@@ -57,4 +72,4 @@ class G2PRegisterDomainServiceLivestock(G2PRegisterDomainService):
             if str(payload.get(key) or "").strip()
         )
 
-        return " ".join(record_name).strip()
+        return " ".join(record_name).strip() or fallback_record_name(payload, "Livestock")

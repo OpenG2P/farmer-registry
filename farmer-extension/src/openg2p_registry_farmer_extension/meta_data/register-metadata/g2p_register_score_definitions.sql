@@ -8,4 +8,5 @@ INSERT INTO "public"."g2p_register_score_definitions" (
     'Household',
     'POVERTY',
     'TRUE'
-);
+)
+ON CONFLICT ("score_definition_id") DO UPDATE SET "register_mnemonic" = EXCLUDED."register_mnemonic", "score_type" = EXCLUDED."score_type", "is_enabled" = EXCLUDED."is_enabled";

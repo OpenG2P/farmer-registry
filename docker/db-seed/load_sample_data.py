@@ -19,7 +19,7 @@ import time
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from urllib import error as urllib_error
 from urllib import parse as urllib_parse
 from urllib import request as urllib_request
@@ -525,9 +525,18 @@ def http_json(
 
 
 class StaffClient:
-    def __init__(self, base_url: str, token: str, username: str):
+    def __init__(
+        self,
+        base_url: str,
+        token: str,
+        username: str,
+        token_provider: Callable[[], str] | None = None,
+    ):
         self.base_url = base_url.rstrip("/")
         self.username = username
+        # Re-login hook: Keycloak access tokens are short-lived (5 min by
+        # default) and a full seed of 25+ households runs well past that.
+        self._token_provider = token_provider
         csrf = uuid.uuid4().hex
         self.headers = {
             "Authorization": f"Bearer {token}",
@@ -535,6 +544,13 @@ class StaffClient:
             "X-CSRF-Token": csrf,
             "Cookie": f"X-CSRF-Token={csrf}",
         }
+
+    def refresh_token(self) -> bool:
+        if self._token_provider is None:
+            return False
+        self.headers["Authorization"] = f"Bearer {self._token_provider()}"
+        log(f"  re-logged in as {self.username} (access token expired)")
+        return True
 
     def post(self, path: str, payload: dict) -> dict:
         envelope = {
@@ -551,9 +567,11 @@ class StaffClient:
         for attempt in range(8):
             status, body = http_json("POST", url, data=envelope, headers=self.headers)
             header = (body or {}).get("response_header") or {}
-            if status == 403 or (
-                isinstance(header, dict) and str(header.get("response_error_code", "")).endswith("403")
-            ):
+            err_code = str(header.get("response_error_code", "")) if isinstance(header, dict) else ""
+            if (status == 401 or err_code.endswith("401")) and self.refresh_token():
+                last_err = f"{path} as {self.username} -> 401 (token refreshed, retrying)"
+                continue
+            if status == 403 or err_code.endswith("403"):
                 last_err = f"{path} as {self.username} -> 403 (auth warming up)"
                 time.sleep(5)
                 continue
@@ -894,14 +912,15 @@ def household_payload(hh: dict) -> dict:
 
 def member_payload(member: dict, household_intake_id: str, *, is_head: bool = False) -> dict:
     age = member.get("estimated_age") or 0
+    # Codes come from the master-data RELATIONSHIP_TO_HEAD list; the head is SELF.
     if is_head:
-        relationship = None
+        relationship = "SELF"
     elif age < 18:
         relationship = "CHILD"
     elif (member.get("marital_status") or "").upper() == "MARRIED":
         relationship = "SPOUSE"
     else:
-        relationship = "OTHER"
+        relationship = "OTHER_RELATIVE"
     return {
         **person_fields(member),
         "is_disabled": False,
@@ -1207,7 +1226,14 @@ def main() -> None:
     clients: dict[str, StaffClient] = {}
     for username in users:
         token = fetch_token(token_url, client_id, username, password, client_secret)
-        clients[username] = StaffClient(staff_api, token, username)
+        clients[username] = StaffClient(
+            staff_api,
+            token,
+            username,
+            token_provider=lambda u=username: fetch_token(
+                token_url, client_id, u, password, client_secret
+            ),
+        )
         log(f"logged in as {username}")
     submitter = clients[submit_user]
 

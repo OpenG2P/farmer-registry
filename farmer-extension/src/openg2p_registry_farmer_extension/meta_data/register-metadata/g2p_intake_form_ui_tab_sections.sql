@@ -11,4 +11,5 @@ INSERT INTO "public"."g2p_intake_form_ui_tab_sections" ("tab_section_id","tab_id
 ('bb3542b4-2f6b-443e-b9b5-65ce0b0a6eb8','a1a4d25a-1cd4-4356-abac-72482721','43c0b48b-3af1-41a4-8399-48e7ab718e80',70),
 ('tab_section_9','a1a4d25a-1cd4-4356-abac-72482721','farmer_membership_membership_details_01',90),
 ('46392474-53a0-4737-ab8e-c942efc73153','a1a4d25a-1cd4-4356-abac-72482721','2b73b4c3-b3f0-48cc-bba7-2b522b62e785',80),
-('d6873c11-1f86-45f5-9fef-9ad6c8c22303','a1a4d25a-1cd4-4356-abac-72482721','bc882922-9008-4902-8f4f-98db0fa8f9ad',100);
+('d6873c11-1f86-45f5-9fef-9ad6c8c22303','a1a4d25a-1cd4-4356-abac-72482721','bc882922-9008-4902-8f4f-98db0fa8f9ad',100)
+ON CONFLICT ("tab_section_id") DO UPDATE SET "tab_id" = EXCLUDED."tab_id", "section_id" = EXCLUDED."section_id", "section_order" = EXCLUDED."section_order";

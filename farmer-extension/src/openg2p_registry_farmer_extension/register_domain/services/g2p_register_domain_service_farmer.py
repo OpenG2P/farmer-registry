@@ -5,7 +5,8 @@ from openg2p_registry_core.models import G2PRegisterChangeRequest
 from openg2p_registry_core.services import G2PRegisterDomainService
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .domain_validation_utils import as_int, parse_date, validation_error
+
+from .domain_validation_utils import as_int, fallback_record_name, parse_date, validate_enum_values, validation_error
 from .utils.household_roster import (
     CHANGED_PERSON_KIND_FARMER,
     calculate_age,
@@ -16,9 +17,19 @@ from .utils.household_roster import (
 _logger = logging.getLogger("g2p-register-domain-service")
 
 
+
+def _enum_fields() -> dict:
+    # Imported lazily: ..models imports these services at module level, so a
+    # top-level import here would be circular whenever services load first.
+    from ..models.enums import DisabilitySeverityEnum, DisabilityTypeEnum, EducationalLevelEnum, SourceOfIncomeEnum
+
+    return {"disability_type": DisabilityTypeEnum, "disability_severity": DisabilitySeverityEnum, "source_of_income": SourceOfIncomeEnum, "education_level": EducationalLevelEnum}
+
+
 class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
     async def validate_domain_attributes(self, records: list[dict]):
         for record in records:
+            validate_enum_values(record, _enum_fields())
             self._validate_birth_date(record)
             self._validate_estimated_age(record)
 
@@ -92,7 +103,7 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
             if str(payload.get(key) or "").strip()
         )
 
-        return " ".join(record_name).strip()
+        return " ".join(record_name).strip() or fallback_record_name(payload, "Farmer")
 
     async def pre_approve(self, change_request: G2PRegisterChangeRequest, session: AsyncSession):
         from ..models.farmer import G2PRegisterFarmer

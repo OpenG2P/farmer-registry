@@ -8,6 +8,8 @@ _config = Settings.get_config()
 
 from openg2p_fastapi_common.app import Initializer as BaseInitializer
 from openg2p_registry_core.app import Initializer as CoreInitializer
+from openg2p_fastapi_common.context import component_registry
+from openg2p_registry_core.services.intake_form_data_service import G2PIntakeFormDataService
 
 from .register_domain.models import (
     G2PRegisterFarmer, G2PRegisterHistoryFarmer,
@@ -23,6 +25,7 @@ from .register_domain.models import (
     G2PIntakeFormLivestock, G2PIntakeFormMembershipDetails,
 )
 from .register_domain.services import (
+    G2PFarmerIntakeFormDataService,
     G2PRegisterDomainServiceFarmer,
     G2PRegisterDomainServiceHousehold,
     G2PRegisterDomainServiceHouseholdMember,
@@ -31,10 +34,25 @@ from .register_domain.services import (
 _logger = logging.getLogger(_config.logging_default_logger_name)
 
 
+def _install_component_override(instance, base_cls) -> None:
+    """Place `instance` before every other registered `base_cls` component."""
+    registry = component_registry
+    if instance in registry:
+        registry.remove(instance)
+    first = next((i for i, c in enumerate(registry) if isinstance(c, base_cls)), len(registry))
+    registry.insert(first, instance)
+
+
 class Initializer(BaseInitializer):
     def initialize(self, **kwargs):
         super().initialize()
         CoreInitializer().initialize()
+
+        # Override the platform intake data service (adds the Household finalize
+        # roster check). get_component() returns the FIRST registered instance of
+        # the class, and the API main constructs the core initializer before this
+        # one, so the subclass has to be moved ahead of the core instance.
+        _install_component_override(G2PFarmerIntakeFormDataService(), G2PIntakeFormDataService)
 
         G2PRegisterDomainServiceFarmer()
         G2PRegisterDomainServiceHousehold()

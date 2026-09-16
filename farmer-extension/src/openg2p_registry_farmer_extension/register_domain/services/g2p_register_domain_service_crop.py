@@ -3,16 +3,30 @@ from datetime import date
 
 from openg2p_registry_core.services import G2PRegisterDomainService
 
-from .domain_validation_utils import parse_date, validation_error
+
+from .land_link_validation import validate_land_link
+
+from .domain_validation_utils import fallback_record_name, parse_date, validate_enum_values, validation_error
 
 _logger = logging.getLogger("g2p-register-domain-service")
+
+
+
+def _enum_fields() -> dict:
+    # Imported lazily: ..models imports these services at module level, so a
+    # top-level import here would be circular whenever services load first.
+    from ..models.enums import CropEndUseEnum
+
+    return {"end_use": CropEndUseEnum}
 
 
 class G2PRegisterDomainServiceCrop(G2PRegisterDomainService):
     async def validate_domain_attributes(self, records: list[dict]):
         for record in records:
             self._validate_planted_date(record)
+            validate_enum_values(record, _enum_fields())
         self._validate_no_duplicate_commodity(records)
+        await validate_land_link(records, "Crop")
 
     def _validate_planted_date(self, record: dict) -> None:
         planted_date = parse_date(record.get("planted_date"))
@@ -62,4 +76,4 @@ class G2PRegisterDomainServiceCrop(G2PRegisterDomainService):
             if str(payload.get(key) or "").strip()
         )
 
-        return " ".join(record_name).strip()
+        return " ".join(record_name).strip() or fallback_record_name(payload, "Crop")

@@ -5,6 +5,7 @@ from openg2p_registry_core.schemas import (
     G2PRegisterHistorySchema, G2PPersonHistorySchema, G2PGeoHistorySchema,
     G2PIntakeFormSchemaBase
 )
+from .address import G2PAddressLinesSchema
 from ..models.enums import RelationshipToTheHeadEnum
 
 
@@ -15,7 +16,7 @@ class G2PSchemaHouseholdMember:
     relationship_to_the_head: Optional[RelationshipToTheHeadEnum] = None
 
 
-class G2PRegisterSchemaHouseholdMember(G2PRegisterBaseSchema, G2PPersonSchema, G2PGeoSchema, G2PSchemaHouseholdMember):
+class G2PRegisterSchemaHouseholdMember(G2PRegisterBaseSchema, G2PPersonSchema, G2PGeoSchema, G2PAddressLinesSchema, G2PSchemaHouseholdMember):
     """
     Schema for HouseholdMember register.
     Inherits fields from G2PRegisterBaseSchema, G2PPersonSchema, and G2PGeoSchema.
@@ -30,7 +31,7 @@ class G2PRegisterHistorySchemaHouseholdMember(G2PRegisterHistorySchema, G2PPerso
     """
 
 
-class G2PIntakeFormSchemaHouseholdMember(G2PIntakeFormSchemaBase, G2PRegisterBaseSchema, G2PPersonSchema, G2PGeoSchema, G2PSchemaHouseholdMember):
+class G2PIntakeFormSchemaHouseholdMember(G2PIntakeFormSchemaBase, G2PRegisterBaseSchema, G2PPersonSchema, G2PGeoSchema, G2PAddressLinesSchema, G2PSchemaHouseholdMember):
     """
     Schema for HouseholdMember intake form.
     Inherits fields from G2PRegisterBaseSchema, G2PPersonSchema, and G2PGeoSchema.
