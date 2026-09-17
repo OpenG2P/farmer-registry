@@ -26,7 +26,7 @@ from generators import (
     land, livestock, membership_details,
 )
 from id_scheme import init_pod_id_scheme
-from search_anchors import generate_anchors
+from search_anchors import load_or_generate_anchors
 from seed_manifest import ManifestBuilder
 
 CHILD_GENERATORS = {
@@ -132,7 +132,20 @@ def generate_shard(
     )
 
     init_pod_id_scheme(shard_index, total_shards, total_target_farmers)
-    anchors = generate_anchors()
+    anchors, anchor_source = load_or_generate_anchors()
+    log(
+        f"[seed] shard={shard_index} anchors={len(anchors)} source={anchor_source} "
+        f"id_block_start={shard_index * int(os.environ.get('SEED_ID_BLOCK', '100000000'))}"
+    )
+    if not anchors:
+        raise RuntimeError("no search anchors loaded or generated")
+    expected_hits = (
+        total_target_farmers // len(anchors) if anchors else 0
+    )
+    log(
+        f"[seed] shard={shard_index} expected_hits_per_term_global≈{expected_hits} "
+        f"(pod_share≈{target_farmers // len(anchors) if anchors else 0})"
+    )
     manifest = ManifestBuilder(
         search_terms=anchors,
         data_volume=tier,
@@ -151,7 +164,7 @@ def generate_shard(
     farmers_written = 0
     last_reported = 0
     last_report_at = start
-    report_every_farmers = 25_000
+    report_every_farmers = max(1, config.BATCH_SIZE)
     report_every_seconds = 30
 
     while farmers_written < target_farmers:
@@ -217,7 +230,7 @@ def run(
     if dsn_override:
         config.DB_DSN = dsn_override
 
-    total_target_farmers = config.DATA_VOLUME_TIERS[tier]
+    total_target_farmers = int(os.environ.get("SEED_TARGET_FARMERS") or 0) or config.DATA_VOLUME_TIERS[tier]
     workers = max(1, workers)
     total_shards = total_pods * workers
     writer_id = f"pod{pod_index}"
@@ -286,23 +299,47 @@ def run(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--tier", choices=list(config.DATA_VOLUME_TIERS), required=True)
+    parser.add_argument(
+        "--tier",
+        choices=list(config.DATA_VOLUME_TIERS),
+        default=os.environ.get("SEED_TIER") or None,
+        help="volume tier (or SEED_TIER). Ignored when SEED_TARGET_FARMERS is set.",
+    )
     parser.add_argument("--dsn", default=None, help="overrides SEED_DB_DSN / config.DB_DSN")
-    parser.add_argument("--pod-index", type=int, default=0, help="zero-based index of this pod (0 to total-pods-1)")
-    parser.add_argument("--total-pods", type=int, default=1, help="total number of pods running in parallel")
+    parser.add_argument(
+        "--pod-index",
+        type=int,
+        default=None,
+        help="zero-based index (or SEED_POD_INDEX / JOB_COMPLETION_INDEX)",
+    )
+    parser.add_argument(
+        "--total-pods",
+        type=int,
+        default=None,
+        help="total pods (or SEED_TOTAL_PODS)",
+    )
     parser.add_argument(
         "--workers",
         type=int,
-        default=config.WORKERS,
-        help="COPY/generator processes inside this pod (default SEED_WORKERS or 1)",
+        default=None,
+        help="COPY/generator processes inside this pod (SEED_WORKERS, default 1)",
     )
     args = parser.parse_args()
 
-    if args.pod_index >= args.total_pods:
-        print(f"Error: pod-index ({args.pod_index}) must be less than total-pods ({args.total_pods})", flush=True)
+    pod_index = args.pod_index
+    if pod_index is None:
+        pod_index = int(os.environ.get("SEED_POD_INDEX") or os.environ.get("JOB_COMPLETION_INDEX") or "0")
+    total_pods = args.total_pods
+    if total_pods is None:
+        total_pods = int(os.environ.get("SEED_TOTAL_PODS") or "5")
+    workers = args.workers if args.workers is not None else config.WORKERS
+    tier = args.tier or os.environ.get("SEED_TIER") or "stretch"
+
+    if pod_index >= total_pods:
+        print(f"Error: pod-index ({pod_index}) must be less than total-pods ({total_pods})", flush=True)
         sys.exit(1)
-    if args.workers < 1:
+    if workers < 1:
         print("Error: --workers must be >= 1", flush=True)
         sys.exit(1)
 
-    run(args.tier, args.dsn, args.pod_index, args.total_pods, args.workers)
+    run(tier, args.dsn, pod_index, total_pods, workers)
