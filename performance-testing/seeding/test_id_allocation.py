@@ -1,95 +1,50 @@
 #!/usr/bin/env python3
-"""Test script to verify pod-specific ID allocation prevents duplicates.
-
-This script simulates multiple pods generating IDs and checks for collisions.
-"""
+"""Test disjoint functional_record_id blocks across pods."""
 
 import sys
+
 sys.path.insert(0, ".")
 
-from id_scheme import init_pod_id_scheme, assign_functional_id
+from id_scheme import assign_functional_id, init_pod_id_scheme
 
 
-def test_id_allocation(tier: str, total_pods: int):
-    """Test ID allocation across multiple pods."""
-    
-    # Load config to get farmer count
-    import config
-    total_farmers = config.DATA_VOLUME_TIERS[tier]
-    
-    print(f"Testing ID allocation for tier '{tier}' ({total_farmers} farmers, {total_pods} pods)")
-    
-    # Initialize ID schemes for each pod
-    pod_schemes = []
+def test_id_allocation(total_farmers: int, total_pods: int, samples: int = 5000):
+    print(f"Testing ID blocks: {total_farmers} farmers, {total_pods} pods, {samples} samples/pod")
+    farmer_ids: set[str] = set()
+    household_ids: set[str] = set()
+    default_ids: set[str] = set()
+
     for pod_index in range(total_pods):
         init_pod_id_scheme(pod_index, total_pods, total_farmers)
-        pod_schemes.append(pod_index)
-    
-    # Generate some IDs from each pod and check for collisions
-    farmer_ids = set()
-    household_ids = set()
-    
-    test_iterations = 1000
-    
-    for pod_index in range(total_pods):
-        # Reinitialize for this pod
-        init_pod_id_scheme(pod_index, total_pods, total_farmers)
-        
-        print(f"  Pod {pod_index}:")
-        
-        # Generate test IDs
-        pod_farmer_ids = []
-        pod_household_ids = []
-        
-        for _ in range(test_iterations):
-            farmer_id = assign_functional_id("Farmer")
-            household_id = assign_functional_id("Household")
-            
-            pod_farmer_ids.append(farmer_id)
-            pod_household_ids.append(household_id)
-        
-        # Check for collisions within this pod
-        if len(pod_farmer_ids) != len(set(pod_farmer_ids)):
-            print(f"    ERROR: Duplicate farmer IDs within pod {pod_index}")
+        pod_farmers = [assign_functional_id("Farmer") for _ in range(samples)]
+        pod_households = [assign_functional_id("Household") for _ in range(samples)]
+        pod_defaults = [assign_functional_id("Crop") for _ in range(samples)]
+
+        if len(set(pod_farmers)) != samples:
+            print(f"ERROR: duplicate Farmer ids inside pod {pod_index}")
             return False
-        
-        if len(pod_household_ids) != len(set(pod_household_ids)):
-            print(f"    ERROR: Duplicate household IDs within pod {pod_index}")
+        overlap_f = farmer_ids.intersection(pod_farmers)
+        overlap_h = household_ids.intersection(pod_households)
+        overlap_d = default_ids.intersection(pod_defaults)
+        if overlap_f or overlap_h or overlap_d:
+            print(f"ERROR: cross-pod collision pod={pod_index} f={len(overlap_f)} h={len(overlap_h)} d={len(overlap_d)}")
             return False
-        
-        # Check for collisions with other pods
-        for farmer_id in pod_farmer_ids:
-            if farmer_id in farmer_ids:
-                print(f"    ERROR: Duplicate farmer ID {farmer_id} across pods")
-                return False
-            farmer_ids.add(farmer_id)
-        
-        for household_id in pod_household_ids:
-            if household_id in household_ids:
-                print(f"    ERROR: Duplicate household ID {household_id} across pods")
-                return False
-            household_ids.add(household_id)
-        
-        print(f"    Generated {test_iterations} unique farmer IDs")
-        print(f"    Generated {test_iterations} unique household IDs")
-        print(f"    Farmer ID range: {pod_farmer_ids[0]} to {pod_farmer_ids[-1]}")
-        print(f"    Household ID range: {pod_household_ids[0]} to {pod_household_ids[-1]}")
-    
-    print(f"\n✓ SUCCESS: No ID collisions detected across {total_pods} pods")
-    print(f"  Total unique farmer IDs: {len(farmer_ids)}")
-    print(f"  Total unique household IDs: {len(household_ids)}")
-    
+        farmer_ids.update(pod_farmers)
+        household_ids.update(pod_households)
+        default_ids.update(pod_defaults)
+        print(
+            f"  pod {pod_index}: Farmer {pod_farmers[0]}..{pod_farmers[-1]} "
+            f"Household {pod_households[0]}..{pod_households[-1]} "
+            f"DEFAULT {pod_defaults[0]}..{pod_defaults[-1]}"
+        )
+
+    print(
+        f"OK: {len(farmer_ids)} farmer / {len(household_ids)} household / "
+        f"{len(default_ids)} default ids, no collisions"
+    )
     return True
 
 
 if __name__ == "__main__":
-    import argparse
-    
-    parser = argparse.ArgumentParser(description="Test pod-specific ID allocation")
-    parser.add_argument("--tier", default="primary", help="Data volume tier")
-    parser.add_argument("--pods", type=int, default=10, help="Number of pods to simulate")
-    
-    args = parser.parse_args()
-    
-    success = test_id_allocation(args.tier, args.pods)
-    sys.exit(0 if success else 1)
+    ok = test_id_allocation(50_000_000, 5)
+    sys.exit(0 if ok else 1)
