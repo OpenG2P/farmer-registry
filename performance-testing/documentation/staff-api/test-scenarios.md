@@ -81,7 +81,7 @@ The number of `staff-portal-api` replicas under test, HPA off,
 |---|---|---|
 | **1 — Isolated** | One of the 5 scenarios (§4) at a time. Ramp `+step_users` every `step_seconds`; each tracked endpoint's own p95/p99 SLO (§5) is checked every step. The ramp stops — freezing at whatever user count it has reached — the first time *either* an endpoint's SLO is breached for `SLO_BREACH_STEPS` consecutive windows *or* the pod's CPU crosses `CPU_BREACH_CORES` for `CPU_BREACH_POLLS` consecutive polls (quorum: 2-of-3+ pods, else 1-of-1-2). Failures are logged, not a stop condition (§6). The frozen level then holds for `SUSTAIN_MINUTES` — that steady-state window, not the ramp itself, is what's reported. | Ramp-until-freeze, then hold |
 | **2 — Blended** | An 80:20 read:write mix across all 5 scenarios, by weight (§4). Driven by `BlendedRampShape`, a subclass of Step 1's `SLOStepRampShape` with no logic changes — identical ramp/freeze mechanics, just spawning the weighted mix instead of one scenario. | Ramp-until-freeze, then hold |
-| **3 — Soak** | The blended mix again, but at a **fixed** load — 80% of *this same cell's* Step 2 result — run continuously. Not discovering a new ceiling; checking the Step-2 ceiling holds over time. | Fixed, 8h |
+| **3 — Soak** | The same hardcoded 80:20 weighted mix as Step 2, but **not** ramped by `SLOStepRampShape` — plain Locust `-u`/`-r`/`-t` at a fixed `SOAK_USERS` count (intended as 80% of this cell's Step 2 freeze level, per `locust-staff-api.sh`'s own guidance — recalculate it per cell, it does not follow automatically), with total HTTP throughput capped by a token-bucket rate gate (`SOAK_MAX_RPS`) so CPU doesn't climb back to the ramp's closed-loop ceiling once latency settles. In-cluster only (`IN_CLUSTER_SOAK=1` gates the rate cap and pod pinning); not discovering a new ceiling — checking the Step-2 ceiling holds over time. | Fixed users + RPS cap, 8h |
 
 Which Steps run at which Volume-Tier × Pod-Scale:
 
@@ -345,11 +345,30 @@ steady-state window, not mid-ramp. Which condition triggered the freeze
 Reaching `MAX_USERS` with no breach freezes and holds the same way, with
 `max_users` itself as the result.
 
-**Step 3 (soak).** Not yet built (§7) — runs at a **fixed** load (80% of
-Step 2's frozen RPS for this cell) rather than ramping, so this is a
-different, simpler pass/fail: at steady state, p95 (and p99) ≤ the endpoint
-SLO **and** error rate = 0 (no 5xx, no timeouts, no DB-connection errors)
-**and** both hold for the full 8h with no upward memory/latency trend.
+**Step 3 (soak).** Runs the same 5-scenario mix as Steps 1-2, at the same
+hardcoded weights (`register_read` 40, `cr_read_and_approve` 20,
+`intake_read_and_approve` 20, `cr_create` 10, `intake_create` 10 — set
+directly in
+[`soak_locustfile.py`](../../locust/api/staff-api/blended/soak_locustfile.py),
+not read from an environment variable). It does **not** use
+`SLOStepRampShape` — no SLO/CPU-breach freeze logic applies here. Instead
+it's plain Locust `-u`/`-r`/`-t`: a fixed `SOAK_USERS` count, ramped at a
+fixed spawn rate, held for `SOAK_RUN_TIME` (8h). Total HTTP throughput is
+capped by
+[`shared/rps_gate.py`](../../locust/api/shared/rps_gate.py)'s
+`SOAK_MAX_RPS` token-bucket limiter, active only when `IN_CLUSTER_SOAK=1`
+([`shared/in_cluster.py`](../../locust/api/shared/in_cluster.py)) — so
+soak is an in-cluster-only Step; end-to-end/laptop runs of Steps 1-2 must
+leave it unset. `SOAK_USERS`/`SOAK_MAX_RPS` are meant to be set per cell to
+80% of that cell's Step 2 freeze level
+([`locust-staff-api.sh`](../../locust/api/locust-staff-api.sh) refuses to
+run soak without `SOAK_USERS` set, with exactly that guidance in its error
+message) — this is a manual step, not derived automatically, so record
+what was actually configured against what Step 2 measured for the same
+cell and flag it if they diverge. Pass/fail is different from Steps 1-2's
+freeze-based one: at steady state, p95 (and p99) ≤ the endpoint SLO **and**
+error rate = 0 (no 5xx, no timeouts, no DB-connection errors) **and** both
+hold for the full 8h with no upward memory/latency trend.
 
 ## 7. Execution runbook
 
@@ -431,15 +450,29 @@ across Volume-Tier (fixed pod-scale) gives **data-volume sensitivity** — see
 
 ### Step 3 — Soak (typically one cell — the production-representative one)
 
-1. Set load to **80% of this cell's Step 2 max RPS**.
-2. Run **8 hours** continuously (blended mix).
+Run via the in-cluster Job,
+[`k8s/soak-job.yaml`](../../locust/api/k8s/soak-job.yaml) — a laptop
+run through `locust-staff-api.sh` exists as a fallback but is not the
+production-representative path (no RPS cap, no pod pinning; the script
+itself warns "will die if the machine sleeps"):
+
+1. Set `SOAK_USERS` (and `SOAK_MAX_RPS` if capping) to **80% of this
+   cell's Step 2 freeze level** — this has to be calculated and set per
+   cell each time, it doesn't derive automatically from Step 2's result.
+2. Run the Job for `SOAK_RUN_TIME` (8h). `soak_locustfile.py` spawns the
+   same 80:20 weighted mix as Step 2 (hardcoded weights, not from env) at
+   the fixed user count — no ramp, no SLO/CPU freeze logic.
 3. Watch for: upward memory trend (leak), growing DB connections
-   (pool/handle leak), latency creep, any errors.
+   (pool/handle leak), latency creep, any errors. `kubectl top` /
+   Grafana pod panels cover CPU/memory; Locust's own stats cover
+   RPS/latency/errors — DB connection counts need a separate capture, not
+   part of either.
 4. Pass = SLOs hold + 0 errors + flat memory for the full window.
 
 Deliverable: the time series in [`raw-report.md`](raw-report.md) (from
-Locust's `_stats_history.csv`, RPS/p95/error rate), plus pod memory/DB conns
-recorded manually into `soak.csv` for this cell.
+Locust's `_stats_history.csv`, RPS/p95/error rate), pod CPU/memory
+dashboard exports per replica, plus DB conns recorded manually into
+`soak.csv` for this cell.
 
 ### `db-sweep` (separate from the matrix — see §3)
 
