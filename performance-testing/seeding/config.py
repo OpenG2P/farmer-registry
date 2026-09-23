@@ -38,10 +38,10 @@ HISTORY_TABLES = [
 
 # Search-text anchors: 4-char substrings embedded in Farmer first_name so
 # search_in_a_register / pg_trgm has guaranteed, high-cardinality matches.
-# Round-robin over 10_000 anchors on a 10M farmer target → ~1_000 hits/term
-# so GIN + LIMIT does not heap-scan tens of thousands of rows per search.
-SEARCH_ANCHOR_COUNT = 10_000
-SEARCH_ANCHOR_LENGTH = 4
+# 50_000 terms on a 50M farmer target → 1_000 hits/term (5 pods × 10M → 200
+# hits/term/pod). File: SEED_ANCHORS_FILE or /perf-seed/register_search_terms.txt
+SEARCH_ANCHOR_COUNT = int(os.environ.get("SEED_ANCHOR_COUNT", "50000"))
+SEARCH_ANCHOR_LENGTH = int(os.environ.get("SEED_ANCHOR_LENGTH", "4"))
 
 # Reduced field list for Farmer.search_text (see README: "Why search_text is
 # generator-computed, not ORM-computed"). Other tables keep their full
@@ -71,7 +71,7 @@ TABLE_NAMES = {
     "membership_details": ("g2p_register_membership_details", "g2p_register_history_membership_details", "MembershipDetails"),
 }
 
-BATCH_SIZE = int(os.environ.get("SEED_BATCH_SIZE", "50000"))
+BATCH_SIZE = int(os.environ.get("SEED_BATCH_SIZE", "20000"))
 RANDOM_SEED = 42
 
 DB_DSN = os.environ.get(

@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Docker image for farmer-registry performance testing seeding
 FROM python:3.11-slim
 
@@ -25,8 +26,13 @@ COPY seed_manifest.py .
 COPY rebuild_indexes.py .
 COPY reassign_search_anchors.py .
 COPY generators/ ./generators/
+COPY --from=perfseed register_search_terms.txt /perf-seed/register_search_terms.txt
 
 ENV PYTHONUNBUFFERED=1
+ENV SEED_ANCHORS_FILE=/perf-seed/register_search_terms.txt
+ENV SEED_DEFER_INDEXES=true
+ENV SEED_BATCH_SIZE=20000
+ENV SEED_WORKERS=1
 
 # Force rebuild by touching db.py
 RUN touch db.py && stat db.py

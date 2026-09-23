@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Create model-declared indexes that the 10M seed left missing on live tables.
-
-History btrees were already rebuilt. This restores live UNIQUE/btree/GIN,
-intake GIN + uniques, and the AWE lookup index. Safe to re-run (IF NOT EXISTS).
+"""Rebuild seed indexes. Prefer the seeder dump (_seed_deferred_indexes, ~140
+live+history CREATE INDEX statements). Then add intake / FTS / AWE / CR extras
+from plan(). Safe to re-run (IF NOT EXISTS).
 """
 
 from __future__ import annotations
 
 import os
+import re
 import sys
 import time
 from datetime import datetime, timezone
@@ -100,6 +100,75 @@ GIN_LIVE_ORDER = (
 )
 
 
+_SEED_INDEX_BACKUP = "_seed_deferred_indexes"
+
+
+def _if_not_exists(indexdef: str) -> str:
+    if re.search(r"\bIF\s+NOT\s+EXISTS\b", indexdef, re.I):
+        return indexdef
+    return re.sub(
+        r"(CREATE(?:\s+UNIQUE)?\s+INDEX)\s+",
+        r"\1 IF NOT EXISTS ",
+        indexdef,
+        count=1,
+        flags=re.I,
+    )
+
+
+def _index_name(indexdef: str) -> str:
+    match = re.search(
+        r"CREATE(?:\s+UNIQUE)?\s+INDEX(?:\s+IF\s+NOT\s+EXISTS)?\s+(\S+)",
+        indexdef,
+        re.I,
+    )
+    return match.group(1) if match else indexdef[:80]
+
+
+def load_seed_backup(cur) -> list[tuple[str, str]]:
+    cur.execute(
+        """
+        SELECT to_regclass(%s)
+        """,
+        (_SEED_INDEX_BACKUP,),
+    )
+    if cur.fetchone()[0] is None:
+        log(f"no {_SEED_INDEX_BACKUP}; using built-in plan only")
+        return []
+    cur.execute(
+        f"SELECT tablename, indexdef FROM {_SEED_INDEX_BACKUP} ORDER BY ctid"
+    )
+    rows = cur.fetchall()
+    log(f"loaded {len(rows)} indexdefs from {_SEED_INDEX_BACKUP}")
+    steps = []
+    for table, indexdef in rows:
+        if not indexdef:
+            continue
+        sql = _if_not_exists(indexdef)
+        steps.append((f"{table}.{_index_name(sql)}", sql))
+    return steps
+
+
+def drop_invalid_indexes(cur) -> None:
+    cur.execute(
+        """
+        SELECT n.nspname, c.relname
+        FROM pg_index i
+        JOIN pg_class c ON c.oid = i.indexrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE NOT i.indisvalid
+          AND n.nspname = 'public'
+          AND c.relname LIKE '%%g2p_register%%'
+        """
+    )
+    rows = cur.fetchall()
+    if not rows:
+        log("no invalid g2p_register indexes")
+        return
+    for schema, name in rows:
+        log(f"DROP invalid index {schema}.{name}")
+        cur.execute(f'DROP INDEX IF EXISTS {schema}."{name}"')
+
+
 def fts_gin(name: str, table: str) -> tuple[str, str]:
     sql = (
         f"CREATE INDEX IF NOT EXISTS {name} ON {table} "
@@ -153,10 +222,31 @@ def plan() -> list[tuple[str, str]]:
 
 
 def analyze_tables() -> list[str]:
-    return [t for t, _ in LIVE_TABLES] + list(INTAKE_TABLES) + [
+    history = [
+        "g2p_register_history_livestocks",
+        "g2p_register_history_farm_inputs",
+        "g2p_register_history_membership_details",
+        "g2p_register_history_households",
+        "g2p_register_history_farmers",
+        "g2p_register_history_household_members",
+        "g2p_register_history_lands",
+        "g2p_register_history_crops",
+    ]
+    return [t for t, _ in LIVE_TABLES] + history + list(INTAKE_TABLES) + [
         "awe_req_events",
         "g2p_register_change_request_payloads",
     ]
+
+
+def merge_steps(backup: list[tuple[str, str]], extra: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    seen = {label for label, _ in backup}
+    out = list(backup)
+    for label, sql in extra:
+        if label in seen:
+            continue
+        out.append((label, sql))
+        seen.add(label)
+    return out
 
 
 def run_sql(cur, label: str, sql: str, allow_unique_fallback: bool = True) -> str:
@@ -214,8 +304,14 @@ def main() -> int:
             cur.execute(stmt)
             log(f"session {stmt}")
 
-        steps = plan()
-        log(f"{len(steps)} index statements")
+        drop_invalid_indexes(cur)
+        backup = load_seed_backup(cur)
+        extra = plan()
+        steps = merge_steps(backup, extra)
+        log(
+            f"{len(steps)} index statements "
+            f"(seed_backup={len(backup)} plan_extra={len(steps) - len(backup)})"
+        )
         for i, (label, sql) in enumerate(steps, start=1):
             log(f"[{i}/{len(steps)}] {label}")
             result = run_sql(cur, label, sql)
