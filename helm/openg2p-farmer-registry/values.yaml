@@ -208,6 +208,16 @@ registry:
     # reporting a good credential invalid.
     vcVerification:
       enabled: true
+    # Hand the credential into a farmer's own wallet at the counter, as well as
+    # printing it. ON because a farmer with a smartphone gains holder binding and
+    # digital presentation from the same visit, and the channel costs nothing when
+    # unused -- the agent simply prints as before.
+    #
+    # It does NOT replace paper: the agent is still required, so this is a second
+    # delivery channel on Phase 1, not self-service issuance. See the platform's
+    # Wallet Handover page.
+    walletIssuance:
+      enabled: true
     # Card designs shipped by this chart (templates/vc-card-templates-configmap.yaml).
     svgConfigMap: '{{ .Release.Name }}-vc-card-templates'
     pdf:
