@@ -68,6 +68,10 @@ registry:
   # registry-agnostic and comes from the subchart.
   iamRegister:
     applicationDescription: "Farmer Registry"
+    # Rancher skips Helm hooks. Null these so the Job/ConfigMap are regular
+    # resources (same as commons does for master-data / AWE / PM).
+    annotations: null
+    payloadAnnotations: null
 
   # Functional-ID pools, one per register. The subchart defaults to the REFERENCE
   # registry's registers (individual + household), so the farmer register must be
