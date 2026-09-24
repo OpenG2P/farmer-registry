@@ -11,7 +11,6 @@ from shared.config import (
     DOCUMENT_UPLOAD_BUCKET,
     REGISTER_FARMER,
     SEARCH_PAGE_SIZE,
-    SEARCH_TERM_HITS,
     SEARCH_TERMS,
     STAFF_API_BASE,
 )
@@ -33,7 +32,6 @@ from cr_create_helpers import (
     response_status,
     section_ui_schema_from_tab_sections,
     static_enum_options,
-    total_pages,
 )
 
 
@@ -45,25 +43,42 @@ class CrCreateRampShape(SLOStepRampShape):
 class CrCreateUser(LocustUser):
     """Creates change requests against Farmer register records.
 
-    Search a random page -> pick a record -> for every tab, pick one
-    configured section (CR_FIELD_BY_SECTION) -> modify that section's one
-    known field -> route to the core or non-core change-request endpoint
-    based on is_core_section.
+    Search once the same way register_read does (sticky term, one call,
+    random page) -> pick a record -> for every tab, pick one configured
+    section (CR_FIELD_BY_SECTION) -> modify that section's one known field
+    -> route to the core or non-core change-request endpoint based on
+    is_core_section.
     """
 
     host = STAFF_API_BASE
 
-    # Process-wide create counts: seed_hits (from perf-seed) + these stay
-    # under PERF_SEED_HIT_MAX so one term does not collect >2k new CRs.
+    # Live users sticky on each register-search term. Same spread as
+    # register_read: claimed once per session, released in on_stop.
     _term_usage_counts: dict[str, int] = {}
+    # Embed anchors written into new field values, capped so one term
+    # does not collect >2k new CRs. Not the register search term.
     _embed_counts: dict[str, int] = {}
 
     def on_start(self):
         super().on_start()
-        self.search_text = ""
+        self.total_pages = None
+        self.search_text = self._claim_least_used_term()
+        print(f"\nDEBUG SEARCH_TERM anchored -> {self.search_text}\n")
 
-    def _claim_register_term(self) -> str:
-        return claim_create_term(SEARCH_TERMS, self._term_usage_counts, SEARCH_TERM_HITS)
+    def on_stop(self):
+        if self.search_text:
+            self._term_usage_counts[self.search_text] = max(
+                0, self._term_usage_counts.get(self.search_text, 0) - 1
+            )
+
+    def _claim_least_used_term(self) -> str:
+        if not SEARCH_TERMS:
+            return ""
+        min_count = min(self._term_usage_counts.get(term, 0) for term in SEARCH_TERMS)
+        least_used = [term for term in SEARCH_TERMS if self._term_usage_counts.get(term, 0) == min_count]
+        term = random.choice(least_used)
+        self._term_usage_counts[term] = self._term_usage_counts.get(term, 0) + 1
+        return term
 
     def _claim_embed_term(self) -> str:
         return claim_create_term(SEARCH_TERMS, self._embed_counts, CR_SEARCH_TERM_HITS)
@@ -71,17 +86,11 @@ class CrCreateUser(LocustUser):
     @tag("change_request", "write")
     @task
     def create_change_requests(self):
-        self.search_text = self._claim_register_term()
-        print(f"\nDEBUG SEARCH_TERM register -> {self.search_text}\n")
         self._get_register_summary_data()
 
-        page1_response = self._search_in_a_register(current_page=1)
-        pages_total = total_pages(safe_json(page1_response))
-        chosen_page = random.randint(1, pages_total)
-        search_response = page1_response if chosen_page == 1 else self._search_in_a_register(current_page=chosen_page)
-
+        search_response = self._search_in_a_register()
         internal_record_id = choose_internal_record_id(safe_json(search_response))
-        print(f"\nDEBUG SEARCH -> page {chosen_page}/{pages_total}, chosen internal_record_id -> {internal_record_id}\n")
+        print(f"\nDEBUG SEARCH -> chosen internal_record_id -> {internal_record_id}\n")
         if not internal_record_id:
             return
 
@@ -173,7 +182,9 @@ class CrCreateUser(LocustUser):
     # ------------------------------------------------------------------
     # 2 — search_in_a_register (g2p_register_data_controller)
     # ------------------------------------------------------------------
-    def _search_in_a_register(self, current_page: int):
+    def _search_in_a_register(self):
+        current_page = random.randint(1, self.total_pages) if self.total_pages else 1
+        print(f"\nDEBUG PAGE_NUMBER -> {current_page}\n")
         payload = self.build_request(
             request_payload={"register_id": REGISTER_FARMER},
             pagination_request={
@@ -182,7 +193,14 @@ class CrCreateUser(LocustUser):
                 "search_text": self.search_text,
             },
         )
-        return self._post(STAFF_API_BASE, "/register-data/search_in_a_register", payload, name="search_in_a_register")
+        response = self._post(
+            STAFF_API_BASE, "/register-data/search_in_a_register", payload, name="search_in_a_register"
+        )
+        pagination_response = safe_json(response).get("response_body", {}).get("pagination_response") or {}
+        number_of_pages = pagination_response.get("number_of_pages")
+        if number_of_pages:
+            self.total_pages = number_of_pages
+        return response
 
     # ------------------------------------------------------------------
     # 3 — get_subject_record (g2p_register_data_controller)
