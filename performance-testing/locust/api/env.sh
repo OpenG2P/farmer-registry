@@ -22,8 +22,8 @@ export TAB_ITERATION_MAX_WAIT_SECONDS=0.0
 
 # Volume-Tier -- see documentation/staff-api/test-scenarios.md §3. Uncomment exactly one.
 # export VOLUME_TIER=smoke
-export VOLUME_TIER=primary
-# export VOLUME_TIER=stretch
+# export VOLUME_TIER=primary
+export VOLUME_TIER=stretch
 # export VOLUME_TIER=stress
 
 # Pod-Scale -- app replica count under test. Uncomment exactly one.

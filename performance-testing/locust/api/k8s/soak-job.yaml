@@ -46,7 +46,7 @@ spec:
           args:
             - |
               set -uo pipefail
-              CSV_PREFIX="/results/staff-api/in-cluster/primary/pod-3/3-soak/soak"
+              CSV_PREFIX="/results/staff-api/in-cluster/stretch/pod-3/3-soak/soak"
               mkdir -p "$(dirname "$CSV_PREFIX")"
               echo "=== soak ==="
               echo "SOAK_USERS=${SOAK_USERS} SOAK_MAX_RPS=${SOAK_MAX_RPS} -t 8h"
