@@ -40,6 +40,19 @@ registry:
     image:
       repository: openg2p/openg2p-farmer-registry-celery
       tag: 0.0.0-develop
+    envVars:
+      # TEMPORARY OVERRIDE of the platform chart default, pending the upstream fix.
+      # -Q celery is required, not cosmetic. This pod runs the scheduler AND the worker
+      # that executes the *_beat_producer tasks it emits; those are published to the
+      # default "celery" queue, and the celery-worker pod only consumes
+      # registry_worker_queue. Launched via run_celery.py's app.start(argv=...) with
+      # "worker --beat" and no -Q, the worker prints its banner and "ready" but never
+      # consumes a message: producer tasks pile up on "celery" forever (44k in 15h on
+      # qa), nothing reaches registry_worker_queue, and every periodic job silently
+      # stops — intake ingest, deduplication, completion scores, export, outgest. The
+      # visible symptom is db-seed failing with "row ... not ingested within 180s".
+      # Remove once the platform chart ships this default.
+      CELERY_OPTS: "worker --beat -Q celery --loglevel=info --schedule=/tmp/celery-beat-schedule.db"
   dbSeed:
     image:
       repository: openg2p/openg2p-farmer-registry-db-seed

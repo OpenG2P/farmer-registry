@@ -523,6 +523,24 @@ def http_json(
             parsed = {"text": raw[:800]}
         return exc.code, parsed
 
+AUTH_WAIT_SECONDS = env_int("SEED_AUTH_WAIT_SECONDS", 300)
+
+
+def _error_detail(body) -> str:
+    """Best-effort human-readable message out of an API error body."""
+    if isinstance(body, dict):
+        header = body.get("response_header") or {}
+        if isinstance(header, dict) and header.get("response_error_message"):
+            return str(header["response_error_message"])
+        errors = body.get("errors")
+        if isinstance(errors, list) and errors:
+            first = errors[0] if isinstance(errors[0], dict) else {"message": errors[0]}
+            return str(first.get("message") or first)
+        for key in ("message", "detail"):
+            if body.get(key):
+                return str(body[key])
+    return str(body)[:200] if body else ""
+
 
 class StaffClient:
     def __init__(
@@ -564,17 +582,37 @@ class StaffClient:
         }
         url = f"{self.base_url}{path}"
         last_err = None
-        for attempt in range(8):
+        # A 403 right after a deployment means IAM cannot yet map this user's client
+        # roles to permissions: the iam-register job that publishes this registry's
+        # roles/permissions catalog has not finished (or ran after db-seed). Retry for
+        # AUTH_WAIT_SECONDS instead of the old ~40s, and report the API's own message
+        # so the cause is visible in the job log.
+        auth_deadline = time.time() + AUTH_WAIT_SECONDS
+        attempt = 0
+        while True:
+            attempt += 1
             status, body = http_json("POST", url, data=envelope, headers=self.headers)
             header = (body or {}).get("response_header") or {}
             err_code = str(header.get("response_error_code", "")) if isinstance(header, dict) else ""
-            if (status == 401 or err_code.endswith("401")) and self.refresh_token():
+            if (status == 401 or err_code.endswith("401")) and attempt <= 8 and self.refresh_token():
                 last_err = f"{path} as {self.username} -> 401 (token refreshed, retrying)"
                 continue
             if status == 403 or err_code.endswith("403"):
-                last_err = f"{path} as {self.username} -> 403 (auth warming up)"
-                time.sleep(5)
-                continue
+                detail = _error_detail(body)
+                last_err = (
+                    f"{path} as {self.username} -> 403 {detail} (retried for "
+                    f"{AUTH_WAIT_SECONDS}s: this user's roles resolve to no permissions in "
+                    "IAM — check that the iam-register job for this registry completed "
+                    "and that the user holds the staff-portal client roles)"
+                )
+                if time.time() < auth_deadline:
+                    if attempt == 1 or attempt % 6 == 0:
+                        log(f"  {path} as {self.username} -> 403 {detail}; waiting for IAM permissions…")
+                    time.sleep(5)
+                    continue
+                break
+            if attempt > 8:
+                break
             if status != 200:
                 raise RuntimeError(f"{path} as {self.username} -> {status}: {body}")
             if header.get("response_status") == "ERROR":
@@ -816,6 +854,52 @@ def submission_approval_status(conn, submission_id: str) -> str | None:
         return row[0] if row else None
 
 
+def _ingest_diagnosis() -> str:
+    """Why an approved submission has not been ingested, read from the DB.
+
+    Ingest is not done by the API: celery-beat publishes *_beat_producer tasks to the
+    DEFAULT celery queue, the worker that runs them enqueues
+    intake_form_register_ingest_worker onto registry_worker_queue, and the celery-worker
+    performs the insert. attempts=0 with no error means the task never reached a worker,
+    which is usually nothing consuming the default queue (the beat pod needs
+    `-Q celery` in CELERY_OPTS); an error means the ingest itself failed.
+    """
+    try:
+        conn = registry_connect()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "select register_ingest_process_status, register_ingest_process_attempts,"
+                    " left(coalesce(register_ingest_process_last_error_code,''), 300)"
+                    " from g2p_intake_form_submissions"
+                    " where approval_status = 'APPROVED'"
+                    "   and register_ingest_process_status <> 'PROCESSED'"
+                    " order by approved_at desc limit 1"
+                )
+                row = cur.fetchone()
+        finally:
+            conn.close()
+    except Exception as exc:  # noqa: BLE001
+        return f"(could not read ingest status: {exc})"
+
+    if not row:
+        return (
+            "No approved submission is awaiting ingest, so the row may have been written "
+            "just after the timeout; consider raising INTAKE_SEED_INGEST_TIMEOUT."
+        )
+    status, attempts, error = row[0], row[1] or 0, (row[2] or "").strip()
+    if error:
+        return f"Ingest ran and failed (status={status}, attempts={attempts}): {error}"
+    return (
+        f"Ingest never ran (status={status}, attempts={attempts}, no error recorded). "
+        "The task did not reach a worker: check that celery-beat's CELERY_OPTS names the "
+        "queue it consumes (worker --beat -Q celery ...) — without -Q its worker starts "
+        "but consumes nothing, so producer tasks pile up on the default 'celery' queue "
+        "and never reach registry_worker_queue. Also check celery-worker is running and "
+        "that both pods use the same Redis."
+    )
+
+
 def wait_register_row(table: str, internal_id: str, timeout: int) -> None:
     deadline = time.time() + timeout
     sql = f'select 1 from "public"."{table}" where internal_record_id = %s'
@@ -830,8 +914,8 @@ def wait_register_row(table: str, internal_id: str, timeout: int) -> None:
             conn.close()
         time.sleep(2)
     raise RuntimeError(
-        f"{table} row {internal_id} not ingested within {timeout}s — "
-        "is celery worker + beat + beat-worker running on registry_worker_queue?"
+        f"{table} row {internal_id} not ingested within {timeout}s. "
+        f"{_ingest_diagnosis()}"
     )
 
 
