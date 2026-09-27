@@ -13,8 +13,14 @@
 #   the Helm index AND the container registry. An explicit version is likewise
 #   verified to exist in both before anything is written.
 #
-# Requires: bash, curl, python3, helm. Run from the repo root.
+# Requires: bash, curl, python3, helm. Runs from anywhere — the repo root,
+# scripts/, or elsewhere: it locates the repo from its own path.
 set -euo pipefail
+
+# Work from the repo root whatever the caller's cwd, so the relative paths below
+# (helm/..., docker/*/Dockerfile) resolve. This script lives in <root>/scripts.
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
 
 # ── repo-specific: the chart dir this variant ships ───────────────────────────
 # The chart dir is the only per-repo value; everything else is derived.
@@ -22,12 +28,14 @@ CHART_DIR="helm/openg2p-farmer-registry"
 
 REGISTRY_CHART="openg2p-registry"
 
-# registry-platform publishes its chart to the openg2p-helm Pages index and its
-# images to Docker Hub. Both are public, so every read below is anonymous.
+# registry-platform publishes its chart to a Helm repository and its images to
+# Docker Hub. Both are public, so every read below is anonymous. The Helm
+# repository is NOT hardcoded here: it is read from the dependency's
+# `repository:` in Chart.yaml (see chart_repo below), so the version check and
+# `helm dependency update` always look at the same index.
 # To eyeball a release by hand instead:
 #   https://openg2p.github.io/versions/registry-platform/CHANGELOG.html
 #   https://hub.docker.com/u/openg2p
-HELM_INDEX="https://openg2p.github.io/openg2p-helm/index.yaml"
 HUB_API="https://hub.docker.com/v2/repositories/openg2p"
 # One representative platform image; all are published together at the same tag.
 PROBE_IMAGE="sanity-tests"
@@ -51,10 +59,11 @@ Options:
   -n, --check, --dry-run   Resolve/validate and print, but do not modify any file.
   -h, --help               Show this help.
 
-"Latest SAFE" = the highest 0.0.0-develop.N present in BOTH the GitLab Helm
-registry and registry-platform's container registry (an image-only tag whose
-chart has not published yet is skipped). A specific <version> is accepted only
-if it exists in both.
+"Latest SAFE" = the highest 0.0.0-develop.N present in BOTH the chart's Helm
+repository (the openg2p-registry dependency's repository: in Chart.yaml) and
+registry-platform's container registry (an image-only tag whose chart has not
+published yet is skipped). A specific <version> is accepted only if it exists in
+both.
 
 Examples:
   ./scripts/bump-rp-version.sh -n              # what would 'latest' pick?
@@ -78,7 +87,22 @@ done
 command -v curl    >/dev/null || die "curl is required"
 command -v python3 >/dev/null || die "python3 is required"
 command -v helm    >/dev/null || die "helm is required"
-[ -d "$CHART_DIR" ] || die "run from the repo root ($CHART_DIR not found)"
+[ -d "$CHART_DIR" ] || die "$CHART_DIR not found under $ROOT — is this script still in <repo>/scripts?"
+
+# The Helm repository the openg2p-registry dependency resolves from, as declared
+# in Chart.yaml — the single place it is set.
+chart_repo() {
+  python3 - "$CHART_DIR/Chart.yaml" <<'PY'
+import re,sys
+s=open(sys.argv[1]).read()
+m=re.search(r'-\s*name:\s*openg2p-registry\b(.*?)(?=\n\s*-\s|\n\S|\Z)', s, re.S)
+r=re.search(r'repository:\s*(\S+)', m.group(1)) if m else None
+print(r.group(1).strip('"\'').rstrip('/') if r else "")
+PY
+}
+CHART_REPO=$(chart_repo)
+[ -n "$CHART_REPO" ] || die "no repository: for the ${REGISTRY_CHART} dependency in $CHART_DIR/Chart.yaml"
+HELM_INDEX="${CHART_REPO}/index.yaml"
 
 # ── discover published versions ───────────────────────────────────────────────
 chart_versions() {
@@ -144,19 +168,28 @@ PY
 CUR_DOCKER=$(grep -hoE 'ARG RP_VERSION=\S+' docker/*/Dockerfile | sed 's/ARG RP_VERSION=//' | sort -u | tr '\n' ',' | sed 's/,$//')
 note "current: chart=$CUR_CHART  dockerfiles=$CUR_DOCKER"
 
+# "Done" means the pins AND the vendored dependency match. Checking the pins
+# alone let a run that died after writing them (e.g. at the helm step) report
+# "nothing to do" on every retry, leaving the lock/vendored chart stale forever.
+PINNED=false; [ "$CUR_CHART" = "$VERSION" ] && [ "$CUR_DOCKER" = "$VERSION" ] && PINNED=true
+LOCKED=false; [ -f "$CHART_DIR/charts/${REGISTRY_CHART}-${VERSION}.tgz" ] && LOCKED=true
+
 if [ "$CHECK_ONLY" = "true" ]; then
-  if [ "$CUR_CHART" = "$VERSION" ] && [ "$CUR_DOCKER" = "$VERSION" ]; then
+  if [ "$PINNED" = "true" ] && [ "$LOCKED" = "true" ]; then
     echo "  already at $VERSION — no bump needed."
+  elif [ "$PINNED" = "true" ]; then
+    echo "  pins already at $VERSION, but the dependency lock is not — run without -n to finish it."
   else
     echo "  would bump: ${CUR_CHART} -> ${VERSION}   (run without -n to apply)"
   fi
   exit 0
 fi
 
-if [ "$CUR_CHART" = "$VERSION" ] && [ "$CUR_DOCKER" = "$VERSION" ]; then
+if [ "$PINNED" = "true" ] && [ "$LOCKED" = "true" ]; then
   note "already at $VERSION — nothing to do."
   exit 0
 fi
+[ "$PINNED" = "true" ] && note "pins already at $VERSION; finishing the dependency lock."
 
 # ── rewrite (atomic: same value to every Dockerfile + the chart dep) ──────────
 for f in docker/*/Dockerfile; do
@@ -181,10 +214,36 @@ open(f,'w').write(s)
 PY
 
 # refresh the dependency lock so it matches the new pin
+#
+# `helm dependency update` does not read the live index the version check above
+# read: it resolves the dependency through a LOCAL cached copy, via whichever
+# configured repo has this URL. So refresh EVERY configured repo pointing at it.
+# (Adding one by a fixed name and refreshing only that silently did nothing when
+# the name was already taken by a repo with another URL, and left a same-URL
+# repo with a stale cache — the check passed, then the update could not find
+# the version it had just verified.)
 echo "Updating the chart dependency lock…"
-helm repo add openg2p-charts "${HELM_INDEX%/index.yaml}" >/dev/null 2>&1 || true
-helm repo update openg2p-charts >/dev/null 2>&1 || true
-helm dependency update "$CHART_DIR" >/dev/null 2>&1 || die "helm dependency update failed for $VERSION"
+REPOS=$( (helm repo list -o json 2>/dev/null || echo '[]') | python3 -c '
+import json, sys
+try: repos = json.load(sys.stdin)
+except ValueError: repos = []
+print(" ".join(r["name"] for r in repos if r.get("url", "").rstrip("/") == sys.argv[1]))' "$CHART_REPO")
+if [ -z "$REPOS" ]; then
+  # none configured yet: add one under a name derived from the URL, so it cannot
+  # collide with a repo the user already has under some other URL
+  REPOS="openg2p-rp-$(printf '%s' "$CHART_REPO" | cksum | cut -d' ' -f1)"
+  helm repo add "$REPOS" "$CHART_REPO" >"$TMP/helm.log" 2>&1 \
+    || { cat "$TMP/helm.log" >&2; die "could not add Helm repo $CHART_REPO"; }
+fi
+note "refreshing Helm repo(s) for $CHART_REPO: $REPOS"
+# shellcheck disable=SC2086  # REPOS is a space-separated list of repo names
+helm repo update $REPOS >"$TMP/helm.log" 2>&1 \
+  || { cat "$TMP/helm.log" >&2; die "could not refresh Helm repo(s): $REPOS"; }
+# --skip-refresh: exactly the repos this chart needs were refreshed above, so do
+# not re-pull every unrelated repo on the machine (slow, and one being down
+# would fail the bump). Errors are shown, not swallowed.
+helm dependency update --skip-refresh "$CHART_DIR" >"$TMP/helm.log" 2>&1 \
+  || { cat "$TMP/helm.log" >&2; die "helm dependency update failed for $VERSION"; }
 
 # ── verify + report ───────────────────────────────────────────────────────────
 NEW_CHART=$(python3 - "$CHART_DIR/Chart.yaml" <<'PY'
@@ -196,9 +255,11 @@ PY
 NEW_DOCKER=$(grep -hoE 'ARG RP_VERSION=\S+' docker/*/Dockerfile | sed 's/ARG RP_VERSION=//' | sort -u | tr '\n' ',' | sed 's/,$//')
 [ "$NEW_CHART" = "$VERSION" ] && [ "$NEW_DOCKER" = "$VERSION" ] \
   || die "post-write check failed: chart=$NEW_CHART dockerfiles=$NEW_DOCKER (expected $VERSION)"
+[ -f "$CHART_DIR/charts/${REGISTRY_CHART}-${VERSION}.tgz" ] \
+  || die "post-write check failed: $CHART_DIR/charts/ has no ${REGISTRY_CHART}-${VERSION}.tgz after the dependency update"
 
 echo ""
 echo "Bumped openg2p-registry pin: ${CUR_CHART} -> ${VERSION}"
 echo "  Dockerfiles + chart dependency now aligned at ${VERSION}."
-echo "  Review, then commit:"
-echo "    git add docker helm/${CHART_DIR#helm/}/Chart.yaml && git commit"
+echo "  Review, then commit (paths relative to $ROOT):"
+echo "    git -C \"$ROOT\" add docker ${CHART_DIR}/Chart.yaml && git -C \"$ROOT\" commit"
