@@ -89,14 +89,11 @@ registry:
     loadSampleData: true
     loadImages: true
     loadTemplates: true
-    # Copy the country's code lists from Master Data, and match the geo dropdowns
-    # to the hierarchy it holds. Both are country-agnostic: they take whatever
-    # pack this environment loaded. They no-op when Master Data carries neither.
-    loadAttributes: true
-    # A Farmer Registry needs the agriculture lists (crops, livestock) on top of
-    # the core ones; a social registry has no use for them.
-    attributeDomains:
-      - agriculture
+    # Code lists are NOT copied into this registry: dropdowns and the attribute
+    # validator read them live from Master Data. The Farmer Registry needs the
+    # pack's agriculture domain (e.g. SOURCE_OF_INCOME) loaded into MDS, which is
+    # set on the master-data chart — geoSeed.domains: [agriculture] — not here.
+    # Match the geo dropdowns to the hierarchy Master Data holds.
     syncGeoWidgets: true
 
   # Name of this registry's tile in IAM. The roles/permissions catalog itself is

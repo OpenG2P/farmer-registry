@@ -205,5 +205,9 @@
   "suffix": "Suffix",
   "unit": "Unit",
   "water_source": "Water Source",
-  "year_of_acquisition": "Year Of Acquisition"
+  "year_of_acquisition": "Year Of Acquisition",
+  "SOI_CROP_PRODUCTION": "Crop Production",
+  "SOI_LIVESTOCK_PRODUCTION": "Livestock Production",
+  "SOI_GOVERNMENT_NGO_SUPPORT": "Government / NGO Support",
+  "SOI_OTHERS": "Others"
 }

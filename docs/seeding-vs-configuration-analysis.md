@@ -1,6 +1,14 @@
 # What db-seed actually does — "seeding" vs configuration
 
 **Status:** review note, 2026-08-06. No code was changed to produce it.
+
+> **Update 2026-09-27 — §2 is resolved.** develop now follows the 1.2 line: code
+> lists are read **live from Master Data** (MDS 1.1 merged into MDS develop; RP
+> develop ported G2P-5538/5457/5577/5587; FR develop dropped `lookup-data/` and
+> switched its dropdowns to MDS attributes). Step 2b (`load_attributes_from_mds.py`
+> / `LOAD_ATTRIBUTES`) no longer exists, and the "three overlapping sources" are
+> down to one — the country pack, via MDS. §2 below describes develop *before*
+> that change.
 **Scope:** Farmer Registry (`fr`), the `openg2p-registry` platform it extends, and
 Master Data Service. NSR shares the same platform machinery, so the findings apply
 there too.
@@ -44,7 +52,7 @@ is not optional in any environment — the registry cannot function without it.
 
 ---
 
-## 2. Finding: attributes are still copied into the registry DB
+## 2. Finding: attributes are still copied into the registry DB *(historical — see update above)*
 
 The working assumption was that, under the new design, *attributes come live from
 Master Data and are not written to the registry DB.* Traced end to end, that is

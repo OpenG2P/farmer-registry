@@ -77,7 +77,7 @@ def join_search_text(row: dict, fields: list[str]) -> str | None:
 # farmer-extension .../models/enums.py). Hardcoded rather than imported so
 # this generator has no runtime dependency on either app package being
 # installed. Keep in sync if those enums change.
-GENDERS = ["MALE", "FEMALE", "OTHERS", "UNKNOWN"]
+GENDERS = ["MALE", "FEMALE", "OTHER", "UNKNOWN"]
 MARITAL_STATUSES = ["SINGLE", "MARRIED", "DIVORCED", "WIDOWED", "SEPARATED", "UNKNOWN"]
 EDUCATION_LEVELS = ["ILLITERATE", "CAN_READ_AND_WRITE", "BASIC", "INTERMEDIARY", "HIGHER_EDUCATION"]
 LANGUAGES_SPOKEN = ["ENGLISH", "HINDI", "SPANISH", "FRENCH"]

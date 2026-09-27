@@ -69,17 +69,20 @@ CROP_END_USE = [("FOOD_HUMAN_CONSUMPTION", 0.72), ("FEED_ANIMALS", 0.18),
                 ("BIOFUELS_NONFOOD", 0.05), ("OTHER", 0.05)]
 LIVESTOCK_SYSTEM = [("SEDENTARY_PASTORAL", 0.44), ("MIXED", 0.28), ("SEMI_NOMADIC", 0.14),
                     ("NOMADIC_PASTORAL", 0.10), ("INDUSTRIAL", 0.04)]
-INCOME = [("CROP_PRODUCTION", 0.55), ("LIVESTOCK_PRODUCTION", 0.27),
-          ("GOVERNMENT_NGO_SUPPORT", 0.10), ("OTHERS", 0.08)]
+# The six fields below are read live from Master Data (dropdown + validator),
+# so these MUST be MDS codes, not the farmer enums: SOURCE_OF_INCOME,
+# EDUCATION_LEVEL, DISABILITY_DOMAIN, DISABILITY_SEVERITY (Washington Group).
+INCOME = [("SOI_CROP_PRODUCTION", 0.55), ("SOI_LIVESTOCK_PRODUCTION", 0.27),
+          ("SOI_GOVERNMENT_NGO_SUPPORT", 0.10), ("SOI_OTHERS", 0.08)]
 CLUSTER_ROLE = [("MEMBER", 0.80), ("LEAD", 0.07), ("DEPUTY", 0.06),
                 ("SECRETARY", 0.04), ("ACCOUNTANT", 0.03)]
-EDUCATION = [("NONE", 0.28), ("PRIMARY", 0.36), ("SECONDARY", 0.24),
-             ("TERTIARY", 0.09), ("VOCATIONAL", 0.03)]
+EDUCATION = [("NEVER_ATTEND", 0.28), ("PRIMARY", 0.36), ("SECONDARY", 0.24),
+             ("TERTIARY", 0.09), ("NON_FORMAL", 0.03)]
 MARITAL = [("MARRIED", 0.63), ("SINGLE", 0.18), ("WIDOWED", 0.12), ("DIVORCED", 0.07)]
 GENDER = [("MALE", 0.53), ("FEMALE", 0.47)]
-DISABILITY_TYPE = [("PHYSICAL", 0.42), ("VISUAL", 0.22), ("HEARING", 0.18),
-                   ("INTELLECTUAL", 0.10), ("OTHER", 0.08)]
-DISABILITY_SEV = [("MILD", 0.55), ("MODERATE", 0.31), ("SEVERE", 0.14)]
+DISABILITY_TYPE = [("MOBILITY", 0.42), ("VISION", 0.22), ("HEARING", 0.18),
+                   ("COGNITION", 0.10), ("COMMUNICATION", 0.05), ("SELF_CARE", 0.03)]
+DISABILITY_SEV = [("SOME_DIFFICULTY", 0.55), ("A_LOT_OF_DIFFICULTY", 0.31), ("CANNOT_DO_AT_ALL", 0.14)]
 
 COMMODITIES = [("Maize", 0.22), ("Teff", 0.16), ("Wheat", 0.13), ("Sorghum", 0.10),
                ("Barley", 0.08), ("Coffee", 0.08), ("Haricot Bean", 0.07),

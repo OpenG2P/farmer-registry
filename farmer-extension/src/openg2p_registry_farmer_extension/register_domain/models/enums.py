@@ -24,10 +24,11 @@ class LanguageSpokenEnum(StrEnum):
 
 
 class SourceOfIncomeEnum(StrEnum):
-    CROP_PRODUCTION = "CROP_PRODUCTION"
-    LIVESTOCK_PRODUCTION = "LIVESTOCK_PRODUCTION"
-    GOVERNMENT_NGO_SUPPORT = "GOVERNMENT_NGO_SUPPORT"
-    OTHERS = "OTHERS"
+    # Master Data's SOURCE_OF_INCOME codes (agriculture domain), SOI_-prefixed.
+    SOI_CROP_PRODUCTION = "SOI_CROP_PRODUCTION"
+    SOI_LIVESTOCK_PRODUCTION = "SOI_LIVESTOCK_PRODUCTION"
+    SOI_GOVERNMENT_NGO_SUPPORT = "SOI_GOVERNMENT_NGO_SUPPORT"
+    SOI_OTHERS = "SOI_OTHERS"
 
 
 class LandOwnershipTypeEnum(StrEnum):
@@ -88,3 +89,9 @@ class EducationalLevelEnum(StrEnum):
     BASIC = "BASIC"
     INTERMEDIARY = "INTERMEDIARY"
     HIGHER_EDUCATION = "HIGHER_EDUCATION"
+    # Also in Master Data's EDUCATION_LEVEL list, which the dropdown now reads.
+    NON_FORMAL = "NON_FORMAL"
+    NEVER_ATTEND = "NEVER_ATTEND"
+    PRIMARY = "PRIMARY"
+    SECONDARY = "SECONDARY"
+    TERTIARY = "TERTIARY"

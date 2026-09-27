@@ -86,7 +86,7 @@ SECTION_DEFS: dict[str, dict[str, Any]] = {
             "disabled": False,
             "disability_type": "VISION",
             "disability_severity": "NO_DIFFICULTY",
-            "source_of_income": "CROP_PRODUCTION",
+            "source_of_income": "SOI_CROP_PRODUCTION",
             "has_personal_phone": True,
             "source_of_income_other": "",
             "language_spoken": "ENGLISH",
@@ -203,7 +203,7 @@ RANDOMIZABLE_ATTRIBUTES: dict[str, tuple[str, "Any"]] = {
     ),
     "source_of_income": (
         "farmer_farmer_socio_economic_and_health_section_04",
-        lambda: random.choice(["CROP_PRODUCTION", "LIVESTOCK_PRODUCTION", "GOVERNMENT_NGO_SUPPORT", "OTHERS"]),
+        lambda: random.choice(["SOI_CROP_PRODUCTION", "SOI_LIVESTOCK_PRODUCTION", "SOI_GOVERNMENT_NGO_SUPPORT", "SOI_OTHERS"]),
     ),
     "source_of_income_other": (
         "farmer_farmer_socio_economic_and_health_section_04",

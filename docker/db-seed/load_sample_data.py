@@ -542,6 +542,40 @@ def _read_csv_rows(path: Path, json_columns: set) -> list:
         return out
 
 
+# SOURCE_OF_INCOME is read live from Master Data, whose codes are SOI_-prefixed
+# and only four: the seed JSON predates that and uses a wider, unprefixed set.
+# Map it on the way in — otherwise every sample farmer carries a code the
+# dropdown cannot show and the attribute validator rejects on the next edit.
+INCOME_MAP = {
+    "CROP_PRODUCTION": "SOI_CROP_PRODUCTION",
+    "CROP_FARMING": "SOI_CROP_PRODUCTION",
+    "LIVESTOCK_PRODUCTION": "SOI_LIVESTOCK_PRODUCTION",
+    "LIVESTOCK": "SOI_LIVESTOCK_PRODUCTION",
+    "GOVERNMENT_NGO_SUPPORT": "SOI_GOVERNMENT_NGO_SUPPORT",
+    "OTHERS": "SOI_OTHERS",
+    "REMITTANCES": "SOI_OTHERS",
+    "WAGE_LABOR": "SOI_OTHERS",
+    "BUSINESS_TRADE": "SOI_OTHERS",
+}
+
+
+def _map_income(value):
+    """(code, other_text) for Master Data's SOURCE_OF_INCOME list.
+
+    A missing value stays missing rather than being invented. A specific source
+    that has no MDS code of its own (remittances, wage labour...) becomes
+    SOI_OTHERS, and its name moves to source_of_income_other so it is not lost.
+    """
+    if not value:
+        return None, None
+    key = str(value).upper()
+    if key.startswith("SOI_"):
+        return key, None
+    code = INCOME_MAP.get(key, "SOI_OTHERS")
+    other = key.replace("_", " ").title() if code == "SOI_OTHERS" and key != "OTHERS" else None
+    return code, other
+
+
 def _as_int(v):
     return int(v) if v not in (None, "") else None
 
@@ -615,8 +649,9 @@ def insert_farmers(cur, individuals: list, extras_by_id: dict) -> None:
                 geo_lowest_id(ind), geo_hierarchy(ind),
                 _as_int(ind.get("estimated_age")), ex.get("has_personal_phone"),
                 ex.get("disabled"), ex.get("disability_type"),
-                ex.get("disability_severity"), ex.get("source_of_income"),
-                ex.get("source_of_income_other"), ex.get("language_spoken"),
+                ex.get("disability_severity"), _map_income(ex.get("source_of_income"))[0],
+                ex.get("source_of_income_other") or _map_income(ex.get("source_of_income"))[1],
+                ex.get("language_spoken"),
                 ind.get("education_level"), ind.get("foundational_id_masked"),
             )
         )
