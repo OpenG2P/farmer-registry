@@ -76,11 +76,11 @@ spec:
             - name: TEST
               value: blended
             - name: POD_SCALE
-              value: "3"
+              value: "1"
             - name: INGRESS
               value: in-cluster
             - name: VOLUME_TIER
-              value: primary
+              value: stretch
             - name: STAFF_API_BASE
               value: http://farmer-registry-staff-portal-api.perftest.svc.cluster.local
             - name: KEYCLOAK_BASE
