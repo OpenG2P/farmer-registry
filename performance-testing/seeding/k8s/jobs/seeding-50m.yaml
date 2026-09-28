@@ -1,0 +1,74 @@
+# 50M farmer seed — 5 Indexed Job pods × 10M.
+# One YAML. Override anything with env (kubectl set env / edit below).
+# Pod index = JOB_COMPLETION_INDEX (0..4). IDs: disjoint 100M blocks.
+# Anchors: /perf-seed/register_search_terms.txt baked in the image (50k terms).
+#
+#   kubectl -n perftest delete job seeding-50m --ignore-not-found
+#   kubectl -n perftest apply -f seeding-50m.yaml
+#   kubectl -n perftest logs -f job/seeding-50m --prefix
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: seeding-50m
+  labels:
+    app: farmer-registry-seeding
+    tier: stretch
+spec:
+  completionMode: Indexed
+  completions: 5
+  parallelism: 5
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: farmer-registry-seeding
+        tier: stretch
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: seeding
+          image: vin0dkhichar/farmer-registry-seeding:v50m
+          imagePullPolicy: Always
+          command: ["python", "run.py"]
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: SEED_TIER
+              value: "stretch"
+            - name: SEED_TARGET_FARMERS
+              value: "50000000"
+            - name: SEED_TOTAL_PODS
+              value: "5"
+            - name: SEED_WORKERS
+              value: "1"
+            - name: SEED_BATCH_SIZE
+              value: "20000"
+            - name: SEED_ANCHOR_COUNT
+              value: "50000"
+            - name: SEED_DEFER_INDEXES
+              value: "true"
+            - name: SEED_ID_BLOCK
+              value: "100000000"
+            - name: SEED_ANCHORS_FILE
+              value: "/perf-seed/register_search_terms.txt"
+            - name: PGHOST
+              value: "172.29.2.191"
+            - name: PGPORT
+              value: "5432"
+            - name: PGDATABASE
+              value: "farmer_registry"
+            - name: PGUSER
+              value: "farmer_registry_user"
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: farmer-registry
+                  key: farmer-registry-db-user
+          resources:
+            requests:
+              cpu: "250m"
+              memory: 1Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
