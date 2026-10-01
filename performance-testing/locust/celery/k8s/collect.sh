@@ -46,7 +46,7 @@ echo "Workers ready=${ready_workers:-0} beat ready=${ready_beat:-0}"
   exit 1
 }
 
-OUT="$ROOT/../results/${CASE}-workers-${WORKERS}-size-${SIZE}.csv"
+OUT="$ROOT/../results/pod-${WORKERS}/${CASE}/${CASE}-workers-${WORKERS}-size-${SIZE}.csv"
 mkdir -p "$(dirname "$OUT")"
 
 kubectl -n "$NS" delete pod celery-collect --ignore-not-found --wait=false >/dev/null 2>&1 || true
@@ -92,8 +92,7 @@ for _ in $(seq 1 30); do
 done
 [[ -n "$collect_ready" ]] || { echo "celery-collect did not start" >&2; exit 1; }
 
-echo "mark_min,pending,in_progress,done,parked,done_delta" | tee "$OUT"
-baseline=""
+echo "mark_min,pending,in_progress,done" | tee "$OUT"
 start=$(date +%s)
 for mark in $MARKS; do
   target=$((start + mark * 60))
@@ -105,15 +104,11 @@ for mark in $MARKS; do
     "SELECT ${mark},
             COUNT(*) FILTER (WHERE ${COL} = 'PENDING' AND (${EXTRA})),
             COUNT(*) FILTER (WHERE ${COL} IN ('PROCESSING','INPROGRESS') AND (${EXTRA})),
-            COUNT(*) FILTER (WHERE ${COL} IN ('PROCESSED','COMPLETED') AND (${EXTRA})),
-            COUNT(*) FILTER (WHERE ${COL} = 'FAILED' AND (${EXTRA}))
+            COUNT(*) FILTER (WHERE ${COL} IN ('PROCESSED','COMPLETED') AND (${EXTRA}))
      FROM ${TABLE}
      WHERE ${PK}::text IN (SELECT row_id FROM celery_perf_cohort)")"
-  IFS=',' read -r _mark _pending _in_progress done_now _parked <<< "$row"
-  if [[ -z "$baseline" ]]; then
-    baseline="$done_now"
-  fi
-  echo "${row},$((done_now - baseline))" | tee -a "$OUT"
+  IFS=',' read -r _mark _pending _in_progress _done <<< "$row"
+  echo "$row" | tee -a "$OUT"
   if [[ "${_pending}" -eq 0 && "${_in_progress}" -eq 0 ]]; then
     echo "Pending and in_progress are 0. Stopping collection."
     break

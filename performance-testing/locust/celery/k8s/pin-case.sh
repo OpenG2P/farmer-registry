@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Keep SIZE pending rows for one worker case. Park every other beat producer.
-# Refuses to run unless beat and worker replicas are 0.
+# Beat must be at 0. Workers may already be up; they do not claim rows.
 #
 #   ./pin-case.sh dedup_register 10000
 
@@ -17,9 +17,9 @@ grep -q "('${CASE}'," "$ROOT/sql/case_defs.sql" || { echo "Unknown case: $CASE" 
 
 beat="$(kubectl -n "$NS" get deploy farmer-registry-celery-beat-producer -o jsonpath='{.spec.replicas}')"
 workers="$(kubectl -n "$NS" get deploy farmer-registry-celery-worker -o jsonpath='{.spec.replicas}')"
-if [[ "$beat" != "0" || "$workers" != "0" ]]; then
+if [[ "$beat" != "0" ]]; then
   echo "Beat replicas=${beat}, worker replicas=${workers}." >&2
-  echo "Scale both to 0 before pinning. Beat would claim rows during the update." >&2
+  echo "Scale beat to 0 before pinning. Beat would claim rows during the update." >&2
   exit 1
 fi
 
