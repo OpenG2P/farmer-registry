@@ -259,7 +259,7 @@ class CrCreateUser(LocustUser):
                 # The subject Farmer's own id — the server looks this up inside
                 # register_id's own table (REGISTER_FARMER), not section_register_id's.
                 # The record actually being edited (which may live in a different
-                # register, e.g. Land/Crop) is change_payload[].internal_record_id.
+                # register, e.g. Land/Livestock) is change_payload[].internal_record_id.
                 "internal_record_id": subject_internal_record_id,
                 "change_payload": change_payload,
                 "documents": documents,

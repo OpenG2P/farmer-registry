@@ -106,7 +106,6 @@ CR_FIELD_BY_SECTION = {
     "farmer_farmer_socio_economic_and_health_section_04": "source_of_income_other",
     "farmer_farmer_location_section_03": "address_line_1",
     "farmer_farm_farm_details_section_01": "soil_fertility",
-    "farmer_crop_crop_details_section_01": "season",
     "farmer_farm_input_farm_input_details_section_01": "access_to_finance",
     "farmer_membership_membership_details_01": "primary_cooperative_name",
     "farmer_livestock_livestock_details_section_01": "breed",  # API-sourced enum (LIVESTOCK_BREED)

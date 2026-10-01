@@ -29,7 +29,6 @@ tree:
   household:        null
   farmer:           {parent: household}
   land:             {parent: farmer}
-  crop:             {parent: land}
   livestock:        {parent: land}
   farm_input:       {parent: land}
   membership:       {parent: farmer}
@@ -45,16 +44,25 @@ tree:
 
 # Hand-written, and left alone by the generator.
 #
-# These three are SEMANTIC, not mechanical: they encode what "uses modern
+# These are SEMANTIC, not mechanical: they encode what "uses modern
 # inputs" means (fertilizer OR improved seed OR machinery), where the age bands
 # fall, and how a free-text land size becomes hectares. Nothing can infer those
 # from a schema, so they stay in reporting_views.sql where a person maintains
 # them — and they are materialized, because that JSONB unpacking over a
-# bulk-loaded register is far too slow to run per chart.
+# bulk-loaded register is far too slow to run per chart. fr_rpt_farmer_main_crop
+# (farmers by declared main crop) is hand-written there too.
+#
+# `crop` is listed so the generator leaves it alone, NOT because a view exists:
+# the Crop register is retired (crop facts belong to the Crop Sown Registry), but
+# an upgraded database still holds the g2p_register_crops table, and an entity
+# table the generator finds gets a view. reporting_views.sql drops the old
+# fr_rpt_crop; naming it here stops it coming back.
 
 custom:
   - farmer
   - land
+  - farmer_main_crop
+  - crop
 
 pii:
   allow:
@@ -68,24 +76,6 @@ pii:
     - cooperative_union_name
 
 
-# Rows that belong in a view at all. RP marks superseded records rather than
-# deleting them, so without this a corrected parcel and the correction it
-# replaced are counted as two parcels.
-filter:
-  crop: "e.record_status = 'ACTIVE'"
-
-# Parent attributes carried down onto the child row. "Crop mix by tenure" is a
-# question about a crop, and without these every chart asking it has to remember
-# to join back to the parcel.
-inherit:
-  crop:
-    land:
-      - farmer_id
-      - land_ownership_type
-      - current_land_use
-      - farming_type
-      - {land_size_ha: parcel_land_size_ha}
-
 # Computed columns on the generated views, in this country's terms.
 #
 # The generator derives an `age` wherever it withholds a birth date — that much
@@ -93,9 +83,6 @@ inherit:
 # fr_rpt_farmer exactly: defining them twice with different edges is how two
 # charts come to disagree about how many people are under 25.
 derived:
-  crop:
-    is_food_crop: "end_use = 'FOOD_HUMAN_CONSUMPTION'"
-    is_feed_crop: "end_use = 'FEED_ANIMALS'"
   household_member:
     age_band: |
       CASE WHEN age IS NULL THEN 'UNKNOWN'
@@ -106,18 +93,7 @@ derived:
            ELSE '65_PLUS'
       END
 
-# fr_rpt_crop keeps the shape it shipped with: materialized, with the same three
-# indexes. It joins the parcel view on every read and a registry carries a few
-# hundred thousand crop records, so this is the one generated view where the
-# snapshot earns its cost. Turning it into a plain view during the migration
-# would have been a silent performance change nobody asked for.
-materialized:
-  crop:
-    indexes:
-      - [commodity]
-      - [geo_1, geo_2, geo_3]
-
-# Nothing else is materialized yet. These views select flat columns and join a parent that
+# No generated view is materialized. These views select flat columns and join a parent that
 # is already materialized and uniquely indexed, so they are cheap; a plain view
 # is always current and needs no refresh. Revisit per deployment if a chart
 # measures slow — a register with 30 million livestock records may well differ

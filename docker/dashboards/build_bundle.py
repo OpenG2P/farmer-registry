@@ -49,7 +49,7 @@ SCHEMA = "public"
 
 FARMER = "fr_rpt_farmer"
 LAND = "fr_rpt_land"
-CROP = "fr_rpt_crop"
+MAIN_CROP = "fr_rpt_farmer_main_crop"
 
 
 def uid(*parts) -> str:
@@ -236,7 +236,8 @@ def build_charts():
     Which view a chart reads is a correctness question, not a preference:
       FARMER — one row per farmer. "How many farmers ...", any % of farmers.
       LAND   — one row per parcel. ALL area totals: land_size_ha only sums here.
-      CROP   — one row per planting. Crop mix; never sum area (it repeats per crop).
+      MAIN_CROP — one row per farmer per declared main crop. Count farmers with
+                  COUNT(DISTINCT farmer_id); never sum farmer measures here.
     """
     d = {}
 
@@ -303,22 +304,23 @@ def build_charts():
               [COUNT, simple("land_size_ha", "SUM", "Hectares")]),
     ]
 
-    # -- 4. Crops & cropping -------------------------------------------------
-    d["Crops & Cropping"] = [
-        big("Crop plantings recorded", CROP, COUNT),
-        big("Distinct commodities", CROP,
-            sql_metric("COUNT(DISTINCT commodity)", "Commodities")),
-        big("% grown for food", CROP, pct("is_food_crop", "% for human consumption")),
-        bar("Most planted commodities", CROP, "commodity", [COUNT], row_limit=15),
-        pie("End use", CROP, ["end_use"], COUNT),
-        pie("Season", CROP, ["season"], COUNT),
-        bar("Plantings by region", CROP, "geo_2", [COUNT]),
-        table("Commodity by region", CROP,
-              ["geo_2", "commodity"],
-              [COUNT,
-               pct_expr("AVG(CASE WHEN is_food_crop THEN 1.0 ELSE 0 END)",
-                        "% for food")],
-              row_limit=200),
+    # -- 4. Main crops ---------------------------------------------------------
+    # What farmers declare they mainly grow, at registration. Seasonal plantings
+    # are the Crop Sown Registry's and are not charted here.
+    farmers = sql_metric("COUNT(DISTINCT farmer_id)", "Farmers")
+    d["Main Crops"] = [
+        big("% of farmers declaring a main crop", FARMER,
+            pct("has_main_crops", "% with main crops")),
+        big("Distinct main crops", MAIN_CROP,
+            sql_metric("COUNT(DISTINCT main_crop)", "Crops")),
+        big("Average main crops per farmer", FARMER,
+            simple("main_crop_count", "AVG", "Crops")),
+        bar("Farmers by main crop", MAIN_CROP, "main_crop", [farmers], row_limit=20),
+        bar("Main crop farmers by region", MAIN_CROP, "geo_2", [farmers]),
+        bar("Main crops by sex", MAIN_CROP, "main_crop", [farmers],
+            series=["gender"], row_limit=20),
+        table("Main crop by region", MAIN_CROP,
+              ["geo_2", "main_crop"], [farmers], row_limit=200),
     ]
 
     # -- 5. Livestock, inputs & cooperatives ---------------------------------
@@ -573,7 +575,7 @@ def main():
     )
 
     db_uuid = uid("database", args.db_name)
-    ds_uuids = {v: uid("dataset", v) for v in (FARMER, LAND, CROP)}
+    ds_uuids = {v: uid("dataset", v) for v in (FARMER, LAND, MAIN_CROP)}
 
     files = {}
     files[f"{BUNDLE}/metadata.yaml"] = {
@@ -597,7 +599,7 @@ def main():
         "uuid": db_uuid,
         "version": "1.0.0",
     }
-    for view in (FARMER, LAND, CROP):
+    for view in (FARMER, LAND, MAIN_CROP):
         files[f"{BUNDLE}/datasets/{args.db_name}/{view}.yaml"] = dataset_yaml(
             view, db_uuid, fetch_columns(dsn, view))
 
@@ -620,8 +622,8 @@ def main():
             nf.append(("gender", "Gender", ds_uuids[FARMER]))
         elif any(c["dataset"] == LAND for c in charts):
             nf.append(("geo_2", "Region", ds_uuids[LAND]))
-        elif any(c["dataset"] == CROP for c in charts):
-            nf.append(("geo_2", "Region", ds_uuids[CROP]))
+        elif any(c["dataset"] == MAIN_CROP for c in charts):
+            nf.append(("geo_2", "Region", ds_uuids[MAIN_CROP]))
         files[f"{BUNDLE}/dashboards/{slug(title)}.yaml"] = dashboard_yaml(title, charts, nf)
 
     with zipfile.ZipFile(args.out, "w", zipfile.ZIP_DEFLATED) as z:

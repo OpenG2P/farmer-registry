@@ -90,6 +90,7 @@ SECTION_DEFS: dict[str, dict[str, Any]] = {
             "has_personal_phone": True,
             "source_of_income_other": "",
             "language_spoken": "ENGLISH",
+            "main_crops": ["CROP_TEFF", "CROP_MAIZE"],
         },
     },
     "farmer_farmer_location_section_03": {
@@ -120,16 +121,6 @@ SECTION_DEFS: dict[str, dict[str, Any]] = {
             "farming_type": "CROP",
             "year_of_acquisition": 2015,
             "means_of_acquisition": "INHERITANCE",
-        },
-    },
-    "farmer_crop_crop_details_section_01": {
-        "section_register_id": "5fa096f8-ffdc-4b0a-ab16-9ca386c23310",
-        "is_list": True,
-        "standard_payload": {
-            "commodity": "MAIZE",
-            "planted_date": "2026-03-01",
-            "season": "KHARIF",
-            "end_use": "FOOD_HUMAN_CONSUMPTION",
         },
     },
     "farmer_farm_input_farm_input_details_section_01": {

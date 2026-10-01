@@ -19,9 +19,8 @@ owner — the reporting views are ours, and so is keeping them true.
 WHAT IT DOES
 ------------
 Refreshes in DEPENDENCY ORDER, resolved from the catalog rather than listed:
-fr_rpt_crop and fr_rpt_farmer both read fr_rpt_land, so refreshing them first
-would rebuild them from the previous snapshot and quietly produce a half-updated
-set. A hand-maintained list would also have to be kept in step with
+fr_rpt_farmer reads fr_rpt_land, so refreshing it first would rebuild it from
+the previous snapshot and quietly produce a half-updated set. A hand-maintained list would also have to be kept in step with
 reporting_views.sql by whoever next edits it, which is the kind of coupling that
 holds for exactly as long as the two files have the same author.
 */}}

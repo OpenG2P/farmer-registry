@@ -1,5 +1,6 @@
 from openg2p_registry_core.models.g2p_intake_form import G2PIntakeForm
 from sqlalchemy import Boolean, Integer, String, select
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 from openg2p_registry_core.models import (
     G2PRegister, G2PRegisterHistory, G2PGeo, G2PPerson,
@@ -20,6 +21,12 @@ class G2PFarmer:
     language_spoken: Mapped[str] = mapped_column(String, nullable=True)       # Attribute lookup (Excel: ISO-639-2 searchable dropdown)
     education_level: Mapped[EducationalLevelEnum] = mapped_column(String, nullable=True)       # EducationalLevelEnum
     national_id_masked: Mapped[str] = mapped_column(String, nullable=True)
+    # Crops the farmer mainly grows, as declared at registration: a list of
+    # Master Data CROP_COMMODITY codes (e.g. ["CROP_TEFF", "CROP_WHEAT"]). No
+    # dates, areas or seasons -- what is actually sown each season belongs to
+    # the Crop Sown Registry. JSONB list, the same shape RP uses for its own
+    # multi-valued fields (phone_numbers, emails).
+    main_crops: Mapped[list] = mapped_column(JSONB, nullable=True)
 
 # All Register classes should have the prefix G2PRegister
 class G2PRegisterFarmer(G2PRegister, G2PPerson, G2PGeo, G2PFarmer):

@@ -46,31 +46,6 @@
 {%- endif -%}
 {%- endmacro -%}
 
-{%- macro crop_type(value) -%}
-{%- set v = norm(value) -%}
-{%- if v in ['1', 'CEREALS', 'CEREAL', 'WHEAT', 'RICE', 'MAIZE', 'CORN', 'SORGHUM', 'MILLET'] -%}Cereals
-{%- elif v in ['2', 'VEGETABLES', 'VEGETABLES_AND_MELONS', 'MELONS'] -%}Vegetables and melons
-{%- elif v in ['3', 'FRUIT', 'FRUITS', 'FRUIT_AND_NUTS', 'FRUITS_AND_NUTS', 'NUTS'] -%}Fruit and nuts
-{%- elif v in ['4', 'OILSEED', 'OILSEED_CROPS', 'OLEAGINOUS_FRUITS'] -%}Oilseed crops and oleaginous fruits
-{%- elif v in ['5', 'ROOT_TUBER', 'ROOT_TUBER_CROPS', 'TUBER', 'STARCH_ROOTS'] -%}Root/tuber crops with high starch or inulin content
-{%- elif v in ['6', 'STIMULANT', 'SPICE', 'AROMATIC', 'STIMULANT_SPICE_AROMATIC'] -%}Stimulant, spice and aromatic crops
-{%- elif v in ['7', 'LEGUMINOUS', 'LEGUMINOUS_CROPS', 'LEGUMES'] -%}Leguminous crops
-{%- elif v in ['8', 'SUGAR', 'SUGAR_CROPS'] -%}Sugar crops
-{%- elif v in ['9', 'OTHER', 'OTHER_CROPS'] -%}Other crops
-{%- else -%}{{ value or '' }}
-{%- endif -%}
-{%- endmacro -%}
-
-{%- macro crop_end_use(value) -%}
-{%- set v = norm(value) -%}
-{%- if v in ['1', 'FOOD_HUMAN_CONSUMPTION', 'FOOD_FOR_HUMAN_CONSUMPTION'] -%}Food for human consumption
-{%- elif v in ['2', 'FEED_ANIMALS', 'FEED_FOR_ANIMALS'] -%}Feed for animals
-{%- elif v in ['3', 'BIOFUELS_NONFOOD', 'BIOFUELS_OR_NON_FOOD_PRODUCTS', 'BIOFUELS_NON_FOOD'] -%}Biofuels or non-food products
-{%- elif v in ['4', 'OTHER', 'OTHER_USES'] -%}Other uses
-{%- else -%}{{ value or '' }}
-{%- endif -%}
-{%- endmacro -%}
-
 {%- macro animal_type(value) -%}
 {%- set v = norm(value) -%}
 {%- if v in ['1', 'BOVINE', 'BOVINE_ANIMALS', 'CATTLE', 'BUFFALO'] -%}Bovine animals
@@ -111,17 +86,6 @@
 {%- endif -%}
 {%- endmacro -%}
 
-{%- macro water_source(value) -%}
-{%- set v = norm(value) -%}
-{%- if v in ['RAINFED', 'RAIN_FED'] -%}Rainfed
-{%- elif v in ['SURFACE_WATER', 'SURFACE'] -%}Surface water
-{%- elif v in ['GROUNDWATER', 'GROUND_WATER', 'WELL'] -%}Groundwater
-{%- elif v in ['MIXED', 'MIXED_SURFACE_GROUNDWATER', 'IRRIGATION_GW_SURFACE'] -%}Mixed surface water and groundwater
-{%- elif v in ['WATER_HARVESTING'] -%}Water harvesting
-{%- else -%}{{ value or '' }}
-{%- endif -%}
-{%- endmacro -%}
-
 {%- macro support_activities(farm_input) -%}
 {%- set items = [] -%}
 {%- if farm_input.get('access_to_finance', false) or farm_input.get('improved_seed_use', false) or farm_input.get('pesticide_use', false) or farm_input.get('insecticide_use', false) -%}
@@ -145,6 +109,11 @@
 {%- set first_score = selected_score.record or (score_records[0] if score_records else {}) -%}
 {%- set land_list = farmer.get('land') or [] -%}
 {%- set machinery_list = farmer.get('machinery') or [] -%}
+{#- Crops the farmer mainly grows, as declared at registration: Master Data
+    CROP_COMMODITY codes. Per-parcel crop records are no longer held here (what
+    is sown each season is the Crop Sown Registry's), so crop_production below
+    stays empty and the declaration is carried once, at farmer level. -#}
+{%- set main_crops = farmer.get('main_crops') if farmer.get('main_crops') is sequence and farmer.get('main_crops') is not string else [] -%}
 {
   "farmer_personal_details": {
     "member_identifier": [
@@ -309,38 +278,7 @@
       "measurement": {{ measurement_unit(land.get('unit')) | tojson }},
       "farming_activities": [
         {
-          "crop_production": [
-            {%- for crop in land.get('crop') or [] %}
-            {%- set crop_type_value = crop.get('crop_type') or crop.get('commodity') or '' -%}
-            {%- set crop_end_uses = crop.get('end_use') if crop.get('end_use') is sequence and crop.get('end_use') is not string else ([crop.get('end_use')] if crop.get('end_use') else []) -%}
-            {%- set water_value = crop.get('irrigation_water') or first_farm_input.get('water_source') or '' -%}
-            {%- set fertilizer_values = crop.get('fertilizer_type') if crop.get('fertilizer_type') is sequence and crop.get('fertilizer_type') is not string else ([crop.get('fertilizer_type')] if crop.get('fertilizer_type') else (['Organic fertilizers'] if first_farm_input.get('fertilizer_use', false) else [])) -%}
-            {
-              "activity_group": {{ (crop.get('activity_group') or '') | tojson }},
-              "crop_type": {{ crop_type(crop_type_value) | tojson }},
-              "variety": {{ (crop.get('variety') or '') | tojson }},
-              "season": {{ (crop.get('season') or '') | string | lower | tojson }},
-              "end_use": [
-                {%- for end_use in crop_end_uses %}
-                {{ crop_end_use(end_use) | tojson }}{% if not loop.last %},{% endif %}
-                {%- endfor %}
-              ],
-              "irrigation": {{ 'true' if water_value and norm(water_value) not in ['RAINFED', 'RAIN_FED'] else 'false' }},
-              "irrigation_water": [
-                {%- if water_value %}
-                {{ water_source(water_value) | tojson }}
-                {%- endif %}
-              ],
-              "fertilizer_type": [
-                {%- for fertilizer in fertilizer_values %}
-                {{ fertilizer | tojson }}{% if not loop.last %},{% endif %}
-                {%- endfor %}
-              ],
-              "registration_date": {{ (crop.get('registration_date') or crop.get('created_at') or '') | tojson }},
-              "last_updated": {{ (crop.get('last_approved_at') or '') | tojson }}
-            }{% if not loop.last %},{% endif %}
-            {%- endfor %}
-          ],
+          "crop_production": [],
           "animal_production": [
             {%- for livestock in land.get('livestock') or [] %}
             {
@@ -352,7 +290,7 @@
             }{% if not loop.last %},{% endif %}
             {%- endfor %}
           ],
-          "mixed_farming": {{ 'true' if ((land.get('crop') or []) | length > 0 and (land.get('livestock') or []) | length > 0) else 'false' }},
+          "mixed_farming": {{ 'true' if (main_crops | length > 0 and (land.get('livestock') or []) | length > 0) else 'false' }},
           "agri_support_activities": {{ support_activities(first_farm_input) }},
           "aqua_support_activities": [],
           "aqua_culture": [],
@@ -366,6 +304,7 @@
     }{% if not loop.last %},{% endif %}
     {%- endfor %}
   ],
+  "main_crops": {{ main_crops | map('string') | list | tojson }},
   "machineries_details": [
     {%- for machinery in machinery_list %}
     {

@@ -1,7 +1,6 @@
 INSERT INTO "public"."g2p_register_ui_tab_sections" ("tab_section_id","register_id","tab_id","section_id","section_order") VALUES 
 ('a6ab60bd-07be-4237-aefd-7f6e3c1ced4f','a1a4d25a-1cd4-4356-abac-985a0b3c6bcd','farmer_farmer_tab','farmer_farmer_personal_identification_section_01',10),
 ('9a1573a0-6507-47b6-a717-a007435d2c76','a1a4d25a-1cd4-4356-abac-985a0b3c6bcd','farmer_farmer_tab','farmer_farmer_socio_economic_and_health_section_04',20),
-('a163b218-32d6-49a7-99b6-05d4aeb31f0d','a1a4d25a-1cd4-4356-abac-985a0b3c6bcd','farmer_crop_tab','farmer_crop_crop_details_section_01',10),
 ('41a866b7-d301-46e3-8375-17ebb9f0059d','a1a4d25a-1cd4-4356-abac-985a0b3c6bcd','farmer_land_tab','farmer_farm_farm_details_section_01',10),
 ('7c46c33d-9519-4027-b071-3a7e8822ae87','a1a4d25a-1cd4-4356-abac-985a0b3c6bcd','farmer_farm_input_tab','farmer_farm_input_farm_input_details_section_01',10),
 ('f1a2b3c4-d5e6-4789-a012-3456789abcde','a1a4d25a-1cd4-4356-abac-985a0b3c6bcd','farmer_household_link_tab','farmer_household_lookup_section_01',1),

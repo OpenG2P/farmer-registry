@@ -24,6 +24,7 @@ class G2PSchemaFarmer:
     language_spoken: Optional[str] = None
     education_level: Optional[EducationalLevelEnum] = None
     national_id_masked: Optional[str] = None
+    main_crops: Optional[list[str]] = None  # Master Data CROP_COMMODITY codes
 
 class G2PRegisterSchemaFarmer(G2PRegisterBaseSchema, G2PPersonSchema, G2PGeoSchema, G2PSchemaFarmer):
     """

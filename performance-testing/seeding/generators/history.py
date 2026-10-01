@@ -14,7 +14,7 @@ job (dbSeed.enabled=true), NOT invented here -- load_tab_sections() reads
 them back so history rows reference valid (tab_id, section_id) pairs.
 
 Only Household and Farmer are UI-navigable registers with their own tabs.
-Every other table (HouseholdMember, Land, Crop, Livestock, FarmInputs,
+Every other table (HouseholdMember, Land, Livestock, FarmInputs,
 MembershipDetails) is surfaced as a *section embedded in* Household's or
 Farmer's tabs, not as a register with tabs of its own -- a
 g2p_register_sections row for one of these has section_register_id pointing

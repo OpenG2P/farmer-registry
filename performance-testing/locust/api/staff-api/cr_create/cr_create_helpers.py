@@ -73,7 +73,7 @@ def old_field_value(
 
     get_tab_records groups records by section_register_id (sections sharing a
     register are deduplicated), not by section_id, so that's the match key.
-    Returns (None, None) if the group or a record isn't there (e.g. no crop/
+    Returns (None, None) if the group or a record isn't there (e.g. no
     land/livestock entry seeded yet for this record).
     """
     groups = response_payload(tab_records_response_json) or []

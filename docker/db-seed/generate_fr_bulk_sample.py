@@ -5,8 +5,9 @@ Why this lives in farmer-registry
 ---------------------------------
 It writes farmer's own extension tables and draws every enum-backed value from
 farmer's LandOwnershipTypeEnum, CurrentLandUseEnum, FarmingTypeEnum,
-LandSizeUnitEnum, CropEndUseEnum, LivestockSystemEnum, SourceOfIncomeEnum and
-FarmerClusterRoleEnum. It cannot seed any other registry, and it has to move in
+LandSizeUnitEnum, LivestockSystemEnum, SourceOfIncomeEnum and
+FarmerClusterRoleEnum, plus Master Data's CROP_COMMODITY codes for the farmer's
+declared main crops. It cannot seed any other registry, and it has to move in
 lockstep with those enums and with reporting_views.sql, which reads the values it
 writes. NSR's equivalent is a different script for the same reason.
 
@@ -31,11 +32,13 @@ Two things it deliberately does NOT do
 
 Shape it generates
 ------------------
-    farmer ──< land ──< crop / livestock / farm_inputs
+    farmer ──< land ──< livestock / farm_inputs
            └──< membership_details, score
 
-which is the shape reporting_views.sql reads: crops, livestock and inputs belong
-to the PARCEL, not to the farmer.
+which is the shape reporting_views.sql reads: livestock and inputs belong to the
+PARCEL, not to the farmer. Crops are not records here -- what is sown each
+season is the Crop Sown Registry's. Each farmer carries only main_crops, the
+1-3 crops declared at registration.
 """
 
 import argparse
@@ -65,8 +68,6 @@ TENURE = [("OWNER", 0.62), ("TENANT", 0.26), ("CROP_SHARE", 0.12)]
 LAND_USE = [("AGRICULTURAL", 0.78), ("GRAZING", 0.14), ("FOREST", 0.05), ("RESIDENTIAL", 0.03)]
 FARMING_TYPE = [("CROP", 0.48), ("MIXED", 0.32), ("LIVESTOCK", 0.14), ("AGROFORESTRY", 0.04), ("AQUACULTURE", 0.02)]
 SIZE_UNIT = [("HECTARE", 0.55), ("ACRE", 0.35), ("SQUARE_METER", 0.10)]
-CROP_END_USE = [("FOOD_HUMAN_CONSUMPTION", 0.72), ("FEED_ANIMALS", 0.18),
-                ("BIOFUELS_NONFOOD", 0.05), ("OTHER", 0.05)]
 LIVESTOCK_SYSTEM = [("SEDENTARY_PASTORAL", 0.44), ("MIXED", 0.28), ("SEMI_NOMADIC", 0.14),
                     ("NOMADIC_PASTORAL", 0.10), ("INDUSTRIAL", 0.04)]
 # The six fields below are read live from Master Data (dropdown + validator),
@@ -84,15 +85,17 @@ DISABILITY_TYPE = [("MOBILITY", 0.42), ("VISION", 0.22), ("HEARING", 0.18),
                    ("COGNITION", 0.10), ("COMMUNICATION", 0.05), ("SELF_CARE", 0.03)]
 DISABILITY_SEV = [("SOME_DIFFICULTY", 0.55), ("A_LOT_OF_DIFFICULTY", 0.31), ("CANNOT_DO_AT_ALL", 0.14)]
 
-COMMODITIES = [("Maize", 0.22), ("Teff", 0.16), ("Wheat", 0.13), ("Sorghum", 0.10),
-               ("Barley", 0.08), ("Coffee", 0.08), ("Haricot Bean", 0.07),
-               ("Sesame", 0.05), ("Chickpea", 0.05), ("Millet", 0.03),
-               ("Vegetables", 0.03)]
+# Main crops, as Master Data CROP_COMMODITY codes (ETH agriculture pack): the
+# field's dropdown and validator read that list, so these must be its codes.
+MAIN_CROPS = [("CROP_MAIZE", 0.22), ("CROP_TEFF", 0.18), ("CROP_WHEAT", 0.14),
+              ("CROP_SORGHUM", 0.11), ("CROP_BARLEY", 0.09), ("CROP_COFFEE", 0.07),
+              ("CROP_HARICOT_BEAN", 0.06), ("CROP_FABA_BEAN", 0.05),
+              ("CROP_SESAME", 0.04), ("CROP_CHICKPEA", 0.02),
+              ("CROP_FINGER_MILLET", 0.02)]
 LIVESTOCK_TYPE = [("Cattle", 0.34), ("Goat", 0.24), ("Sheep", 0.20),
                   ("Poultry", 0.14), ("Donkey", 0.05), ("Camel", 0.03)]
 WATER_SOURCE = [("Rainfed", 0.66), ("River", 0.14), ("Borehole", 0.10),
                 ("Irrigation Canal", 0.07), ("Pond", 0.03)]
-SEASON = [("Meher", 0.62), ("Belg", 0.30), ("Irrigated", 0.08)]
 SOIL = [("high", 0.24), ("medium", 0.51), ("low", 0.25)]
 
 FIRST_M = ["Abebe", "Bekele", "Chala", "Dawit", "Eyob", "Fikru", "Getachew", "Hailu",
@@ -284,8 +287,7 @@ def main():
                             'WHERE created_by = %s')
             bulk_lands = (f'SELECT internal_record_id FROM g2p_register_lands '
                           f'WHERE link_internal_record_id IN ({bulk_farmers})')
-            for t in ("g2p_register_crops", "g2p_register_livestocks",
-                      "g2p_register_farm_inputs"):
+            for t in ("g2p_register_livestocks", "g2p_register_farm_inputs"):
                 cur.execute(f'DELETE FROM {t} WHERE link_internal_record_id IN ({bulk_lands})',
                             (SEEDER,))
             for t in ("g2p_register_lands", "g2p_register_membership_details",
@@ -345,7 +347,7 @@ def main():
         "occupation", "education_level", "estimated_age", "has_personal_phone",
         "disabled", "disability_type", "disability_severity", "source_of_income",
         "language_spoken", "latitude", "longitude", "country_code",
-        "geo_lowest_level_value_id", "geo_code_hierarchy_json"])
+        "geo_lowest_level_value_id", "geo_code_hierarchy_json", "main_crops"])
     lands = Copier(conn, "g2p_register_lands", [
         "internal_record_id", "link_internal_record_id", "functional_record_id",
         "record_status", "created_at", "created_by", "last_approved_at",
@@ -353,10 +355,6 @@ def main():
         "soil_fertility", "current_land_use", "farming_type", "year_of_acquisition",
         "means_of_acquisition", "certificate_storage_id",
         "geo_lowest_level_value_id", "geo_code_hierarchy_json"])
-    crops = Copier(conn, "g2p_register_crops", [
-        "internal_record_id", "link_internal_record_id", "functional_record_id",
-        "record_status", "created_at", "created_by", "last_approved_at",
-        "last_approved_by", "commodity", "planted_date", "season", "end_use"])
     stock = Copier(conn, "g2p_register_livestocks", [
         "internal_record_id", "link_internal_record_id", "functional_record_id",
         "record_status", "created_at", "created_by", "last_approved_at",
@@ -380,7 +378,7 @@ def main():
         "score_type", "computed_score", "computed_at"])
 
     log(f"generating {args.farmers} farmers…")
-    _seq = {'LD': 0, 'CR': 0, 'LS': 0, 'FI': 0, 'MB': 0}
+    _seq = {'LD': 0, 'LS': 0, 'FI': 0, 'MB': 0}
     def _fid(pfx):
         _seq[pfx] += 1
         return f"{pfx}-{_seq[pfx]:09d}"
@@ -401,6 +399,12 @@ def main():
         # ~4% of farmers have no recorded birth date; the age band then falls back
         # to estimated_age, which is exactly the path reporting_views.sql handles.
         has_dob = rng.random() > 0.04
+        # 1-3 distinct main crops, declared at registration.
+        main_crops = []
+        for _ in range(rng.randint(1, 3)):
+            code = weighted(rng, MAIN_CROPS)
+            if code not in main_crops:
+                main_crops.append(code)
 
         farmers.add([
             fid, f"FR-{i + 1:08d}", f"{first} {last}", "ACTIVE",
@@ -416,14 +420,14 @@ def main():
             weighted(rng, DISABILITY_SEV) if disabled else None,
             weighted(rng, INCOME), rng.choice(["am", "om", "ti", "so"]),
             f"{8.0 + rng.random() * 6:.5f}", f"{35.0 + rng.random() * 8:.5f}",
-            "ET", leaf_id, hierarchy,
+            "ET", leaf_id, hierarchy, json.dumps(main_crops),
         ])
 
         # Sub-table functional ids are SEQUENTIAL, not a truncated uuid.
-        # The old `f"CR-{cid[:8]}"` kept only 8 hex chars: ~4.3e9 values, so by the
+        # The old `f"<prefix>-{id[:8]}"` kept only 8 hex chars: ~4.3e9 values, so by the
         # birthday bound a run of this size collides long before it finishes —
-        # 100k farmers died at ~39k crop rows on
-        # ix_g2p_register_crops_functional_record_id. A counter cannot collide.
+        # 100k farmers died at ~39k child rows on a functional_record_id unique
+        # index. A counter cannot collide.
         # A farmer with no land at all is real (pastoralists, landless labour) and
         # the coverage panel is supposed to show it.
         for _ in range(weighted(rng, [(1, 0.55), (2, 0.28), (3, 0.11), (0, 0.06)])):
@@ -442,14 +446,6 @@ def main():
                 leaf_id, hierarchy,
             ])
 
-            if ftype in ("CROP", "MIXED", "AGROFORESTRY"):
-                for _ in range(rng.randint(1, 3)):
-                    cid = rid(rng)
-                    planted = today - timedelta(days=rng.randrange(400))
-                    crops.add([cid, lid, _fid("CR"), "ACTIVE",
-                               created.isoformat(sep=" "), SEEDER, created.isoformat(sep=" "), SEEDER, weighted(rng, COMMODITIES),
-                               planted.isoformat(), weighted(rng, SEASON),
-                               weighted(rng, CROP_END_USE)])
             if ftype in ("LIVESTOCK", "MIXED"):
                 for _ in range(rng.randint(1, 3)):
                     sid = rid(rng)
@@ -481,12 +477,12 @@ def main():
         if (i + 1) % 25_000 == 0:
             log(f"  {i + 1:,}/{args.farmers:,} farmers")
 
-    for c in (farmers, lands, crops, stock, inputs, member, scores):
+    for c in (farmers, lands, stock, inputs, member, scores):
         c.flush()
     conn.commit()
 
     log(f"loaded: {farmers.total:,} farmers, {lands.total:,} parcels, "
-        f"{crops.total:,} crops, {stock.total:,} livestock, {inputs.total:,} input "
+        f"{stock.total:,} livestock, {inputs.total:,} input "
         f"records, {member.total:,} memberships, {scores.total:,} scores")
     log("done. Refresh the reporting views next (land first, then farmer).")
 

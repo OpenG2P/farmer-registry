@@ -19,7 +19,7 @@ import config
 import db
 from common import RANDOM_SEED
 from generators import (
-    crop, farm_inputs, farmer, history, household, household_member,
+    farm_inputs, farmer, history, household, household_member,
     land, livestock, membership_details,
 )
 from search_anchors import generate_anchors
@@ -130,9 +130,6 @@ def run(tier: str, dsn_override: str | None):
             for _ in range(per_parent_count("land")):
                 land_row = land.generate(farmer_row)
                 sinks["land"].write_live(land_row)
-                for _ in range(per_parent_count("crop")):
-                    crop_row = crop.generate(land_row)
-                    sinks["crop"].write_live(crop_row)
 
             for table_key in ("livestock", "farm_inputs", "membership_details"):
                 for _ in range(per_parent_count(table_key)):

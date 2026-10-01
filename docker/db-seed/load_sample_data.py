@@ -9,7 +9,9 @@ Mapping:
 - every individual -> g2p_register_farmers (reuses the individual UUID)
 - every individual with a household_id -> g2p_register_household_members
 - households.csv -> g2p_register_households (farmer column set)
-- lands/crops/livestocks/farm_inputs/membership_details -> respective tables
+- lands/livestocks/farm_inputs/membership_details -> respective tables
+- every farmer gets 1-3 declared main crops (Master Data CROP_COMMODITY codes),
+  derived from their sequence number -- see main_crops_for()
 - scores.json -> g2p_register_scores
 - completion-score computation queue seeded for Farmer + Household registers
 """
@@ -382,7 +384,7 @@ def load_people_from_mds() -> tuple:
 
 # ── Attaching the registry's own sample rows to the loaded people ───────────
 #
-# The sub-table fixtures (land, crops, housing, programmes, vulnerability) link
+# The sub-table fixtures (land, livestock, housing, programmes, vulnerability) link
 # to the id space of the demography CSV — i0001, h001. Once people come from
 # master-data those ids are ETH-IND-0001 and ETH-HH-001, and every one of those
 # rows links to a record that does not exist. Nothing errors: the insert has no
@@ -410,10 +412,10 @@ def build_link_remap(individuals: list, households: list, fixture_rows: dict) ->
     if not ind_ids and not hh_ids:
         return {}
 
-    # Ids the fixtures define themselves. A crop links to its parcel, and a
-    # parcel is a fixture row, not a person — remapping that link would move the
-    # crop onto a farmer and lose the parcel. Only links pointing OUT of the
-    # fixture set name people or households.
+    # Ids the fixtures define themselves. Livestock and farm inputs link to their
+    # parcel, and a parcel is a fixture row, not a person — remapping that link
+    # would move them onto a farmer and lose the parcel. Only links pointing OUT
+    # of the fixture set name people or households.
     fixture_own_ids = {
         r["internal_record_id"]
         for rows in fixture_rows.values()
@@ -472,8 +474,9 @@ def remap_links(table: str, rows: list, remap: dict) -> list:
                     continue
                 seen.add(r["link_internal_record_id"])
         elif link:
-            # Points at another sub-table row rather than a person — a crop's
-            # parcel. Those ids are internal to the fixture and stay valid.
+            # Points at another sub-table row rather than a person — a
+            # livestock or farm-input row's parcel. Those ids are internal to
+            # the fixture and stay valid.
             unresolved += 1
         out.append(r)
 
@@ -489,7 +492,8 @@ def number_sample_lands(rows: list, ind_by_id: dict) -> list:
     Crop Sown Registry's sample crop seasons use the same convention for the
     same sample people. Neither registry reads the other; both derive the ids
     from master-data's samples, so a demo shows the same farmers and plots.
-    Crops link to a land by its internal id, which is unchanged.
+    Livestock and farm inputs link to a land by its internal id, which is
+    unchanged.
     """
     counts: dict = {}
     for r in rows:
@@ -621,6 +625,33 @@ def _fr_id(ind: dict) -> str:
     return "FR-" + ind["functional_record_id"].rsplit("-", 1)[-1]
 
 
+# Main crops a sample farmer declares at registration: Master Data
+# CROP_COMMODITY codes (ETH agriculture pack), the common Ethiopian staples.
+# Deterministic -- picked by the farmer's sequence number, so a re-seed and the
+# demo script agree on who grows what -- and never repeated within a farmer.
+SAMPLE_MAIN_CROPS = [
+    "CROP_TEFF", "CROP_WHEAT", "CROP_MAIZE",
+    "CROP_SORGHUM", "CROP_BARLEY", "CROP_FABA_BEAN",
+]
+
+
+def main_crops_for(ind: dict) -> list:
+    """1-3 CROP_COMMODITY codes for a sample farmer, from their sequence number.
+
+    FR-0001 -> 1 crop, FR-0002 -> 2, FR-0003 -> 3, FR-0004 -> 1 ...; the first
+    crop rotates through SAMPLE_MAIN_CROPS and the rest follow it, so the
+    sample spreads over all six codes. A farmer id with no number falls back
+    to the first crop alone.
+    """
+    tail = _fr_id(ind).rsplit("-", 1)[-1]
+    if not tail.isdigit():
+        return SAMPLE_MAIN_CROPS[:1]
+    n = int(tail)
+    count = (n - 1) % 3 + 1
+    start = (n - 1) % len(SAMPLE_MAIN_CROPS)
+    return [SAMPLE_MAIN_CROPS[(start + k) % len(SAMPLE_MAIN_CROPS)] for k in range(count)]
+
+
 def search_text_person(p: dict) -> str:
     parts = [
         p["functional_record_id"], p["full_name"],
@@ -651,6 +682,7 @@ def insert_farmers(cur, individuals: list, extras_by_id: dict) -> None:
         "disability_type", "disability_severity",
         "source_of_income", "source_of_income_other",
         "language_spoken", "education_level", "national_id_masked",
+        "main_crops",
     ]
     rows = []
     for ind in individuals:
@@ -680,6 +712,7 @@ def insert_farmers(cur, individuals: list, extras_by_id: dict) -> None:
                 ex.get("source_of_income_other") or _map_income(ex.get("source_of_income"))[1],
                 ex.get("language_spoken"),
                 ind.get("education_level"), ind.get("foundational_id_masked"),
+                to_json(main_crops_for(ind)),
             )
         )
     sql = (
@@ -829,11 +862,6 @@ SUB_TABLES = [
             "shape_type", "shape_coordinates_json",
         ],
         {"geo_code_hierarchy_json", "shape_coordinates_json"},
-    ),
-    (
-        "g2p_register_crops", "crops.json",
-        ["commodity", "planted_date", "season", "end_use"],
-        set(),
     ),
     (
         "g2p_register_livestocks", "livestocks.json",

@@ -1,4 +1,3 @@
-from .g2p_register_domain_service_crop import G2PRegisterDomainServiceCrop
 from .g2p_register_domain_service_farmer import G2PRegisterDomainServiceFarmer
 from .g2p_register_domain_service_farm_inputs import G2PRegisterDomainServiceFarmInputs
 from .g2p_register_domain_service_household import G2PRegisterDomainServiceHousehold

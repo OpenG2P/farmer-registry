@@ -1,7 +1,7 @@
 # Bulk seed generator — quick start
 
 Generates realistic, high-volume `Farmer` register data (households, farmers,
-household members, lands, crops, livestock, farm inputs, membership details,
+household members, lands, livestock, farm inputs, membership details,
 and `*_history` twins) directly into PostgreSQL via `COPY`, for the Volume-
 Tiers defined in
 [`../documentation/seeding-design.md`](../documentation/seeding-design.md).

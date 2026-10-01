@@ -164,7 +164,7 @@ where z.pcode = '${inputs.sel_l2.pcode}'
 ```sql commodities
 select * from registry.level2_commodities
 where area_name = '${inputs.sel_l2.area_name}'
-order by crops desc
+order by farmers desc
 ```
 
 ### What is grown here{#if l2_head.length}: {l2_head[0].area_name}{/if}
@@ -172,9 +172,9 @@ order by crops desc
 <BarChart
   data={commodities}
   x=commodity
-  y=crops
+  y=farmers
   swapXY=true
-  title="Crop records by commodity"
+  title="Farmers by declared main crop"
 />
 
 ```sql l3_in_l2

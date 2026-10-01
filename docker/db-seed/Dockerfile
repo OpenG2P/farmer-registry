@@ -7,8 +7,8 @@
 #
 # WHY THE SAMPLE LOADERS LIVE HERE
 #   load_sample_data.py and upload_images.py are written against the FARMER
-#   schema — they INSERT into g2p_register_farmers/crops/lands/... and read
-#   farmers.json, crops.json, lands.json. Those tables are declared by
+#   schema — they INSERT into g2p_register_farmers/lands/livestocks/... and read
+#   farmers.json, lands.json, livestocks.json. Those tables are declared by
 #   farmer-extension and those files ship in this image, so neither the platform
 #   nor any other variant can run them: NSR ships its own pair, and the platform
 #   installs with loadSampleData=false and no seed-data at all. They used to sit

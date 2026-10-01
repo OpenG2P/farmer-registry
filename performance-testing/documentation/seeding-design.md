@@ -39,7 +39,7 @@ demo records, not a volume tier.
 ## The generation DAG
 
 Ratios in the target-volumes table above aren't all "relative to Farmer" —
-`crop` is per-`land` (not per-farmer), and `household` is the *parent* of
+`household` is the *parent* of
 multiple farmers (fan-out the other direction). `seeding/config.py`'s `RATIOS`
 models this as a parent → child fan-out graph matching the real FK structure,
 not a flat "everything vs. Farmer" table:
@@ -49,7 +49,6 @@ household  (root; count derived from the farmer target)
 ├─ household_member   (3-5 per household)
 └─ farmer              (2-3 per household)
    ├─ land              (1-2 per farmer)
-   │  └─ crop            (1-3 per land)
    ├─ livestock          (0-1 per farmer)
    ├─ farm_inputs        (1 per farmer)
    └─ membership_details (1 per farmer)
@@ -63,9 +62,12 @@ more Zipfian (some households much larger than others) — revisit if a test
 specifically needs to stress the long tail.
 
 `link_internal_record_id` (the generic parent-link column every `G2PRegister`
-table has) is how children point at their parent — e.g. a `Crop` row's
-`link_internal_record_id` is its `Land` row's `internal_record_id`, not a
-Farmer's.
+table has) is how children point at their parent — e.g. a `Land` row's
+`link_internal_record_id` is its `Farmer` row's `internal_record_id`.
+
+There is no crop table: the Farmer Registry keeps no crop records (what is
+sown each season is the Crop Sown Registry's). Each farmer row carries
+`main_crops`, 1–3 declared Master Data `CROP_COMMODITY` codes.
 
 `poverty_score` is **not implemented** — there is currently no
 `G2PRegisterPovertyScore` model in `farmer-extension`. Add a
@@ -109,7 +111,7 @@ computes each of these itself:
   `generators/history.py` reads them back from `g2p_register_definitions` /
   `g2p_register_sections` / `g2p_register_ui_tab_sections`. Only Household and
   Farmer are UI-navigable registers with their own tabs — every other table
-  (HouseholdMember, Land, Crop, Livestock, FarmInputs, MembershipDetails) is
+  (HouseholdMember, Land, Livestock, FarmInputs, MembershipDetails) is
   surfaced as a *section embedded in* Household's or Farmer's tabs, not as a
   register with tabs of its own. A `g2p_register_sections` row for one of
   these has `section_register_id` pointing at the child table's own
@@ -255,7 +257,7 @@ Then warm the cache (representative reads) before measuring.
 - Enum value lists (`common.py`, `generators/*.py`) are hardcoded copies of
   the real `StrEnum` classes, not imported from the app packages — keep in
   sync manually if those enums change.
-- Attribute-lookup fields (crop `commodity`, livestock `livestock_type`/
+- Attribute-lookup fields (farmer `main_crops`, livestock `livestock_type`/
   `breed`, etc.) use plausible hardcoded value lists, not the deployment's
   actual configured attribute lookups.
 - Anchor-to-farmer assignment is round-robin (exactly even) for bulk-seeded

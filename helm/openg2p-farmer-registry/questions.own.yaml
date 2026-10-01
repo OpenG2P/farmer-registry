@@ -28,7 +28,7 @@
 - variable: analytics.bulkSample.enabled
   label: "Generate bulk demo data"
   description: >-
-    Generate a large set of invented farmers, with their land, crops and
+    Generate a large set of invented farmers, with their land, main crops and
     livestock, so load tests have volume and the dashboards have something to
     show. Separate from the reporting views, which install either way over
     whatever data the register holds. Off by default — never enable it in

@@ -13,6 +13,11 @@
 {% set first_place = first_farm.get("place", {}) %}
 {% set first_geo = first_place.get("geo", {}) %}
 {% set machineries = d.get("machineries_details", []) %}
+{# Crops the farmer mainly grows (Master Data CROP_COMMODITY codes), carried at
+   farmer level beside farm_details. Per-parcel crop_production rows are not
+   turned into records: the Farmer Registry keeps no crop records. #}
+{% set main_crops_in = d.get("main_crops") %}
+{% set main_crops = main_crops_in if main_crops_in is sequence and main_crops_in is not string and main_crops_in is not mapping else [] %}
 
 {% set gender_value = (farmer_demo.get("gender", "") or family_head_demo.get("gender", "")) | upper %}
 {% if gender_value == "MALE" %}
@@ -31,13 +36,17 @@
 {% endif %}
 
 {% set source_of_income = "SOI_OTHERS" %}
+{# A farmer who declares main crops grows crops, whether or not the sender
+   also lists per-parcel crop_production rows. #}
 {% if farm_details %}
   {% set first_activity = (first_farm.get("farming_activities", []) | first) or {} %}
-  {% if first_activity.get("crop_production") %}
+  {% if first_activity.get("crop_production") or main_crops %}
     {% set source_of_income = "SOI_CROP_PRODUCTION" %}
   {% elif first_activity.get("animal_production") %}
     {% set source_of_income = "SOI_LIVESTOCK_PRODUCTION" %}
   {% endif %}
+{% elif main_crops %}
+  {% set source_of_income = "SOI_CROP_PRODUCTION" %}
 {% endif %}
 
 {
@@ -60,7 +69,8 @@
       "has_personal_phone": false,
       "disabled": {{ "true" if family_head.get("is_disabled") else "false" }},
       "source_of_income": "{{ source_of_income }}",
-      "national_id_masked": "{{ farmer_identifier.get('identifier_value', '') }}"
+      "national_id_masked": "{{ farmer_identifier.get('identifier_value', '') }}",
+      "main_crops": {{ main_crops | reject("none") | map("string") | list | tojson }}
     }
   ],
   "farmer_location": [

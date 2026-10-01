@@ -4,7 +4,7 @@ The maps content this registry contributes to G2P Insights.
 
 WHY A ConfigMap AND NOT AN IMAGE
 --------------------------------
-What a map DRAWS belongs to a registry — these queries read fr_rpt_farmer / fr_rpt_crop and plot
+What a map DRAWS belongs to a registry — these queries read fr_rpt_farmer / fr_rpt_farmer_main_crop and plot
 this registry's measures, which no other registry has. But the content itself is
 four SQL files and a page: about 30 KB of text.
 

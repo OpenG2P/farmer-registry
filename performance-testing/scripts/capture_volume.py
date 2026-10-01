@@ -19,14 +19,12 @@ from psycopg2 import sql
 
 TABLES = [
     "g2p_register_farmers",
-    "g2p_register_crops",
     "g2p_register_farm_inputs",
     "g2p_register_households",
     "g2p_register_household_members",
     "g2p_register_lands",
     "g2p_register_livestocks",
     "g2p_register_history_farmers",
-    "g2p_register_history_crops",
     "g2p_register_history_farm_inputs",
     "g2p_register_history_households",
     "g2p_register_history_household_members",

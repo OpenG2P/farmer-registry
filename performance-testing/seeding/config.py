@@ -23,7 +23,6 @@ RATIOS = {
     "farmer": ("Farmer", "household", AVG_FARMERS_PER_HOUSEHOLD),
     "household_member": ("HouseholdMember", "household", (3, 5)),
     "land": ("Land", "farmer", (1, 2)),
-    "crop": ("Crop", "land", (1, 3)),
     "livestock": ("Livestock", "farmer", (0, 1)),
     "farm_inputs": ("FarmInputs", "farmer", (1, 1)),
     "membership_details": ("MembershipDetails", "farmer", (1, 1)),
@@ -32,7 +31,7 @@ RATIOS = {
 # Tables that get a *_history twin row for every generated record (1:1, not
 # a sample -- see README "History rows").
 HISTORY_TABLES = [
-    "household", "farmer", "household_member", "land", "crop",
+    "household", "farmer", "household_member", "land",
     "livestock", "farm_inputs", "membership_details",
 ]
 
@@ -68,7 +67,6 @@ TABLE_NAMES = {
     "farmer": ("g2p_register_farmers", "g2p_register_history_farmers", "Farmer"),
     "household_member": ("g2p_register_household_members", "g2p_register_history_household_members", "HouseholdMember"),
     "land": ("g2p_register_lands", "g2p_register_history_lands", "Land"),
-    "crop": ("g2p_register_crops", "g2p_register_history_crops", "Crop"),
     "livestock": ("g2p_register_livestocks", "g2p_register_history_livestocks", "Livestock"),
     "farm_inputs": ("g2p_register_farm_inputs", "g2p_register_history_farm_inputs", "FarmInputs"),
     "membership_details": ("g2p_register_membership_details", "g2p_register_history_membership_details", "MembershipDetails"),

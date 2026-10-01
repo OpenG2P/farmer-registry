@@ -13,6 +13,7 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
         for record in records:
             self._validate_birth_date(record)
             self._validate_estimated_age(record)
+            self._validate_main_crops(record)
 
     def _validate_birth_date(self, record: dict) -> None:
         birth_date = parse_date(record.get("birth_date"))
@@ -29,6 +30,21 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
             validation_error(
                 "estimated_age must be consistent with birth_date within one year"
             )
+
+    def _validate_main_crops(self, record: dict) -> None:
+        # Shape only. Whether each code is on Master Data's CROP_COMMODITY list
+        # is checked by the platform's attribute validator, which reads the
+        # binding from the widget's data source and handles list values.
+        main_crops = record.get("main_crops")
+        if main_crops is None:
+            return
+        if not isinstance(main_crops, list):
+            validation_error("main_crops must be a list of crop codes")
+        codes = [str(code).strip() for code in main_crops if code is not None and str(code).strip()]
+        if len(codes) != len(main_crops):
+            validation_error("main_crops must not contain empty values")
+        if len(set(codes)) != len(codes):
+            validation_error("main_crops must not repeat a crop")
 
     @staticmethod
     def _calculate_age(birth_date: date) -> int | None:
