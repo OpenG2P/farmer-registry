@@ -481,6 +481,33 @@ def remap_links(table: str, rows: list, remap: dict) -> list:
     return out
 
 
+def number_sample_lands(rows: list, ind_by_id: dict) -> list:
+    """Number each sample person's lands LAND-<n>-<k>, in the person's woreda.
+
+    Only for people from master-data. Sample person ETH-IND-0007 is farmer
+    FR-0007, and their lands are LAND-0007-1, LAND-0007-2… in their woreda. The
+    Crop Sown Registry's sample crop seasons use the same convention for the
+    same sample people. Neither registry reads the other; both derive the ids
+    from master-data's samples, so a demo shows the same farmers and plots.
+    Crops link to a land by its internal id, which is unchanged.
+    """
+    counts: dict = {}
+    for r in rows:
+        person = ind_by_id.get(r.get("link_internal_record_id"))
+        if not person or not person.get("geo_pcode"):
+            continue
+        number = person["functional_record_id"].rsplit("-", 1)[-1]
+        counts[number] = counts.get(number, 0) + 1
+        old = r.get("functional_record_id") or ""
+        r["functional_record_id"] = f"LAND-{number}-{counts[number]}"
+        r["search_text"] = (r.get("search_text") or "").replace(old, r["functional_record_id"])
+        r["geo_pcode"] = person["geo_pcode"]
+        r["country_code"] = person.get("country_code") or r.get("country_code")
+        if person.get("latitude") is not None:
+            r["latitude"], r["longitude"] = person["latitude"], person["longitude"]
+    return rows
+
+
 def report_link_remap() -> None:
     if not _REMAP_STATS:
         return
@@ -1007,7 +1034,9 @@ def main() -> None:
         for table, fname, extras, json_cols in SUB_TABLES:
             rows = remap_links(table, fixtures[fname], remap)
             if table == "g2p_register_lands":
-                # lands.json carries geo as plain names; derive the DB id + JSON.
+                rows = number_sample_lands(rows, ind_by_id)
+                # lands.json carries geo as plain names; derive the DB id + JSON
+                # (a sample person's land is already in their woreda).
                 for r in rows:
                     r["geo_lowest_level_value_id"] = geo_lowest_id(r)
                     r["geo_code_hierarchy_json"] = geo_hierarchy_dict(r)
