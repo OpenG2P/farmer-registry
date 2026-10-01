@@ -1,21 +1,17 @@
 # Test Scenarios — celery (async pipelines)
 
-**Status: deferred, undesigned.** `locust/celery/` is a bare scaffold
-(`to-be-decided/` placeholder) — no tooling, no scenarios, no metrics
-approach defined yet. See
-[`../staff-api/test-scenarios.md`](../staff-api/test-scenarios.md) §1/§2:
-*"Async pipeline throughput (Celery ingestion/outgestion/dedup) is explicitly
-out of scope for this round — revisit once the Volume-Tier × Pod-Scale matrix
-[for staff-api] is done."*
+**Status: harness written, not yet executed.** Measurement is a closed
+Postgres backlog drained by **1 beat pod** and **1, 2, or 3 worker pods**,
+snapshotted at 5/10/15/20/25/30 minutes. It is not a Locust user class.
+See [`../../locust/celery/README.md`](../../locust/celery/README.md).
 
-## What this will eventually cover
+## Still outside this harness
 
-Async pipeline throughput — ingestion, outgestion, dedup, score-computation —
-and Redis queue-depth / worker-throughput measurement. Unlike staff-api and
-partner-api, this isn't request/response latency against Locust-driven load;
-it's queue depth, task completion rate, and worker scaling, so it will need
-its own measurement approach (not a Locust `User` class), not just a new set
-of endpoint classes in the existing scheme.
+Outgestion, score-computation, and the partner ingest pipeline are not cases
+yet. The first cases are functional-id allocation, the four dedup producers,
+and intake-to-register ingest. Unlike staff-api and partner-api, this is not
+request/response latency. The unit is rows moved out of `PENDING` by the
+checkpoint, plus Redis queue depth.
 
 `get_deduplication_register_results` / `get_deduplication_change_request_results`
 in [`../staff-api/test-scenarios.md`](../staff-api/test-scenarios.md) are a
@@ -26,9 +22,8 @@ include.
 
 ## Reports
 
-Once designed, this tier gets its own `raw-report.md`/`final-report.md`
-under `documentation/celery/`, shaped around whatever this tier's actual unit
-of measurement turns out to be (queue depth over time, task latency
-percentiles, worker throughput) rather than the Ingress/Volume-Tier/
-Pod-Scale/Step/Scenario shape that fits staff-api's synchronous-API load
-tests.
+Checkpoint CSVs from `locust/celery/results/` are the raw record. A
+`raw-report.md` / `final-report.md` for this tier can be written after the
+first matrix (case × worker count × cohort size) exists. Shape it around
+`done_delta` at each mark and Redis depth, not the staff-api
+Ingress/Volume-Tier/Pod-Scale/Step tables.
