@@ -78,16 +78,17 @@ registry:
     image:
       repository: openg2p/openg2p-farmer-registry-db-seed
       tag: 0.0.0-develop
-    # The subchart defaults these OFF (minimal reference registry). Farmer ships
-    # demo records/geo/images, so turn the db-seed loaders on. NB these are
-    # `dbSeed.*`, not `global.*` — the db-seed Job reads .Values.dbSeed.load*
-    # and there is no global fallback, so setting them under global is inert.
+    # Demo data is OFF by default — an install creates no sample farmers or
+    # photos unless asked. Both are opt-in from the Rancher form ("Load Sample
+    # Data", "Load Sample Images" under DB Seed). NB these are `dbSeed.*`, not
+    # `global.*` — the db-seed Job reads .Values.dbSeed.load* and there is no
+    # global fallback, so setting them under global is inert.
     # Geo is seeded by the master-data chart now (geoSeed.countryPack there),
     # not as a side effect of the registry seed. Leaving this on would load a
     # second, unrelated hierarchy over the one MDS already holds.
     loadGeoData: false
-    loadSampleData: true
-    loadImages: true
+    loadSampleData: false    # a few dozen demo farmers from the country pack
+    loadImages: false        # their profile photos; needs loadSampleData
     loadTemplates: true
     # Code lists are NOT copied into this registry: dropdowns and the attribute
     # validator read them live from Master Data. The Farmer Registry needs the
@@ -358,7 +359,11 @@ analytics:
   waitImage: jbergknoff/postgresql-client:latest
 
   bulkSample:
-    enabled: true
+    # Bulk demo data — 100,000 invented farmers for load tests and to give the
+    # dashboards volume. OFF by default and never for production. Independent of
+    # reportingViews: the views and dashboards install either way, over whatever
+    # data the register holds. Opt-in from the Rancher form (Analytics group).
+    enabled: false
     # ~250k individuals over ~62.5k households, sized against the DEFAULT geo
     # pack (Kamuntu, 668 villages) so the deepest level averages ~90 households
     # and its percentages are reportable rather than suppressed as unreliable.

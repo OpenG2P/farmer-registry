@@ -25,6 +25,29 @@
   group: "Analytics"
   show_if: "analytics.reportingViews.enabled=true"
 
+- variable: analytics.bulkSample.enabled
+  label: "Generate bulk demo data"
+  description: >-
+    Generate a large set of invented farmers, with their land, crops and
+    livestock, so load tests have volume and the dashboards have something to
+    show. Separate from the reporting views, which install either way over
+    whatever data the register holds. Off by default — never enable it in
+    production.
+  type: boolean
+  default: false
+  group: "Analytics"
+
+- variable: analytics.bulkSample.farmers
+  label: "Bulk demo farmers"
+  description: >-
+    How many farmers to generate. Size it to the country pack: what matters is
+    households per lowest administrative unit, or rates at the deepest level are
+    too thin to report.
+  type: int
+  default: 100000
+  group: "Analytics"
+  show_if: "analytics.bulkSample.enabled=true"
+
 # NOTE on VC issuance questions
 # -----------------------------
 # There are deliberately NO verifiable-credential questions here. The registry
