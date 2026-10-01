@@ -152,6 +152,11 @@
         "@type": "Identifier",
         "identifier_type": "UIN",
         "identifier_value": {{ (farmer.get('foundational_id') or farmer.get('functional_record_id') or '') | tojson }}
+      },
+      {
+        "@type": "Identifier",
+        "identifier_type": "FARMER_ID",
+        "identifier_value": {{ (farmer.get('functional_record_id') or '') | tojson }}
       }
     ],
     "demographic_info": {
