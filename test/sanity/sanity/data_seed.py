@@ -50,23 +50,23 @@ _CREATED_AT = "2026-01-01 00:00:00"
 
 
 def _row():
-    f = fixtures.FARMER
+    f = fixtures.RECORD
     full_name = f"{f['first_name']} {f['last_name']}"
     # The marker must be inside search_text — that is the only column the DCI
     # search matches on.
     search_text = " ".join([
         fixtures.SEARCH_MARKER,
-        fixtures.FARMER_FUNCTIONAL_ID,
+        fixtures.RECORD_FUNCTIONAL_ID,
         full_name,
         f["gender"],
         f["birth_date"],
     ])
     return (
-        fixtures.FARMER_INTERNAL_ID, fixtures.FARMER_FUNCTIONAL_ID,
+        fixtures.RECORD_INTERNAL_ID, fixtures.RECORD_FUNCTIONAL_ID,
         full_name, fixtures.CREATED_BY, _CREATED_AT,
         _CREATED_AT, fixtures.CREATED_BY,
         search_text, "ACTIVE",
-        fixtures.FARMER_FOUNDATIONAL_ID, f["first_name"],
+        fixtures.RECORD_FOUNDATIONAL_ID, f["first_name"],
         f["last_name"], full_name,
         f["gender"], f["birth_date"], f["marital_status"], f["education_level"],
         f["language_code"], _CREATED_AT, fixtures.CR_VALUE_INITIAL,
@@ -93,9 +93,9 @@ def main() -> int:
     try:
         status = ensure_seeded(cfg)
     except Exception as exc:  # noqa: BLE001
-        print(f"[data-seed] FAILED to seed farmer '{fixtures.FARMER_FUNCTIONAL_ID}': {exc}")
+        print(f"[data-seed] FAILED to seed farmer '{fixtures.RECORD_FUNCTIONAL_ID}': {exc}")
         return 1
-    print(f"[data-seed] farmer '{fixtures.FARMER_FUNCTIONAL_ID}': {status}")
+    print(f"[data-seed] farmer '{fixtures.RECORD_FUNCTIONAL_ID}': {status}")
     return 0
 
 

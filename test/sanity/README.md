@@ -26,6 +26,16 @@ Everything else (register id, DCI reg-type, search text, consent scopes, CR
 tab/section) is **configuration**, supplied as env by the Helm chart's `sanity.*`
 values — not baked here.
 
+## Inherited names
+
+`fixtures.py` is a contract with the inherited harness: keep the platform's
+names (`RECORD_INTERNAL_ID`, `RECORD_FUNCTIONAL_ID`, `RECORD_FOUNDATIONAL_ID`,
+`RECORD`, `cfg.register_id`, the `record_seeded` fixture) and change only the
+values. `tests/test_contract.py` in the base image enforces this.
+
+These names need a registry-platform release that includes the registry-neutral
+sanity names; bump `RP_VERSION` (scripts/bump-rp-version.sh) to one.
+
 ## Extending for another registry
 
 A new registry repeats this pattern: build `FROM openg2p-registry-sanity-tests`,

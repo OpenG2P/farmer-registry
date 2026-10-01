@@ -64,7 +64,7 @@ def _require_succ(resp):
 
 
 @pytest.mark.e2e
-def test_dci_search_returns_the_consented_record(partner_client, cfg, priv, seeded, farmer_seeded, step):
+def test_dci_search_returns_the_consented_record(partner_client, cfg, priv, seeded, record_seeded, step):
     """The happy path: the partner actually gets the data it consented to."""
     step(f"building signed DCI search envelope (reg_type={cfg.reg_type}, search_text={cfg.search_text!r})")
     step(f"attaching consent object for scopes={cfg.data_scopes} (signed as a JWS with the PM partner key)")
@@ -78,7 +78,7 @@ def test_dci_search_returns_the_consented_record(partner_client, cfg, priv, seed
     step(f"response carried {len(records)} record(s)")
     assert records, (
         f"no records returned for search_text '{cfg.search_text}'. The sanity farmer "
-        f"{fixtures.FARMER_FUNCTIONAL_ID} should match. If the register is otherwise "
+        f"{fixtures.RECORD_FUNCTIONAL_ID} should match. If the register is otherwise "
         f"healthy, check that dbSeed.loadTemplates=true — without the DCI template in "
         f"MinIO every record fails to render and the error surfaces as an empty 200."
     )
@@ -93,14 +93,14 @@ def test_dci_search_returns_the_consented_record(partner_client, cfg, priv, seed
     step(f"asserting consented scope '{scope}' is present and carries the seeded demographics")
     demographic = (record.get(scope) or {}).get("demographic_info") or {}
     name = demographic.get("name") or {}
-    assert name.get("given_name") == fixtures.FARMER["first_name"]
-    assert name.get("surname") == fixtures.FARMER["last_name"]
-    assert demographic.get("birth_date") == fixtures.FARMER["birth_date"]
+    assert name.get("given_name") == fixtures.RECORD["first_name"]
+    assert name.get("surname") == fixtures.RECORD["last_name"]
+    assert demographic.get("birth_date") == fixtures.RECORD["birth_date"]
     step("consented record returned the correct given_name / surname / birth_date ✓")
 
 
 @pytest.mark.e2e
-def test_dci_search_clamps_to_consented_scopes(partner_client, cfg, priv, seeded, farmer_seeded):
+def test_dci_search_clamps_to_consented_scopes(partner_client, cfg, priv, seeded, record_seeded):
     """Fields outside the consented scopes must not come back.
 
     Clamping is a strict allow-list over the rendered record's TOP-LEVEL keys,

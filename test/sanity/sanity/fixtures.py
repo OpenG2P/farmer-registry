@@ -18,13 +18,13 @@ SEARCH_MARKER = "SANITYE2E"
 CREATED_BY = "sanity-e2e"
 
 # Fixed so a re-run is idempotent (ON CONFLICT DO UPDATE) rather than additive.
-FARMER_INTERNAL_ID = "00000000-5a11-4e2e-8000-000000000001"
-FARMER_FUNCTIONAL_ID = "SANITY-FARMER-0001"
-FARMER_FOUNDATIONAL_ID = "SANITY-UIN-0001"
+RECORD_INTERNAL_ID = "00000000-5a11-4e2e-8000-000000000001"
+RECORD_FUNCTIONAL_ID = "SANITY-FARMER-0001"
+RECORD_FOUNDATIONAL_ID = "SANITY-UIN-0001"
 
 # The injected farmer's demographics. The e2e asserts these exact values come
 # back through the DCI template, so they must stay in sync with the assertions.
-FARMER = {
+RECORD = {
     "first_name": "Sanity",
     "middle_name": "E2E",
     "last_name": "Testfarmer",
@@ -49,7 +49,7 @@ CR_VALUE_UPDATED = "SANITYMOD"
 # functional_record_id IS a search-text field, so searching for it survives an
 # approved change request — which is why the DCI search targets it, not the
 # manual marker.
-SEARCH_TOKEN = FARMER_FUNCTIONAL_ID
+SEARCH_TOKEN = RECORD_FUNCTIONAL_ID
 
 # The suite's OWN Keycloak identity, provisioned by sanity.keycloak_seed with a
 # NON-temporary password. The shipped demo users cannot be used: keycloak-init
@@ -76,9 +76,9 @@ AWE_RULE_MARKER = "sanity-e2e"
 # three tables.
 TEARDOWN_SQL = {
     "registry": [
-        f"DELETE FROM g2p_register_history_farmers WHERE internal_record_id = '{FARMER_INTERNAL_ID}';",
-        f"DELETE FROM g2p_register_change_requests WHERE internal_record_id = '{FARMER_INTERNAL_ID}';",
-        f"DELETE FROM g2p_register_farmers WHERE internal_record_id = '{FARMER_INTERNAL_ID}';",
+        f"DELETE FROM g2p_register_history_farmers WHERE internal_record_id = '{RECORD_INTERNAL_ID}';",
+        f"DELETE FROM g2p_register_change_requests WHERE internal_record_id = '{RECORD_INTERNAL_ID}';",
+        f"DELETE FROM g2p_register_farmers WHERE internal_record_id = '{RECORD_INTERNAL_ID}';",
     ],
     "awe": [
         # Orphaned approval requests/tasks for the sanity farmer's change requests

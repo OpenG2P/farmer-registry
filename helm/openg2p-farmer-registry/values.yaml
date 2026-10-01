@@ -140,7 +140,7 @@ registry:
     deniedScopes: "family_details,farm_details,machineries_details"
     # The Farmer register + the UI coordinates the change-request test edits
     # (must match the farmer-extension seed metadata).
-    farmerRegisterId: a1a4d25a-1cd4-4356-abac-985a0b3c6bcd
+    registerId: a1a4d25a-1cd4-4356-abac-985a0b3c6bcd
     crTabId: "farmer_farmer_tab"
     crSectionId: "farmer_farmer_personal_identification_section_01"
 
