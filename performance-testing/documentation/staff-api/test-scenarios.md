@@ -9,9 +9,11 @@ deployment ([`environment-topology.md`](../environment-topology.md)):
    blended mix of all 5) sustains before any endpoint's p95/p99 SLO or the
    pod's CPU headroom is exhausted — for Step 1 (isolated), not a
    failure-rate threshold (§3, §6).
-2. **Time-stability** — that capacity holds over an 8-hour soak at 80% of the
-   discovered blended max (no memory leak, connection leak, latency creep, or
-   error growth).
+2. **Time-stability** — that capacity holds over an 8-hour soak at a fixed
+   load chosen to hold pod CPU near a target band (currently ~1.7-1.8 of
+   the 2-vCPU pod limit, via `SOAK_USERS`/`SOAK_MAX_RPS` — §3/§7; not
+   derived from Step 2's measured max for the cell, see §6) (no memory
+   leak, connection leak, latency creep, or error growth).
 3. **Horizontal scaling factor** — how the blended max RPS changes from
    Pod-Scale 1 → 2 → 3, and the scaling efficiency (actual ÷ ideal-linear),
    derived from repeating Step 2 at each Pod-Scale, not run separately.
@@ -81,7 +83,7 @@ The number of `staff-portal-api` replicas under test, HPA off,
 |---|---|---|
 | **1 — Isolated** | One of the 5 scenarios (§4) at a time. Ramp `+step_users` every `step_seconds`; each tracked endpoint's own p95/p99 SLO (§5) is checked every step. The ramp stops — freezing at whatever user count it has reached — the first time *either* an endpoint's SLO is breached for `SLO_BREACH_STEPS` consecutive windows *or* the pod's CPU crosses `CPU_BREACH_CORES` for `CPU_BREACH_POLLS` consecutive polls (quorum: 2-of-3+ pods, else 1-of-1-2). Failures are logged, not a stop condition (§6). The frozen level then holds for `SUSTAIN_MINUTES` — that steady-state window, not the ramp itself, is what's reported. | Ramp-until-freeze, then hold |
 | **2 — Blended** | An 80:20 read:write mix across all 5 scenarios, by weight (§4). Driven by `BlendedRampShape`, a subclass of Step 1's `SLOStepRampShape` with no logic changes — identical ramp/freeze mechanics, just spawning the weighted mix instead of one scenario. | Ramp-until-freeze, then hold |
-| **3 — Soak** | The same hardcoded 80:20 weighted mix as Step 2, but **not** ramped by `SLOStepRampShape` — plain Locust `-u`/`-r`/`-t` at a fixed `SOAK_USERS` count (intended as 80% of this cell's Step 2 freeze level, per `locust-staff-api.sh`'s own guidance — recalculate it per cell, it does not follow automatically), with total HTTP throughput capped by a token-bucket rate gate (`SOAK_MAX_RPS`) so CPU doesn't climb back to the ramp's closed-loop ceiling once latency settles. In-cluster only (`IN_CLUSTER_SOAK=1` gates the rate cap and pod pinning); not discovering a new ceiling — checking the Step-2 ceiling holds over time. | Fixed users + RPS cap, 8h |
+| **3 — Soak** | The same hardcoded 80:20 weighted mix as Step 2, but **not** ramped by `SLOStepRampShape` — plain Locust `-u`/`-r`/`-t` at a fixed `SOAK_USERS` count, with total HTTP throughput capped by a token-bucket rate gate (`SOAK_MAX_RPS`) so CPU doesn't climb back to the ramp's closed-loop ceiling once latency settles. Both values are set directly in `k8s/soak-job.yaml`, chosen to hold pod CPU near a target band (~1.7-1.8 of the 2-vCPU limit) — **not derived from this cell's Step 2 result**: at `primary`, `SOAK_USERS=36`/`SOAK_MAX_RPS=172` ran ~30% above Step 2's own measured RPS (32 users → 123.70 RPS); at `stretch`, the identical `36`/`172` values were reused unchanged even though Step 2 there peaked at a different user count (52), so the soak ran at fewer users than Step 2 itself reached. In-cluster only (`IN_CLUSTER_SOAK=1` gates the rate cap and pod pinning); not discovering a new ceiling — checking stability holds over time at this CPU-targeted load, not specifically at the Step-2 ceiling. | Fixed users + RPS cap, 8h |
 
 Which Steps run at which Volume-Tier × Pod-Scale:
 
@@ -359,16 +361,17 @@ capped by
 `SOAK_MAX_RPS` token-bucket limiter, active only when `IN_CLUSTER_SOAK=1`
 ([`shared/in_cluster.py`](../../locust/api/shared/in_cluster.py)) — so
 soak is an in-cluster-only Step; end-to-end/laptop runs of Steps 1-2 must
-leave it unset. `SOAK_USERS`/`SOAK_MAX_RPS` are meant to be set per cell to
-80% of that cell's Step 2 freeze level
-([`locust-staff-api.sh`](../../locust/api/locust-staff-api.sh) refuses to
-run soak without `SOAK_USERS` set, with exactly that guidance in its error
-message) — this is a manual step, not derived automatically, so record
-what was actually configured against what Step 2 measured for the same
-cell and flag it if they diverge. Pass/fail is different from Steps 1-2's
-freeze-based one: at steady state, p95 (and p99) ≤ the endpoint SLO **and**
-error rate = 0 (no 5xx, no timeouts, no DB-connection errors) **and** both
-hold for the full 8h with no upward memory/latency trend.
+leave it unset. `SOAK_USERS`/`SOAK_MAX_RPS` are set directly in `k8s/soak-job.yaml`,
+chosen to hold pod CPU near a target band — **~1.7-1.8 of the 2-vCPU pod
+limit** — rather than derived from the cell's own Step 2 result. As
+actually run, both are a fixed `36`/`172` regardless of Volume-Tier: the
+same values are used at `primary` and `stretch` alike, not recalculated
+per tier. Record what was actually configured (`SOAK_USERS`,
+`SOAK_MAX_RPS`, and the CPU band it held) for each soak cell. Pass/fail is
+different from Steps 1-2's freeze-based one: at steady state, p95 (and
+p99) ≤ the endpoint SLO **and** error rate = 0 (no 5xx, no timeouts, no
+DB-connection errors) **and** both hold for the full 8h with no upward
+memory/latency trend.
 
 ## 7. Execution runbook
 
@@ -456,9 +459,16 @@ run through `locust-staff-api.sh` exists as a fallback but is not the
 production-representative path (no RPS cap, no pod pinning; the script
 itself warns "will die if the machine sleeps"):
 
-1. Set `SOAK_USERS` (and `SOAK_MAX_RPS` if capping) to **80% of this
-   cell's Step 2 freeze level** — this has to be calculated and set per
-   cell each time, it doesn't derive automatically from Step 2's result.
+1. Set `SOAK_USERS` and `SOAK_MAX_RPS` in `k8s/soak-job.yaml` — in
+   practice this has meant picking values that hold pod CPU near a target
+   band (~1.7-1.8 of the 2-vCPU limit), **not** deriving them from this
+   cell's own Step 2 result. Both `primary` and `stretch` so far ran with
+   the identical `SOAK_USERS=36`/`SOAK_MAX_RPS=172`, despite Step 2
+   freezing at different user counts (32 vs. 52) and different RPS
+   (123.70 vs. 124.13) at those two tiers — so this value is not
+   currently being recalculated per cell at all. Record what's actually
+   set against what Step 2 measured for the same cell, whatever it turns
+   out to be.
 2. Run the Job for `SOAK_RUN_TIME` (8h). `soak_locustfile.py` spawns the
    same 80:20 weighted mix as Step 2 (hardcoded weights, not from env) at
    the fixed user count — no ramp, no SLO/CPU freeze logic.

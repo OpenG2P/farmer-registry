@@ -39,6 +39,7 @@ a related but separate exercise. See
 | [`documentation/staff-api/test-scenarios.md`](documentation/staff-api/test-scenarios.md) | Objectives, scope, the Volume-Tier/Pod-Scale/Step model, the workload model, the 5 Locust scenarios (APIs fired, search-anchor usage), SLOs, pass/fail criteria, execution runbook. |
 | [`documentation/staff-api/raw-report.md`](documentation/staff-api/raw-report.md) | Auto-generated (`scripts/create_raw_report.py`): every measurement Locust actually recorded, verbatim, per Ingress/Volume-Tier/Pod-Scale/Step/Scenario. No interpretation. |
 | [`documentation/staff-api/final-report.md`](documentation/staff-api/final-report.md) | The interpretation layer: deliverables checklist, capacity/sizing-model narrative, SLO verdicts, and the final written report skeleton — built from `raw-report.md`. |
+| [`documentation/staff-api/final-report-summary.md`](documentation/staff-api/final-report-summary.md) | One-page summary of `final-report.md` — headline numbers, top risks, what's not done yet. No detail or caveats beyond what's needed to read the numbers correctly. |
 | [`documentation/partner-api/test-scenarios.md`](documentation/partner-api/test-scenarios.md) | **Deferred** — placeholder; `partner-api` has no working Locust flows yet. |
 | [`documentation/celery/test-scenarios.md`](documentation/celery/test-scenarios.md) | **Deferred** — placeholder; async-pipeline throughput testing is undesigned. |
 | [`seeding/`](seeding/) | The bulk seed generator (install/run quick-start — see `seeding-design.md` for the why). |

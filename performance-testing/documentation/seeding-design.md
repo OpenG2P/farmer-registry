@@ -216,11 +216,63 @@ full key space without needing a pre-generated id list.
 
 ## Storage sizing
 
-100M farmer records + supporting tables + history + indexes can be **hundreds
-of GB**. The storage node ships **256 GB gp3** (see
+The storage node ships **256 GB gp3** by default (see
 [`environment-topology.md`](environment-topology.md)). Free space is
 confirmed before the `stretch`/`stress` tiers, with the data disk resized if
 needed — gp3 IOPS remains a separate ceiling regardless of disk size.
+
+### Measured sizes
+
+Row counts and table/index sizes from `psql`, captured per tier in
+[`../seeding/primary-volume/`](../seeding/primary-volume/) and
+[`../seeding/stretch-volume/`](../seeding/stretch-volume/)
+(`table_sizes.txt`, `index_sizes.txt`):
+
+| Volume-Tier | Farmer rows | Total rows (all tables) | Table size | Index size | Total DB size |
+|---|---:|---:|---:|---:|---:|
+| `primary` (10M target) | 10,150,268 | 203,079,145 | 79.6 GB | 59.1 GB | 139.3 GB |
+| `stretch` (50M target) | 50,000,264 | 1,000,170,349 | 393.9 GB | 318.8 GB | 715.1 GB |
+
+Farmer rows land slightly above each tier's round target (10M/50M) for the
+same reason noted above — the household loop overshoots its last draw, not
+a bug. Growth from `primary` to `stretch` (5× the farmer target) is ~5.13×
+in total DB size — close to linear, marginally super-linear.
+
+Largest tables, both tiers (register + history, `crop`/`land` fan out the
+most per farmer — see the generation DAG above):
+
+| Table | `primary` total size | `stretch` total size |
+|---|---:|---:|
+| `g2p_register_history_crops` | 19 GB | 96 GB |
+| `g2p_register_household_members` | 16 GB | 86 GB |
+| `g2p_register_crops` | 14 GB | 68 GB |
+| `g2p_register_lands` | 13 GB | 72 GB |
+| `g2p_register_history_household_members` | 13 GB | 64 GB |
+
+**Storage disk resized for `stretch`.** The default 256 GB gp3 disk was
+expanded by +768 GB to **1024 GB (1 TiB)**, a single volume, ahead of the
+`stretch` run — consistent with this section's own "resized if needed."
+`stretch`'s measured 715.1 GB leaves **~308.9 GB headroom** on that
+volume (~70% utilized). `stress` (100M target, double `stretch`'s row
+count) will need this resized further before it can be seeded — projecting
+`primary`→`stretch`'s growth rate (5.13× total size for a 5× farmer
+target, i.e. slightly super-linear) forward to 100M lands around
+**~1.4 TB**, well past the current 1 TiB volume, so plan the next resize
+rather than discovering the shortfall mid-load.
+
+**Schema changed between the two measurements, not just the data volume.**
+`stretch`'s index dump includes 17 `_search_text_fts` indexes — a
+full-text-search GIN index, alongside the existing `_search_text_trigram`
+one, on `household_members`/`farmers`/`lands`/`households`/`crops`/etc.
+**None exist in `primary`'s dump at all.** The populated ones (register
+tables; the intake-form-table copies are ~16 kB each, effectively empty)
+total ~31.7 GB — about 10% of `stretch`'s 318.8 GB index total. So the
+5.13× total-size growth above isn't purely a volume effect: part of
+`stretch`'s larger footprint is a schema addition `primary`'s measurement
+predates, not more rows against the same index set. Confirm when
+`idx_*_search_text_fts` was added, and re-baseline `primary` (or discount
+~32 GB from the comparison) if a clean volume-only growth figure is
+needed.
 
 ## Reset between tiers
 

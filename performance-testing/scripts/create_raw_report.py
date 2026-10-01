@@ -175,15 +175,31 @@ def render_blended_step(step_dir: Path) -> str | None:
 
 
 def render_soak_step(step_dir: Path) -> str | None:
-    columns = load_columns("soak.csv")
+    history_columns = load_columns("soak.csv")
     history_csv = find_history_csv(step_dir)
     if history_csv is None:
         return None
     with history_csv.open(newline="") as f:
-        rows = [r for r in csv.DictReader(f) if r.get("Name") == "Aggregated"]
-    if not rows:
+        history_rows = [r for r in csv.DictReader(f) if r.get("Name") == "Aggregated"]
+    if not history_rows:
         return None
-    return render_table(rows, columns)
+    blocks = [render_table(history_rows, history_columns)]
+
+    # soak_stats.csv is a separate, single end-of-run per-endpoint summary
+    # (not a history) -- soak_stats_history.csv never carries per-endpoint
+    # rows, only "Aggregated", so this is the only place the per-endpoint
+    # breakdown for Step 3 exists on disk.
+    stats_csv = find_stats_csv(step_dir)
+    if stats_csv is not None:
+        endpoint_columns = load_columns("blended.csv")
+        with stats_csv.open(newline="") as f:
+            endpoint_rows = list(csv.DictReader(f))
+        if endpoint_rows:
+            blocks.append(
+                "**Per-endpoint totals (end-of-run, `soak_stats.csv`):**\n\n"
+                + render_table(endpoint_rows, endpoint_columns)
+            )
+    return "\n\n".join(blocks)
 
 
 def render_db_sweep_step(step_dir: Path) -> str | None:
