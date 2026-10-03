@@ -104,7 +104,7 @@ computes each of these itself:
   list directly (these are short, e.g. Farmer is just `first_name last_name`).
 - **`geo_lowest_level_value_id` / `geo_code_hierarchy_json`** — in the app,
   setting `geo_lowest_level_value_id` triggers an ORM `@validates` hook that
-  calls out to master-data-db per write to populate the hierarchy JSON. The
+  calls out to Master Data per write to populate the hierarchy JSON. The
   generator leaves both **unset**. If a benchmark needs geo-hierarchy
   filtering to be exercised, this is the gap to close first.
 - **History rows' `tab_id`/`section_id`** — real UI metadata, not invented.

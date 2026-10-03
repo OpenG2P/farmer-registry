@@ -9,6 +9,18 @@
 > / `LOAD_ATTRIBUTES`) no longer exists, and the "three overlapping sources" are
 > down to one — the country pack, via MDS. §2 below describes develop *before*
 > that change.
+>
+> **Update 2026-10-03 — steps 2 and 2c are gone too.** Registries never read or
+> write Master Data's database. Geography is loaded only by the master-data chart
+> (`geoSeed.countryPack`); `load_geo_data.py` / `LOAD_GEO_DATA` and
+> `sync_geo_widgets.py` / `SYNC_GEO_WIDGETS` were removed from the platform (the
+> register geo widget reads its levels from MDS at runtime). Seed scripts that
+> need Master Data — FR's `load_sample_data.py` (geography + sample people) and
+> `generate_fr_bulk_sample.py`, the platform's `generate_reporting_views.py` —
+> read it through MDS's API with the platform's `/seed/mds_client.py`, as the
+> registry's own Keycloak client (`MDS_API_URL`, `MDS_TOKEN_URL`,
+> `MDS_CLIENT_ID`, `MDS_CLIENT_SECRET`; no `MD_PG*` / `MDS_PG*`). The table in §1
+> shows the steps as they were.
 **Scope:** Farmer Registry (`fr`), the `openg2p-registry` platform it extends, and
 Master Data Service. NSR shares the same platform machinery, so the findings apply
 there too.
@@ -30,9 +42,9 @@ the variant-specific loaders.
 | # | Step | Env flag | What it really is | Idempotent? |
 |---|---|---|---|---|
 | 1 | `meta_data/*.sql` → registry DB | *(always, ungated)* | **Configuration** — register definitions, schemas, UI tabs/sections, themes, languages, message templates, VC views, input mechanisms | mostly (`ON CONFLICT`) |
-| 2 | `load_geo_data.py` → **master_data** DB | `LOAD_GEO_DATA` | **Reference-data bootstrap**, written into *another service's* database | yes |
+| 2 | ~~`load_geo_data.py` → **master_data** DB~~ *(removed)* | `LOAD_GEO_DATA` | **Reference-data bootstrap**, written into *another service's* database | yes |
 | 2b | `load_attributes_from_mds.py` → registry DB | `LOAD_ATTRIBUTES` | **Copy** of MDS code lists into `g2p_attributes*` — see §2 | yes |
-| 2c | `sync_geo_widgets.py` | `SYNC_GEO_WIDGETS` | **Configuration rewrite** — retargets geo dropdowns to the loaded country | yes |
+| 2c | ~~`sync_geo_widgets.py`~~ *(removed)* | `SYNC_GEO_WIDGETS` | **Configuration rewrite** — retargets geo dropdowns to the loaded country | yes |
 | 3 | `load_sample_data.py` | `LOAD_SAMPLE_DATA` | **Sample data** — genuinely seeding | **no** |
 | 4 | `upload_images.py` → MinIO | `LOAD_IMAGES` | Sample data (profile photos) | yes |
 | 5 | `upload_templates.py` → MinIO | `LOAD_TEMPLATES` | **Configuration** — Jinja render templates | yes |

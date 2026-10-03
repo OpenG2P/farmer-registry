@@ -1,9 +1,13 @@
 # Farmer Registry — DB-seed image.
 #
 # Thin extension of the registry-platform db-seed base image. The base ships the
-# GENERIC seeding machinery (entrypoint.sh, load_geo_data.py,
-# load_attributes_from_mds.py, sync_geo_widgets.py, upload_templates.py, the
-# shared openg2p-data clone). This image adds farmer's own content and loaders.
+# GENERIC seeding machinery (entrypoint.sh, upload_templates.py,
+# generate_reporting_views.py, mds_client.py, the shared openg2p-data clone).
+# This image adds farmer's own content and loaders.
+#
+# Master Data is read only through its API: the loaders here import the base's
+# /seed/mds_client.py (MDS_API_URL / MDS_TOKEN_URL / MDS_CLIENT_ID /
+# MDS_CLIENT_SECRET, set by the chart). They never connect to MDS's database.
 #
 # WHY THE SAMPLE LOADERS LIVE HERE
 #   load_sample_data.py and upload_images.py are written against the FARMER

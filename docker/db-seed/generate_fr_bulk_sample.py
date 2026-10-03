@@ -49,8 +49,32 @@ import sys
 import uuid
 from datetime import date, datetime, timedelta
 from io import StringIO
+from pathlib import Path
 
 import psycopg2
+
+
+def _import_mds_client():
+    """The registry platform's stdlib Master Data client (``/seed/mds_client.py``).
+
+    In the db-seed image it sits next to this script; run from a checkout, it is
+    taken from a sibling registry-platform checkout. None when neither exists —
+    main() reports that, since this generator cannot run without Master Data.
+    """
+    try:
+        import mds_client  # noqa: PLC0415
+        return mds_client
+    except ImportError:
+        pass
+    sibling = Path(__file__).resolve().parents[3] / "registry-platform" / "docker" / "db-seed"
+    if (sibling / "mds_client.py").is_file():
+        sys.path.insert(0, str(sibling))
+        import mds_client  # noqa: PLC0415
+        return mds_client
+    return None
+
+
+_mds = _import_mds_client()
 
 # created_by stamped on every generated farmer. It is what tells this
 # generator's rows apart from the demo fixture's in the same tables — the
@@ -128,62 +152,56 @@ def die(msg):
 
 
 # ---------------------------------------------------------------- geo from MDS
-def load_geo(mds_conn, expect_country):
+def load_geo(client, expect_country):
     """Return (levels, leaves).
 
     levels  — [(level_id, mnemonic), ...] root-first, at this deployment's depth.
     leaves  — [[(mnemonic, value_mnemonic, value_id), ...], ...] one full chain
               per deepest-level place.
 
-    Read, never invented: the chain is exactly what Master Data holds, so the
-    generated geo_code_hierarchy_json joins to the same ids the rest of the
-    platform uses and reporting_views.sql can unpack it positionally.
+    Read, never invented: the chain is exactly what Master Data publishes (its
+    /catalogue API, not its database), so the generated geo_code_hierarchy_json
+    joins to the same ids the rest of the platform uses and reporting_views.sql
+    can unpack it positionally.
     """
-    with mds_conn.cursor() as cur:
-        cur.execute("SELECT to_regclass('public.g2p_geo_levels')")
-        if cur.fetchone()[0] is None:
-            return [], []
-        cur.execute("SELECT level_id, level_mnemonic, parent_level_id FROM g2p_geo_levels")
-        rows = cur.fetchall()
-        if not rows:
-            return [], []
-
-        by_parent = {}
-        for lid, mnem, parent in rows:
-            by_parent.setdefault(parent, []).append((lid, mnem))
-        chain, cursor_parent = [], None
-        while by_parent.get(cursor_parent):
-            lid, mnem = sorted(by_parent[cursor_parent])[0]
-            chain.append((lid, mnem))
-            cursor_parent = lid
-        if not chain:
-            return [], []
-
-        cur.execute(
-            "SELECT level_value_id, level_id, level_value_mnemonic, parent_level_value_id "
-            "FROM g2p_geo_level_values"
-        )
-        vals = cur.fetchall()
+    try:
+        # The version carries the geography's country (the pack's), for the guard.
+        selector = {"release": client.release} if client.release else {"version": "latest"}
+        payload, _ = client.post("/catalogue/get_geo_levels", selector)
+    except _mds.MdsNotFound:
+        return [], []
+    version = (payload or {}).get("version") or {}
+    chain = [(lv["level_id"], lv.get("level_mnemonic"))
+             for lv in _mds.order_levels(list((payload or {}).get("levels") or []))]
+    if not chain:
+        return [], []
+    units = client.all_geo_units()
 
     if expect_country:
-        roots = [v for v in vals if v[1] == chain[0][0]]
-        got = {(v[2] or "").upper() for v in roots} | {(v[0] or "").upper() for v in roots}
+        roots = [u for u in units if u.get("level_id") == chain[0][0]]
+        got = ({(u.get("name") or "").upper() for u in roots}
+               | {(u.get("unit_id") or "").upper() for u in roots})
+        if version.get("country"):
+            got.add(str(version["country"]).upper())
+        got.discard("")
         if expect_country.upper() not in got:
             die(f"Master Data holds {sorted(got) or '(nothing)'} at the root level, "
                 f"not the expected {expect_country!r}. This is a guard, not a "
                 f"selector — fix the country pack or drop --expect-country.")
 
-    node = {v[0]: v for v in vals}
+    node = {u["unit_id"]: u for u in units}
     level_mnem = dict(chain)
     deepest = chain[-1][0]
     leaves = []
-    for v in vals:
-        if v[1] != deepest:
+    for u in units:
+        if u.get("level_id") != deepest:
             continue
-        path, cur_node = [], v
-        while cur_node is not None:
-            path.append((level_mnem.get(cur_node[1], cur_node[1]), cur_node[2], cur_node[0]))
-            cur_node = node.get(cur_node[3])
+        path, cur_node, seen = [], u, set()
+        while cur_node is not None and cur_node["unit_id"] not in seen:
+            seen.add(cur_node["unit_id"])
+            path.append((level_mnem.get(cur_node.get("level_id"), cur_node.get("level_id")),
+                         cur_node.get("name"), cur_node["unit_id"]))
+            cur_node = node.get(cur_node.get("parent_unit_id"))
         leaves.append(list(reversed(path)))
     return chain, leaves
 
@@ -232,8 +250,6 @@ def main():
     p = argparse.ArgumentParser(description="Generate and load a bulk Farmer Registry sample.")
     p.add_argument("--db", default=os.environ.get("FR_DB", "farmer_registry"),
                    help="registry database (default: $FR_DB)")
-    p.add_argument("--geo-db", default=os.environ.get("MDS_DB", "master_data"),
-                   help="Master Data database to read geography from (default: $MDS_DB)")
     p.add_argument("--farmers", type=int, default=100_000)
     p.add_argument("--seed", type=int, default=20260401,
                    help="fixed so a rerun reproduces the same ids — see --purge")
@@ -252,15 +268,20 @@ def main():
         user=os.environ.get("PGUSER", "postgres"),
         password=os.environ.get("PGPASSWORD", ""),
     )
+    # Geography comes from Master Data's API (MDS_API_URL, plus MDS_TOKEN_URL /
+    # MDS_CLIENT_ID / MDS_CLIENT_SECRET for the registry's own Keycloak client),
+    # never its database.
+    if _mds is None:
+        die("mds_client.py is not importable — it ships in the registry-platform "
+            "db-seed image at /seed/mds_client.py (or run next to a registry-platform "
+            "checkout).")
+    try:
+        mds = _mds.MdsClient.from_env(required=True)
+    except _mds.MdsError as exc:
+        die(f"{exc}. Set MDS_API_URL (and MDS_TOKEN_URL, MDS_CLIENT_ID, "
+            "MDS_CLIENT_SECRET) to read the geography from Master Data.")
     conn = psycopg2.connect(dbname=args.db, **dsn)
     conn.autocommit = False
-    mds = psycopg2.connect(
-        dbname=args.geo_db,
-        host=os.environ.get("MDS_PGHOST") or dsn["host"],
-        port=os.environ.get("MDS_PGPORT") or dsn["port"],
-        user=os.environ.get("MDS_PGUSER") or dsn["user"],
-        password=os.environ.get("MDS_PGPASSWORD") or dsn["password"],
-    )
 
     # --- guards ---------------------------------------------------------------
     with conn.cursor() as cur:
@@ -323,7 +344,10 @@ def main():
 
     # One score definition for the whole run: a definition is a shared entity, so
     # a fresh uuid per row would imply thousands of distinct scoring models.
-    levels, leaves = load_geo(mds, args.expect_country)
+    try:
+        levels, leaves = load_geo(mds, args.expect_country)
+    except _mds.MdsError as exc:
+        die(f"could not read the geography from Master Data: {exc}")
     if not leaves:
         log("Master Data holds no geography — skipping. Load a country pack "
             "(geoSeed.countryPack) and rerun; a sample with an invented country "

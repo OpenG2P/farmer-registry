@@ -40,18 +40,21 @@ global:
   registryDBUser: '{{ printf "%s_user" .Release.Name | replace "-" "_" }}'
   registryDBSecret: '{{ .Release.Name }}'
   registryDBUserPasswordKey: '{{ .Release.Name }}-db-user'
-  masterDataDB: 'master_data'
-  masterDataDBPort: 5432
-  masterDataDBUser: 'master_data_user'
-  # Must be 'master-data-db', NOT 'master-data': keycloak-init names its
-  # client-secret Secret after the clientId, and a 'master-data' Keycloak client
-  # exists. Both templates create-if-absent with resource-policy keep, so
-  # whichever ran first won and the other silently skipped — leaving a Secret
-  # holding only client_secret. Every consumer then failed to start with
-  # "couldn't find key master-data-db-user in Secret master-data".
-  # commons-services renamed it; this must match.
-  masterDataDBSecret: 'master-data-db'
-  masterDataDBUserPasswordKey: 'master-data-db-user'
+
+  # Master Data API wiring, mirroring openg2p-registry's own defaults for the
+  # same reason as the database wiring above: the bulk-sample and
+  # reporting-views Jobs in templates/ read the geography from Master Data's
+  # API (never its database), authenticated with a client-credentials token as
+  # this registry's own Keycloak client. IDENTICAL to the subchart's values —
+  # drifting them would authenticate the Jobs differently from the services.
+  keycloakBaseUrl: 'https://keycloak.{{ tpl .Values.global.baseDomain $ }}'
+  keycloakRealm: 'staff'
+  keycloakIssuerUrl: '{{ tpl .Values.global.keycloakBaseUrl $ }}/realms/{{ tpl .Values.global.keycloakRealm $ }}'
+  masterDataApiUrl: 'http://commons-services-master-data-api'
+  masterDataTokenUrl: '{{ tpl .Values.global.keycloakIssuerUrl $ }}/protocol/openid-connect/token'
+  authClientId: '{{ .Release.Name }}-staff-portal'
+  authClientSecret: '{{ .Release.Name }}-staff-portal'
+  authClientSecretKey: 'client_secret'
 
 # ── openg2p-registry subchart overrides ───────────────────────────────────────
 registry:
@@ -83,10 +86,9 @@ registry:
     # Data", "Load Sample Images" under DB Seed). NB these are `dbSeed.*`, not
     # `global.*` — the db-seed Job reads .Values.dbSeed.load* and there is no
     # global fallback, so setting them under global is inert.
-    # Geo is seeded by the master-data chart now (geoSeed.countryPack there),
-    # not as a side effect of the registry seed. Leaving this on would load a
-    # second, unrelated hierarchy over the one MDS already holds.
-    loadGeoData: false
+    # Geography is not seeded here: the master-data chart loads it
+    # (geoSeed.countryPack there) and the registry reads it from Master Data's
+    # API — the register geo widgets get their levels at runtime.
     loadSampleData: false    # a few dozen demo farmers from the country pack
     loadImages: false        # their profile photos; needs loadSampleData
     loadTemplates: true
@@ -94,8 +96,6 @@ registry:
     # validator read them live from Master Data. The Farmer Registry needs the
     # pack's agriculture domain (e.g. SOURCE_OF_INCOME) loaded into MDS, which is
     # set on the master-data chart — geoSeed.domains: [agriculture] — not here.
-    # Match the geo dropdowns to the hierarchy Master Data holds.
-    syncGeoWidgets: true
 
   # Name of this registry's tile in IAM. The roles/permissions catalog itself is
   # registry-agnostic and comes from the subchart.
@@ -356,7 +356,6 @@ analytics:
   # copied into /seed by the db-seed image. They used to be read from the shared
   # openg2p-data clone at /openg2p-data, which is what let them drift out of step
   # with the enums they write.
-  waitImage: jbergknoff/postgresql-client:latest
 
   bulkSample:
     # Bulk demo data — 100,000 invented farmers for load tests and to give the

@@ -19,6 +19,7 @@ description: |
     dashboard-bundle-configmap.yaml    ships fr-dashboards.zip into the cluster
     maps-content-configmap.yaml        maps content for G2P Insights
     _maps-content.tpl                  its name helper
+    _mds-api-env.tpl                   Master Data API env (MDS_*) for the Jobs
     superset-service-account-secret.yaml
 
   Hook weights order these above the sanity suite (25), so rebuilding the views
