@@ -28,6 +28,12 @@ global:
   # overriding the domain once moves every host, here and in the platform chart.
   registryHostname: '{{ .Release.Name }}.{{ tpl .Values.global.baseDomain $ }}'
 
+  # Object store: the in-cluster commons Garage (S3-compatible; replaced MinIO).
+  # Same as the openg2p-registry subchart default; set here too so this chart
+  # works on subchart versions that still default to the old MinIO host.
+  minioHost: 'commons-garage:3900'
+  minioSecure: false
+
   # Database wiring, mirroring openg2p-registry's own defaults. Declared here
   # rather than inherited because a parent chart's templates cannot read a
   # subchart's globals — only the other direction — and the analytics Jobs in
