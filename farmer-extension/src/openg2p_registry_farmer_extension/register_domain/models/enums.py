@@ -77,14 +77,31 @@ class FarmerClusterRoleEnum(StrEnum):
     MEMBER = "MEMBER"
 
 class EducationalLevelEnum(StrEnum):
+    # Includes Master Data's EDUCATION_LEVEL codes (NON_FORMAL, NEVER_ATTEND,
+    # PRIMARY, SECONDARY, TERTIARY), which the dropdown reads.
     ILLITERATE = "ILLITERATE"
     CAN_READ_AND_WRITE = "CAN_READ_AND_WRITE"
-    BASIC = "BASIC"
-    INTERMEDIARY = "INTERMEDIARY"
-    HIGHER_EDUCATION = "HIGHER_EDUCATION"
-    # Also in Master Data's EDUCATION_LEVEL list, which the dropdown now reads.
     NON_FORMAL = "NON_FORMAL"
     NEVER_ATTEND = "NEVER_ATTEND"
+    BASIC = "BASIC"
     PRIMARY = "PRIMARY"
+    INTERMEDIARY = "INTERMEDIARY"
     SECONDARY = "SECONDARY"
     TERTIARY = "TERTIARY"
+    HIGHER_EDUCATION = "HIGHER_EDUCATION"
+
+
+class RelationshipToTheHeadEnum(StrEnum):
+    """Relationship of a household member to the household head.
+
+    Mirrors the master-data code list RELATIONSHIP_TO_HEAD, which is what the
+    members table offers in the intake form; SELF marks the head.
+    """
+
+    SELF = "SELF"
+    SPOUSE = "SPOUSE"
+    CHILD = "CHILD"
+    PARENT = "PARENT"
+    SIBLING = "SIBLING"
+    OTHER_RELATIVE = "OTHER_RELATIVE"
+    NON_RELATIVE = "NON_RELATIVE"

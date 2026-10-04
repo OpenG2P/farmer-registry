@@ -16,4 +16,5 @@ INSERT INTO "public"."incoming_model_semantic_patterns" (
     '$.body.message.search_response[0].data.reg_record_type=>^Farmer$',
     '$.body.message.search_response[0].data.reg_records[0]',
     'G2PDciFarmerCreateEnricherService'
-);
+)
+ON CONFLICT ("semantic_pattern_id") DO UPDATE SET "data_model_id" = EXCLUDED."data_model_id", "register_id" = EXCLUDED."register_id", "intake_form_id" = EXCLUDED."intake_form_id", "pattern_for_register" = EXCLUDED."pattern_for_register", "pattern_for_intake_form" = EXCLUDED."pattern_for_intake_form", "key_path_for_business_payload" = EXCLUDED."key_path_for_business_payload", "raw_payload_enricher_class" = EXCLUDED."raw_payload_enricher_class";

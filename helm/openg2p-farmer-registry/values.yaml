@@ -102,11 +102,21 @@ registry:
     # validator read them live from Master Data. The Farmer Registry needs the
     # pack's agriculture domain (e.g. SOURCE_OF_INCOME) loaded into MDS, which is
     # set on the master-data chart — geoSeed.domains: [agriculture] — not here.
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        memory: 1Gi
 
   # Name of this registry's tile in IAM. The roles/permissions catalog itself is
   # registry-agnostic and comes from the subchart.
   iamRegister:
     applicationDescription: "Farmer Registry"
+    # Rancher skips Helm hooks. Null these so the Job/ConfigMap are regular
+    # resources (same as commons does for master-data / AWE / PM).
+    annotations: null
+    payloadAnnotations: null
 
   # Functional-ID pools, one per register. The subchart defaults to the REFERENCE
   # registry's registers (individual + household), so the farmer register must be

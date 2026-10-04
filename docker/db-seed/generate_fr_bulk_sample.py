@@ -308,13 +308,39 @@ def main():
                             'WHERE created_by = %s')
             bulk_lands = (f'SELECT internal_record_id FROM g2p_register_lands '
                           f'WHERE link_internal_record_id IN ({bulk_farmers})')
+            # History rows first, while the live rows still identify them.
+            for live, hist in (
+                ("g2p_register_livestocks", "g2p_register_history_livestocks"),
+                ("g2p_register_farm_inputs", "g2p_register_history_farm_inputs"),
+            ):
+                cur.execute(
+                    f'DELETE FROM {hist} WHERE internal_record_id IN '
+                    f'(SELECT internal_record_id FROM {live} '
+                    f'WHERE link_internal_record_id IN ({bulk_lands}))',
+                    (SEEDER,),
+                )
             for t in ("g2p_register_livestocks", "g2p_register_farm_inputs"):
                 cur.execute(f'DELETE FROM {t} WHERE link_internal_record_id IN ({bulk_lands})',
                             (SEEDER,))
+            for live, hist in (
+                ("g2p_register_lands", "g2p_register_history_lands"),
+                ("g2p_register_membership_details", "g2p_register_history_membership_details"),
+            ):
+                cur.execute(
+                    f'DELETE FROM {hist} WHERE internal_record_id IN '
+                    f'(SELECT internal_record_id FROM {live} '
+                    f'WHERE link_internal_record_id IN ({bulk_farmers}))',
+                    (SEEDER,),
+                )
             for t in ("g2p_register_lands", "g2p_register_membership_details",
                       "g2p_register_scores"):
                 cur.execute(f'DELETE FROM {t} WHERE link_internal_record_id IN ({bulk_farmers})',
                             (SEEDER,))
+            cur.execute(
+                'DELETE FROM g2p_register_history_farmers WHERE internal_record_id IN '
+                f'({bulk_farmers})',
+                (SEEDER,),
+            )
             cur.execute('DELETE FROM g2p_register_farmers WHERE created_by = %s', (SEEDER,))
         conn.commit()
         existing = 0

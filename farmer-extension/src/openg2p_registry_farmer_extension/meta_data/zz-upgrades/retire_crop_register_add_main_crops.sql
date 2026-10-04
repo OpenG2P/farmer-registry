@@ -2,11 +2,12 @@
 --
 -- Why this file exists
 -- --------------------
--- Every other file under meta_data/ is a plain INSERT, and the db-seed Job runs
--- them with ON_ERROR_STOP=0. On a fresh install that is all it takes. On an
--- install that already holds the metadata, each INSERT fails on its primary key
--- and the rows already there stay exactly as they were -- so neither removing
--- the Crop register nor adding the Main crops widget would ever reach it.
+-- Every other file under meta_data/ is an INSERT (most now upsert with ON
+-- CONFLICT ... DO UPDATE), and the db-seed Job runs them with ON_ERROR_STOP=0.
+-- On a fresh install that is all it takes. On an install that already holds the
+-- metadata, an insert or upsert can only add or overwrite the rows the files
+-- carry -- it never removes one -- so removing the Crop register would never
+-- reach it (nor, before the upserts, would adding the Main crops widget).
 --
 -- This file brings such an install to the same metadata a fresh install gets.
 -- It sorts after every other directory (zz-), runs after the inserts and after

@@ -193,3 +193,6 @@ helm/**/Chart.lock
 # Subchart tarballs downloaded by `helm dependency build` into <chart>/charts/.
 # Vendored uncompressed subcharts (charts/<name>/) remain tracked.
 helm/**/charts/*.tgz
+
+# Local dev tooling (docker compose stack, seeds, env) — never shipped
+local/

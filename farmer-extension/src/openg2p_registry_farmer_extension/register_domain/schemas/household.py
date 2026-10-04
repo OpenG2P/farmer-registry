@@ -5,6 +5,7 @@ from openg2p_registry_core.schemas import (
     G2PRegisterHistorySchema, G2PGeoHistorySchema,
     G2PIntakeFormSchemaBase
 )
+from .address import G2PAddressLinesSchema
 
 
 class G2PSchemaHousehold:
@@ -12,12 +13,13 @@ class G2PSchemaHousehold:
     household_head: Optional[str] = None
     size_of_group: Optional[int] = None
     number_of_children: Optional[int] = None
+    number_of_elderly_members: Optional[int] = None
     number_of_female_members: Optional[int] = None
     number_of_male_members: Optional[int] = None
     other_land_owner: Optional[bool] = None
 
 
-class G2PRegisterSchemaHousehold(G2PRegisterBaseSchema, G2PGeoSchema, G2PSchemaHousehold):
+class G2PRegisterSchemaHousehold(G2PRegisterBaseSchema, G2PGeoSchema, G2PAddressLinesSchema, G2PSchemaHousehold):
     """
     Schema for Household register.
     Inherits fields from G2PRegisterBaseSchema and G2PGeoSchema.
@@ -32,7 +34,7 @@ class G2PRegisterHistorySchemaHousehold(G2PRegisterHistorySchema, G2PGeoHistoryS
     """
 
 
-class G2PIntakeFormSchemaHousehold(G2PIntakeFormSchemaBase, G2PRegisterBaseSchema, G2PGeoSchema, G2PSchemaHousehold):
+class G2PIntakeFormSchemaHousehold(G2PIntakeFormSchemaBase, G2PRegisterBaseSchema, G2PGeoSchema, G2PAddressLinesSchema, G2PSchemaHousehold):
     """
     Schema for Household intake form.
     Inherits fields from G2PRegisterBaseSchema and G2PGeoSchema.

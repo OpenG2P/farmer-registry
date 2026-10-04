@@ -5,6 +5,7 @@ from openg2p_registry_core.schemas import (
     G2PRegisterHistorySchema, G2PPersonHistorySchema, G2PGeoHistorySchema,
     G2PIntakeFormSchemaBase
 )
+from .address import G2PAddressLinesSchema
 from ..models.enums import (
     DisabilityTypeEnum,
     DisabilitySeverityEnum,
@@ -26,7 +27,7 @@ class G2PSchemaFarmer:
     national_id_masked: Optional[str] = None
     main_crops: Optional[list[str]] = None  # Master Data CROP_COMMODITY codes
 
-class G2PRegisterSchemaFarmer(G2PRegisterBaseSchema, G2PPersonSchema, G2PGeoSchema, G2PSchemaFarmer):
+class G2PRegisterSchemaFarmer(G2PRegisterBaseSchema, G2PPersonSchema, G2PGeoSchema, G2PAddressLinesSchema, G2PSchemaFarmer):
     """
     Schema for Farmer register.
     Inherits fields from G2PRegisterBaseSchema, G2PPersonSchema, and G2PGeoSchema.
@@ -41,7 +42,7 @@ class G2PRegisterHistorySchemaFarmer(G2PRegisterHistorySchema, G2PPersonHistoryS
     Attributes specific to the Farmer domain are not included in the history schema as they are not expected to change over time.
     """
 
-class G2PIntakeFormSchemaFarmer(G2PIntakeFormSchemaBase, G2PRegisterBaseSchema, G2PPersonSchema, G2PGeoSchema, G2PSchemaFarmer):
+class G2PIntakeFormSchemaFarmer(G2PIntakeFormSchemaBase, G2PRegisterBaseSchema, G2PPersonSchema, G2PGeoSchema, G2PAddressLinesSchema, G2PSchemaFarmer):
     """
     Schema for Farmer intake form.
     Inherits fields from G2PRegisterBaseSchema, G2PPersonSchema, and G2PGeoSchema.

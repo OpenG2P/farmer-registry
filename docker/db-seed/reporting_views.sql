@@ -35,7 +35,8 @@
 --
 -- Areas are normalised to hectares
 -- --------------------------------
--- land_size is a free-text column and unit is an enum, so the raw pair cannot be
+-- land_size is numeric (it was free text before 1.2; read through ::text so the
+-- view builds on either) and unit is an enum, so the raw pair cannot be
 -- summed. land_size_ha is the only column charts should aggregate; the raw pair is
 -- carried alongside for drill-down. A non-numeric land_size yields NULL rather
 -- than failing the refresh — bad data must not take the dashboards down.
@@ -165,12 +166,12 @@ SELECT
      AND l.certificate_storage_id <> '')       AS has_title_certificate,
 
     -- Raw pair kept for drill-down; land_size_ha is the only summable column.
-    l.land_size                                AS land_size_raw,
+    l.land_size::text                          AS land_size_raw,
     l.unit                                     AS land_size_unit,
     (CASE
         WHEN l.land_size IS NULL THEN NULL
-        WHEN btrim(l.land_size) !~ '^[0-9]+(\.[0-9]+)?$' THEN NULL
-        ELSE btrim(l.land_size)::numeric * CASE l.unit
+        WHEN btrim(l.land_size::text) !~ '^[0-9]+(\.[0-9]+)?$' THEN NULL
+        ELSE btrim(l.land_size::text)::numeric * CASE l.unit
             WHEN 'HECTARE'      THEN 1
             WHEN 'ACRE'         THEN 0.404686
             WHEN 'SQUARE_METER' THEN 0.0001

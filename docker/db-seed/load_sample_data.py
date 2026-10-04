@@ -734,6 +734,7 @@ def insert_households(cur, households: list) -> None:
         "address_line_1", "address_line_2", "postal_code", "country_code",
         "geo_lowest_level_value_id", "geo_code_hierarchy_json",
         "household_head", "size_of_group", "number_of_children",
+        "number_of_elderly_members",
         "number_of_female_members", "number_of_male_members", "other_land_owner",
     ]
     rows = []
@@ -754,6 +755,7 @@ def insert_households(cur, households: list) -> None:
                 hh["postal_code"], hh["country_code"],
                 geo_lowest_id(hh), geo_hierarchy(hh),
                 hh["head_name"], _as_int(hh.get("size_total")), num_children,
+                _as_int(hh.get("size_elderly")),
                 _as_int(hh.get("number_of_female_members")),
                 _as_int(hh.get("number_of_male_members")), other_land_owner,
             )
@@ -774,7 +776,25 @@ def _seq(record: dict) -> int:
     return int(record["functional_record_id"].rsplit("-", 1)[-1])
 
 
-def insert_household_members(cur, members: list, ind_by_id: dict, remap: dict) -> None:
+def _relationship_to_head(ind: dict, is_head: bool) -> str:
+    """A RELATIONSHIP_TO_HEAD code (Master Data list) for a sample member.
+
+    The sample people carry no relationship, so it is inferred the same way the
+    1.2 intake-form loader does: the head is SELF, a minor a CHILD, a married
+    adult a SPOUSE, anyone else an OTHER_RELATIVE.
+    """
+    if is_head:
+        return "SELF"
+    age = _as_int(ind.get("estimated_age"))
+    if age is not None and age < 18:
+        return "CHILD"
+    if (ind.get("marital_status") or "").upper() == "MARRIED":
+        return "SPOUSE"
+    return "OTHER_RELATIVE"
+
+
+def insert_household_members(cur, members: list, ind_by_id: dict, remap: dict,
+                             head_by_household: dict | None = None) -> None:
     columns = [
         "internal_record_id", "functional_record_id",
         "link_internal_record_id", "link_foundational_id",
@@ -788,7 +808,9 @@ def insert_household_members(cur, members: list, ind_by_id: dict, remap: dict) -
         "latitude", "longitude", "altitude", "plus_code",
         "address_line_1", "address_line_2", "postal_code", "country_code",
         "geo_lowest_level_value_id", "geo_code_hierarchy_json", "is_disabled",
+        "is_head", "relationship_to_the_head",
     ]
+    head_by_household = head_by_household or {}
     rows = []
     skipped = 0
     for m in members:
@@ -807,6 +829,10 @@ def insert_household_members(cur, members: list, ind_by_id: dict, remap: dict) -
         if ind is None:
             skipped += 1
             continue
+        # Only knowable when the household names its head (Master Data samples
+        # do); otherwise both stay NULL rather than guessing a head.
+        head_id = head_by_household.get(m["link_internal_record_id"])
+        is_head = (ind["internal_record_id"] == head_id) if head_id else None
         rows.append(
             (
                 m["internal_record_id"], m["functional_record_id"],
@@ -827,6 +853,7 @@ def insert_household_members(cur, members: list, ind_by_id: dict, remap: dict) -
                 ind["postal_code"], ind["country_code"],
                 geo_lowest_id(ind), geo_hierarchy(ind),
                 m.get("is_disabled"),
+                is_head, _relationship_to_head(ind, is_head) if head_id else None,
             )
         )
     sql = (
@@ -1059,7 +1086,8 @@ def main() -> None:
         insert_households(cur, households)
         insert_household_members(
             cur, remap_links("g2p_register_household_members", members, remap),
-            ind_by_id, remap)
+            ind_by_id, remap,
+            {hh["internal_record_id"]: hh.get("head_individual_id") for hh in households})
         for table, fname, extras, json_cols in SUB_TABLES:
             rows = remap_links(table, fixtures[fname], remap)
             if table == "g2p_register_lands":

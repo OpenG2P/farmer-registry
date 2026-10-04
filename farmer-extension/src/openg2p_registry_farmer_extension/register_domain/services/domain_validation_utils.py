@@ -73,3 +73,34 @@ def is_blank(value) -> bool:
     if isinstance(value, (list, dict, tuple, set)):
         return len(value) == 0
     return False
+
+
+def fallback_record_name(payload: dict, label: str) -> str:
+    """Name for a payload carrying none of the domain's naming fields.
+
+    A DELETE-only change request only carries internal_record_id, and the
+    platform renders an empty record_name as "-". Prefer the functional id,
+    then a short internal id, so the change request list still says what it is.
+    """
+    for key in ("functional_record_id", "internal_record_id"):
+        value = str(payload.get(key) or "").strip()
+        if value:
+            return f"{label} {value[:8]}"
+    return label
+
+
+def validate_enum_values(record: dict, fields: dict) -> None:
+    """Reject coded values the register model will not accept.
+
+    The platform only validates the row against the pydantic schema when the
+    change request is APPROVED (inside the AWE webhook), where a bad code makes
+    the approval fail silently and the request stays PENDING forever. Checking
+    here surfaces the problem at save time instead. `fields` maps field name
+    to its Enum class; blank values are ignored.
+    """
+    for field, enum_cls in fields.items():
+        if field not in record or is_blank(record.get(field)):
+            continue
+        allowed = {item.value for item in enum_cls}
+        if str(record.get(field)) not in allowed:
+            validation_error(f"{field} must be one of " + ", ".join(sorted(allowed)))
