@@ -1,0 +1,119 @@
+{
+  "_notes": [
+    "The Farmer Registry's data scopes: what a consent or a Consent Manager policy can name (farmer-registry.<name>).",
+    "Scope names are permanent: never rename or reuse one. Change a scope's fields freely (a new version is published; consents given earlier keep what they were given). To split or merge, add new names and drop the old (it is retired).",
+    "No default one-per-section scopes (exclude_section_scopes: true): section mnemonics are UI names, and the Household register repeats the Farmer register's sections. Each scope below names its section with section:<mnemonic>, so a section's fields stay in step and a renamed section refuses the catalogue instead of silently retiring a scope.",
+    "Not shared at all: the record header (status, approvers, image), documents, ID authentication, the farmer-household link (internal IDs), the intake-only farm input and livestock sections, and the Household register's copies of the Farmer sections."
+  ],
+  "exclude_section_scopes": true,
+  "scopes": [
+    {
+      "name": "farmer_identifiers",
+      "label": "Farmer ID and national ID",
+      "description": "The farmer's registry ID (Farmer ID) and national ID (Fayda), and when the record was registered and last approved. Needed to look the farmer up in other registries (e.g. the Crop Sown Registry knows a farmer by Farmer ID).",
+      "fields": [
+        "Farmer.functional_record_id",
+        "Farmer.foundational_id",
+        "Farmer.registration_date",
+        "Farmer.last_approved_at"
+      ]
+    },
+    {
+      "name": "personal_details",
+      "label": "Personal details",
+      "description": "Name, sex, date of birth or estimated age, marital status, education level and language spoken.",
+      "fields": ["section:fr_farmer_personal_info", "Farmer.language_spoken"]
+    },
+    {
+      "name": "contact",
+      "label": "Contact details",
+      "description": "The farmer's phone numbers, whether they have a personal phone, and email addresses.",
+      "fields": ["Farmer.phone_numbers", "Farmer.has_personal_phone", "Farmer.emails"]
+    },
+    {
+      "name": "location",
+      "label": "Farmer's address and location",
+      "description": "Where the farmer lives: administrative area, address and GPS point.",
+      "fields": ["section:fr_farmer_location"]
+    },
+    {
+      "name": "main_crops",
+      "label": "Main crops",
+      "description": "The crops the farmer declared they mainly grow (crop codes).",
+      "fields": ["Farmer.main_crops"]
+    },
+    {
+      "name": "socio_economic_and_health",
+      "label": "Socio-economic and health details",
+      "description": "Sources of income, main crops and disability (type and severity). Sensitive: includes health information.",
+      "fields": ["section:fr_farmer_socio_and_health"]
+    },
+    {
+      "name": "land",
+      "label": "Land parcels",
+      "description": "Each land parcel's ID, size and unit, tenure, how and when it was acquired, use, farming type and soil fertility — without its location.",
+      "fields": ["section:fr_farmer_land", "Land.functional_record_id"]
+    },
+    {
+      "name": "land_location",
+      "label": "Land parcel locations",
+      "description": "Where each land parcel is: administrative area, address, GPS point and boundary.",
+      "fields": [
+        "Land.address_line_1",
+        "Land.address_line_2",
+        "Land.latitude",
+        "Land.longitude",
+        "Land.altitude",
+        "Land.plus_code",
+        "Land.postal_code",
+        "Land.country_code",
+        "Land.geo_lowest_level_value_id",
+        "Land.geo_code_hierarchy_json",
+        "Land.shape_type",
+        "Land.shape_coordinates_json"
+      ]
+    },
+    {
+      "name": "livestock",
+      "label": "Livestock",
+      "description": "The farmer's livestock: type, breed, head count and livestock system.",
+      "fields": ["section:register_fr_farmer_livestocks"]
+    },
+    {
+      "name": "farm_inputs",
+      "label": "Farm inputs",
+      "description": "Use of improved seed, fertilizer, pesticide and insecticide, water source, and access to finance and machinery.",
+      "fields": ["section:register_fr_farmer_farm_input"]
+    },
+    {
+      "name": "memberships",
+      "label": "Cooperative and cluster memberships",
+      "description": "Membership of primary cooperatives, cooperative unions and farmer clusters, with the farmer's role.",
+      "fields": ["section:fr_farmer_membership"]
+    },
+    {
+      "name": "household",
+      "label": "Household details",
+      "description": "The farmer's household: household ID, head, size and composition (children, elderly, female and male members) and other land owners.",
+      "fields": ["section:fr_household_information", "section:hh_information", "Household.functional_record_id"]
+    },
+    {
+      "name": "household_location",
+      "label": "Household address and location",
+      "description": "Where the household lives: administrative area, address and GPS point.",
+      "fields": ["section:fr_household_location"]
+    },
+    {
+      "name": "household_members",
+      "label": "Household members",
+      "description": "Each household member's name, sex, date of birth and relationship to the head.",
+      "fields": ["section:fr_household_members"]
+    },
+    {
+      "name": "poverty_score",
+      "label": "Household poverty score",
+      "description": "The household's computed scores (e.g. poverty / PMT score) and when they were computed.",
+      "fields": ["section:hh_score"]
+    }
+  ]
+}

@@ -150,10 +150,14 @@ registry:
     # farmer functional_record_id of the injected sanity record (see
     # test/sanity/sanity/fixtures.py).
     searchText: SANITY-FARMER-0001
-    # Consented scope + scopes asserted absent — top-level keys of the farmer
-    # outgoing DCI template (openg2p_farmer_to_dci.json.j2).
-    dataScopes: "farmer_personal_details"
-    deniedScopes: "family_details,farm_details,machineries_details"
+    # Data scopes the sanity consent asks for, and scopes whose seeded values
+    # must not come back: names from the Farmer Registry's scope catalogue
+    # (farmer-extension .../meta_data/data-scopes/, GET /partner/data_scopes),
+    # prefixed with the consent data controller (farmer-registry.<name>).
+    # personal_details covers the seeded name and birth date; farmer_identifiers
+    # covers the seeded national ID.
+    dataScopes: "personal_details"
+    deniedScopes: "farmer_identifiers,contact"
     # The Farmer register + the UI coordinates the change-request test edits
     # (must match the farmer-extension seed metadata).
     registerId: a1a4d25a-1cd4-4356-abac-985a0b3c6bcd
