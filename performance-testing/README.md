@@ -40,10 +40,10 @@ a related but separate exercise. See
 | [`documentation/staff-api/raw-report.md`](documentation/staff-api/raw-report.md) | Auto-generated (`scripts/create_raw_report.py`): every measurement Locust actually recorded, verbatim, per Ingress/Volume-Tier/Pod-Scale/Step/Scenario. No interpretation. |
 | [`documentation/staff-api/final-report.md`](documentation/staff-api/final-report.md) | The interpretation layer: deliverables checklist, capacity/sizing-model narrative, SLO verdicts, and the final written report skeleton — built from `raw-report.md`. |
 | [`documentation/partner-api/test-scenarios.md`](documentation/partner-api/test-scenarios.md) | **Deferred** — placeholder; `partner-api` has no working Locust flows yet. |
-| [`documentation/celery/test-scenarios.md`](documentation/celery/test-scenarios.md) | **Deferred** — placeholder; async-pipeline throughput testing is undesigned. |
+| [`documentation/celery/test-scenarios.md`](documentation/celery/test-scenarios.md) | Objectives, the backlog × worker-pod model, the 17 isolated Celery scenarios, how to read the minute CSV, and the `run.sh` runbook. |
 | [`seeding/`](seeding/) | The bulk seed generator (install/run quick-start — see `seeding-design.md` for the why). |
 | [`locust/api/`](locust/api/) | Locust load-test scripts against `staff-portal-api`/`partner-api` — 5 working staff-api scenarios, results, and per-Step CSV templates. |
-| [`locust/celery/`](locust/celery/) | Async-pipeline throughput tooling — deferred, scaffolded only. |
+| [`locust/celery/`](locust/celery/) | Isolated celery backlog observer (one beat, 1–3 workers, checkpoint CSV). |
 | [`scripts/`](scripts/) | `create_raw_report.py` (raw dump, first output) and `synthesize_report.py` (fills the curated `locust/api/templates/staff-api/synthesize_templates/*.csv`, second output) from raw Locust run output. |
 
 ## Status
@@ -52,7 +52,7 @@ This is the **test-plan specification** plus a **working staff-api Locust
 harness and bulk seeder** — 5 scenarios exist and run
 ([`documentation/staff-api/test-scenarios.md`](documentation/staff-api/test-scenarios.md) §4).
 It does not yet contain a full result set: no blended-mix locustfile (needed
-for Steps 2–3), and `locust/celery/` tooling is undesigned/deferred.
+for Steps 2–3). `locust/celery/` drains one backlog at a time; the scenario list and the CSV layout are in [`documentation/celery/test-scenarios.md`](documentation/celery/test-scenarios.md).
 Execution produces the artefacts described in
 [`documentation/staff-api/final-report.md`](documentation/staff-api/final-report.md), built on
 top of the raw measurements in
