@@ -123,24 +123,47 @@ BEGIN
       CONTINUE;
     END IF;
 
-    SELECT string_agg(quote_ident(column_name), ', ' ORDER BY ordinal_position),
-           string_agg(
-             CASE column_name
-               WHEN 'internal_record_id' THEN 'c.new_id'
-               WHEN 'submission_id' THEN 'c.new_submission_id'
-               WHEN 'functional_record_id' THEN 'NULL'
-               ELSE format('c.%I', column_name)
-             END,
-             ', ' ORDER BY ordinal_position
-           )
-      INTO cols, selects
-    FROM information_schema.columns
-    WHERE table_schema = 'public'
-      AND table_name = tbl;
+    -- Unique columns are rewritten per copied row. Nullable unique columns stay
+    -- NULL when the template value is NULL, because PostgreSQL allows many NULLs.
+    EXECUTE format($q$
+      SELECT string_agg(quote_ident(c.column_name), ', ' ORDER BY c.ordinal_position),
+             string_agg(
+               CASE
+                 WHEN c.column_name = 'internal_record_id' THEN 'c.new_id'
+                 WHEN c.column_name = 'submission_id' THEN 'c.new_submission_id'
+                 WHEN c.column_name = 'functional_record_id' THEN 'NULL'
+                 WHEN c.column_name = 'foundational_id'
+                   THEN 'CASE WHEN c.foundational_id IS NULL THEN NULL ELSE c.new_id END'
+                 WHEN c.column_name = 'application_reference'
+                   THEN 'c.new_application_reference || ''-'' || c.new_id'
+                 WHEN u.column_name IS NOT NULL
+                   THEN format('CASE WHEN c.%%I IS NULL THEN NULL ELSE c.new_id END', c.column_name)
+                 ELSE format('c.%%I', c.column_name)
+               END,
+               ', ' ORDER BY c.ordinal_position
+             )
+      FROM information_schema.columns c
+      LEFT JOIN (
+        SELECT DISTINCT a.attname AS column_name
+        FROM pg_index i
+        JOIN pg_class t ON t.oid = i.indrelid
+        JOIN pg_namespace n ON n.oid = t.relnamespace
+        JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = ANY (i.indkey)
+        WHERE i.indisunique
+          AND n.nspname = 'public'
+          AND a.attnum > 0
+          AND i.indnkeyatts = 1
+          AND t.relname IN (%L, %L)
+      ) u ON u.column_name = c.column_name
+      WHERE c.table_schema = 'public'
+        AND c.table_name = %L
+    $q$, tbl, replace(tbl, 'g2p_intake_form_', 'g2p_register_'), tbl)
+      INTO cols, selects;
 
     EXECUTE format(
       'CREATE TEMP TABLE perf_copy ON COMMIT DROP AS
        SELECT n.submission_id AS new_submission_id,
+              n.application_reference AS new_application_reference,
               src.internal_record_id AS old_id,
               gen_random_uuid()::text AS new_id,
               src.*

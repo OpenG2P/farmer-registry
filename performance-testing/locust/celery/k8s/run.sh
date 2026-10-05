@@ -143,6 +143,101 @@ if [[ -n "$RESULT_TABLE" ]]; then
      WHERE CAST(${RESULT_COL} AS text) IN (SELECT row_id FROM celery_perf_cohort);
     GET DIAGNOSTICS deleted_count = ROW_COUNT;"
 fi
+# A previous ingest already wrote these ids into the live register. Give the
+# intake rows new ids instead of deleting from the 50M register tables.
+INGEST_SQL=""
+if [[ "$CASE" == "intake_register_ingest" ]]; then
+  INGEST_SQL="
+    CREATE TEMP TABLE perf_id_remap ON COMMIT DROP AS
+    SELECT DISTINCT x.internal_record_id AS old_id, gen_random_uuid()::text AS new_id
+      FROM (
+        SELECT internal_record_id FROM g2p_intake_form_farmers
+         WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+        UNION ALL
+        SELECT internal_record_id FROM g2p_intake_form_lands
+         WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+        UNION ALL
+        SELECT internal_record_id FROM g2p_intake_form_crops
+         WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+        UNION ALL
+        SELECT internal_record_id FROM g2p_intake_form_livestocks
+         WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+        UNION ALL
+        SELECT internal_record_id FROM g2p_intake_form_farm_inputs
+         WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+        UNION ALL
+        SELECT internal_record_id FROM g2p_intake_form_membership_details
+         WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+      ) x
+     WHERE x.internal_record_id IS NOT NULL;
+
+    UPDATE g2p_intake_form_farmers f
+       SET internal_record_id = m.new_id
+      FROM perf_id_remap m
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+       AND f.internal_record_id = m.old_id;
+    UPDATE g2p_intake_form_lands f
+       SET internal_record_id = m.new_id
+      FROM perf_id_remap m
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+       AND f.internal_record_id = m.old_id;
+    UPDATE g2p_intake_form_crops f
+       SET internal_record_id = m.new_id
+      FROM perf_id_remap m
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+       AND f.internal_record_id = m.old_id;
+    UPDATE g2p_intake_form_livestocks f
+       SET internal_record_id = m.new_id
+      FROM perf_id_remap m
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+       AND f.internal_record_id = m.old_id;
+    UPDATE g2p_intake_form_farm_inputs f
+       SET internal_record_id = m.new_id
+      FROM perf_id_remap m
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+       AND f.internal_record_id = m.old_id;
+    UPDATE g2p_intake_form_membership_details f
+       SET internal_record_id = m.new_id
+      FROM perf_id_remap m
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+       AND f.internal_record_id = m.old_id;
+
+    UPDATE g2p_intake_form_farmers f
+       SET link_internal_record_id = m.new_id
+      FROM perf_id_remap m
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+       AND f.link_internal_record_id = m.old_id;
+    UPDATE g2p_intake_form_lands f
+       SET link_internal_record_id = m.new_id
+      FROM perf_id_remap m
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+       AND f.link_internal_record_id = m.old_id;
+    UPDATE g2p_intake_form_crops f
+       SET link_internal_record_id = m.new_id
+      FROM perf_id_remap m
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+       AND f.link_internal_record_id = m.old_id;
+    UPDATE g2p_intake_form_livestocks f
+       SET link_internal_record_id = m.new_id
+      FROM perf_id_remap m
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+       AND f.link_internal_record_id = m.old_id;
+    UPDATE g2p_intake_form_farm_inputs f
+       SET link_internal_record_id = m.new_id
+      FROM perf_id_remap m
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+       AND f.link_internal_record_id = m.old_id;
+    UPDATE g2p_intake_form_membership_details f
+       SET link_internal_record_id = m.new_id
+      FROM perf_id_remap m
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+       AND f.link_internal_record_id = m.old_id;
+
+    UPDATE g2p_intake_form_submissions
+       SET register_ingest_process_attempts = 0,
+           register_ingest_process_last_error_code = NULL
+     WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort);"
+fi
 kubectl -n "$NS" exec celery-collect -- psql -v ON_ERROR_STOP=1 -c "
 DO \$\$
 DECLARE
@@ -153,6 +248,7 @@ BEGIN
     RAISE NOTICE 'no previous cohort';
     RETURN;
   END IF;
+  ${INGEST_SQL}
   UPDATE ${TABLE}
      SET ${COL} = 'PENDING'
    WHERE CAST(${PK} AS text) IN (SELECT row_id FROM celery_perf_cohort)
