@@ -1,98 +1,102 @@
 # Celery backlog drain
 
-Beat and workers are the pods already in the cluster. This directory adds one
-more pod, `celery-collector`, that only reads Postgres and Redis. It does not
-scale anything. You scale beat and workers, and you copy the CSV off the
-collector.
+Beat stays at 1 replica. Worker pods are 1, then 2, then 3. One scenario at a
+time. The scenario list, status columns, and how to read the CSV are in
+[the test scenarios](../../../documentation/celery/test-scenarios.md).
 
-One case at a time. One collector Job at a time.
-
-## Cases
-
-| `CASE` | Done status |
-|---|---|
-| `functional_id_allocation` | `id_allocation_status = COMPLETED` |
-| `dedup_register` | `deduplication_register_status = COMPLETED` |
-| `dedup_change_request` | `deduplication_change_request_status = COMPLETED` |
-| `dedup_intake_vs_register` | `deduplication_status_vs_register = COMPLETED` |
-| `dedup_intake_vs_intake` | `deduplication_status_vs_intake_forms = COMPLETED` |
-| `intake_register_ingest` | `register_ingest_process_status = PROCESSED` |
-
-Dedup is four producers. A change request defaults both dedup columns to
-`PENDING`. Leave the sibling column off `PENDING` or the workers are shared.
-
-Beat stays at **1** replica. The chart runs `worker --beat` with no leader
-lock, so a second beat pod enqueues the schedule twice.
-
-The chart releases **4** rows per tick (dedup every 30s, the others every 20s
-unless overridden). That is a few hundred rows in 30 minutes. Raise
-`REGISTRY_CELERY_BEAT_NO_OF_TASKS_TO_PROCESS` on the beat deployment, and set
-`TASKS_PER_TICK` in the Job to the same number, before comparing 1, 2, and 3
-worker pods. The collector prints the 30-minute enqueue ceiling and will not
-start when the eligible row count is not `SIZE`.
-
-## Build once
-
-From this directory:
+From this directory, with `KUBECONFIG` pointed at the perftest cluster:
 
 ```bash
-docker build -f k8s/Dockerfile -t vin0dkhichar/celery-backlog-collector:latest .
-docker push vin0dkhichar/celery-backlog-collector:latest
+./k8s/populate.sh <scenario> <size>   # beat and workers must already be 0
+./k8s/run.sh <1|2|3> <scenario> <size>
 ```
 
-## One case, one worker count
-
-Beat and worker deployments are already in `perftest`. Names follow the chart
-(`celery-beat-producer`, `celery-worker`); confirm with
-`kubectl -n perftest get deploy`.
-
-1. Scale both to 0. Only this case's rows are eligible.
+One pod and a 10k backlog, one example per scenario. Beat and workers must be
+at 0 before populate. The 2-pod and 3-pod repeats are the same commands with
+the first argument changed.
 
 ```bash
-kubectl -n perftest scale deploy/<beat> --replicas=0
-kubectl -n perftest scale deploy/<worker> --replicas=0
+./k8s/populate.sh dedup_register 10000
+./k8s/run.sh 1 dedup_register 10000
+
+./k8s/populate.sh dedup_change_request 10000
+./k8s/run.sh 1 dedup_change_request 10000
+
+./k8s/populate.sh dedup_intake_vs_register 10000
+./k8s/run.sh 1 dedup_intake_vs_register 10000
+
+./k8s/populate.sh dedup_intake_vs_intake 10000
+./k8s/run.sh 1 dedup_intake_vs_intake 10000
+
+./k8s/populate.sh completion_score 10000
+./k8s/run.sh 1 completion_score 10000
+
+./k8s/populate.sh functional_id_allocation 10000
+./k8s/run.sh 1 functional_id_allocation 10000
+
+./k8s/populate.sh functional_id_updation 10000
+./k8s/run.sh 1 functional_id_updation 10000
+
+./k8s/populate.sh score_compute 10000
+./k8s/run.sh 1 score_compute 10000
+
+./k8s/populate.sh ingest_data_classification 10000
+./k8s/run.sh 1 ingest_data_classification 10000
+
+./k8s/populate.sh ingest_data_transformation 10000
+./k8s/run.sh 1 ingest_data_transformation 10000
+
+./k8s/populate.sh ingest_data 10000
+./k8s/run.sh 1 ingest_data 10000
+
+./k8s/populate.sh change_request_ingest 10000
+./k8s/run.sh 1 change_request_ingest 10000
+
+./k8s/populate.sh intake_register_ingest 10000
+./k8s/run.sh 1 intake_register_ingest 10000
+
+./k8s/populate.sh outgest_data_transformation 10000
+./k8s/run.sh 1 outgest_data_transformation 10000
+
+./k8s/populate.sh outgest_data_publish 10000
+./k8s/run.sh 1 outgest_data_publish 10000
 ```
 
-2. Edit `k8s/collector-job.yaml`: `CASE`, `SIZE`, `WORKERS`. `WORKERS` is a
-   label written into the CSV. It must match the replica count you scale to
-   in step 5.
-
-3. Start the collector and wait until it is armed. It is still idle here.
+`import_file_process` uses 10000 as the records in each CSV. One pod has two
+processes, so this example queues 2 files:
 
 ```bash
-kubectl -n perftest delete job celery-collector --ignore-not-found
-kubectl -n perftest apply -f k8s/collector-job.yaml
-kubectl -n perftest logs -l app=celery-collector -f
+IMPORT_FILES=2 ./k8s/populate.sh import_file_process 10000
+./k8s/run.sh 1 import_file_process 2
 ```
 
-Wait for `COLLECTOR_ARMED`. If preflight exits, the cohort size does not match
-`SIZE`, or a sibling status is also `PENDING`.
+`outgest_topic_register` is not in that list. A 10k backlog cannot exist for
+it; the reason is below.
 
-4. Scale workers, then beat. The clock starts when the first row leaves
-   `PENDING`, not when the pod started.
+`./k8s/run.sh` parks every other scenario, pins the backlog, starts the
+workers, starts beat, and writes one CSV row per minute until `pending` and
+`in_progress` are 0, or until minute 30. The file is
+`results/pod-<workers>/<scenario>/<scenario>-workers-<workers>-size-<size>.csv`.
 
-```bash
-kubectl -n perftest scale deploy/<worker> --replicas=1
-kubectl -n perftest scale deploy/<beat> --replicas=1
-```
+If `./k8s/run.sh` stops after the pods are already running, do not start it
+again. `./k8s/collect.sh <workers> <scenario> <size>` only appends the CSV.
 
-5. Leave them running. The log prints a row at 0, 5, 10, 15, 20, 25, and 30
-   minutes. `done_delta` is rows that reached the done status since the arm.
-   After `COLLECTOR_FINISHED` the container sleeps so the file can be copied:
+Each isolated run enables one beat producer and one worker and disables the
+rest. A set `REGISTRY_CELERY_BEAT_<PRODUCER>_NO_OF_TASKS` is the claim size
+for that producer. A worker pod is `--concurrency=2`, so one pod has two
+processes.
 
-```bash
-POD=$(kubectl -n perftest get pod -l app=celery-collector -o jsonpath='{.items[0].metadata.name}')
-kubectl -n perftest cp "$POD:/results/dedup_register/workers-1/size-10000.csv" ./dedup_register-workers-1.csv
-```
+`outgest_topic_register` is not in the 1, 2, 3 worker series. A topic is
+unique on `(data_model_id, register_id)`. This database has one data model
+and 9 registers, so 9 topics is the maximum. Each task is a single WebSub
+register call, and that count does not grow with the farmer backlog, so extra
+worker pods do not show a drain or a scaling limit.
 
-Change the path to the `CASE`, `WORKERS`, and `SIZE` you set. Then delete the
-Job. Scale beat and workers back to 0 before the next case.
+`import_file_process` is one CSV per task, and that task stays on one process
+until the file finishes. A second pod cannot shorten the same file, so it is
+not in the 2-pod and 3-pod series. The 1-pod example above uses two files
+because that pod has two processes. The CSV counts records ingested, not
+queue rows.
 
-Repeat the same case at workers 2 and workers 3 with a **new** cohort each
-time. Then move to the next `CASE`. Do not set processed intake or allocation
-rows back to `PENDING` to refill: ingest inserts register rows again, and
-allocation calls the id generator again.
-
-`redis_depth` near 0 with `done_delta` stuck at the beat ceiling means the
-tick size is the limit. A queue that stays deep means the worker pods are the
-limit.
+`k8s/collector-job.yaml` is the older collector. `./k8s/run.sh` does not use
+that image.

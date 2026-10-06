@@ -1,28 +1,41 @@
--- Copies a classified ingest and the raw payload the transformer reads.
--- ingestion_status is NOT_APPLICABLE, so the ingest producer does not claim
--- these rows until transformation itself sets ingestion to PENDING.
+-- Classified ADD row plus the raw payload the transformer reads.
+-- Uses the farmer DCI semantic pattern and requires the incoming template
+-- for that data model and register. ingestion_status stays NOT_APPLICABLE
+-- until the worker finishes and sets it to PENDING.
+-- The business payload sits at
+--   $.body.message.search_response[0].data.reg_records[0]
+-- which is key_path_for_business_payload on that pattern.
 
 BEGIN;
 
 CREATE TEMP TABLE perf_n ON COMMIT DROP AS SELECT :count::int AS n;
 
-
-CREATE TEMP TABLE perf_template ON COMMIT DROP AS
-SELECT c.*
-FROM incoming_classified_data c
-JOIN incoming_raw_data_payloads p ON p.ingest_id = c.ingest_id
-JOIN g2p_partners partner ON partner.partner_id = c.partner_id
-WHERE c.ingest_id NOT LIKE '-perf-%'
-  AND c.semantic_pattern_id IS NOT NULL
-  AND c.register_id IS NOT NULL
-ORDER BY c.classified_date_time DESC
+CREATE TEMP TABLE perf_pattern ON COMMIT DROP AS
+SELECT
+  p.semantic_pattern_id,
+  p.data_model_id,
+  p.register_id,
+  p.intake_form_id
+FROM incoming_model_semantic_patterns p
+JOIN g2p_intake_form_definitions f
+  ON f.form_id = p.intake_form_id
+ AND f.register_id = p.register_id
+JOIN g2p_register_definitions d
+  ON d.register_id = p.register_id
+ AND d.register_mnemonic = 'Farmer'
+JOIN incoming_templates t
+  ON t.data_model_id = p.data_model_id
+ AND t.register_id = p.register_id
+WHERE f.form_mnemonic = 'farmer_ingestion_intake'
+  AND p.key_path_for_business_payload = '$.body.message.search_response[0].data.reg_records[0]'
+  AND p.raw_payload_enricher_class IS NOT NULL
 LIMIT 1;
 
 DO $$
 BEGIN
-  IF (SELECT count(*) FROM perf_template) <> 1 THEN
+  IF (SELECT count(*) FROM perf_pattern) <> 1 THEN
     RAISE EXCEPTION
-      'ingest_data_transformation needs one classified row with a raw payload and a real partner_id';
+      'ingest_data_transformation needs the farmer_ingestion_intake semantic pattern and an incoming template for that data model and register';
   END IF;
 END $$;
 
@@ -35,32 +48,46 @@ WHERE ingest_id LIKE '-perf-ingest-xform-%';
 DELETE FROM incoming_raw_data_payloads
 WHERE ingest_id LIKE '-perf-ingest-xform-%';
 
-INSERT INTO incoming_raw_data_payloads (
-  ingest_id, raw_data_json, raw_data_xml, raw_data_text
-)
+INSERT INTO incoming_raw_data_payloads (ingest_id, raw_data_json)
 SELECT
   '-perf-ingest-xform-' || lpad(g::text, 8, '0'),
-  p.raw_data_json, p.raw_data_xml, p.raw_data_text
-FROM generate_series(1, :count) AS g
-CROSS JOIN perf_template t
-JOIN incoming_raw_data_payloads p ON p.ingest_id = t.ingest_id;
+  jsonb_build_object(
+    'body', jsonb_build_object(
+      'header', jsonb_build_object(
+        'message_id', '-perf-ingest-xform-' || lpad(g::text, 8, '0'),
+        'sender_id', 'perf-ingest-partner'
+      ),
+      'message', jsonb_build_object(
+        'search_response', jsonb_build_array(
+          jsonb_build_object(
+            'data', jsonb_build_object(
+              'reg_type', 'Farmer',
+              'reg_record_type', 'Farmer',
+              'reg_records', jsonb_build_array(
+                jsonb_build_object('first_name', 'Perf', 'last_name', 'Ingest')
+              )
+            )
+          )
+        )
+      )
+    )
+  )::json
+FROM generate_series(1, :count) AS g;
 
 INSERT INTO incoming_classified_data (
   ingest_id, data_model_id, partner_id, register_id, pipeline_action,
-  section_id, internal_record_id, change_request_id, intake_form_id,
-  semantic_pattern_id, classified_date_time,
+  intake_form_id, semantic_pattern_id, classified_date_time,
   transformation_status, transformation_number_of_attempts,
   ingestion_status, ingestion_number_of_attempts
 )
 SELECT
   '-perf-ingest-xform-' || lpad(g::text, 8, '0'),
-  t.data_model_id, t.partner_id, t.register_id, t.pipeline_action,
-  t.section_id, t.internal_record_id, NULL, t.intake_form_id,
-  t.semantic_pattern_id, now(),
+  p.data_model_id, 'perf-ingest-partner', p.register_id, 'ADD',
+  p.intake_form_id, p.semantic_pattern_id, now(),
   'PENDING', 0,
   'NOT_APPLICABLE', 0
 FROM generate_series(1, :count) AS g
-CROSS JOIN perf_template t;
+CROSS JOIN perf_pattern p;
 
 DO $$
 DECLARE

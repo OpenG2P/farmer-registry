@@ -32,7 +32,7 @@ case "$CASE" in
   functional_id_updation) TABLE=g2p_functional_id_generation_queue; PK=queue_id; COL=id_updation_status; EXTRA="TRUE" ;;
   score_compute) TABLE=g2p_score_compute_queue; PK=queue_id; COL=compute_status; EXTRA="TRUE" ;;
   completion_score) TABLE=g2p_completion_score_computation_queue; PK=queue_id; COL=compute_status; EXTRA="TRUE" ;;
-  import_file_process) TABLE=import_file_process_queue; PK=import_file_id; COL=intake_form_ingestion_status; EXTRA="TRUE" ;;
+  import_file_process) TABLE=import_file_process_queue; PK=import_file_id; COL=intake_form_ingestion_status; EXTRA="TRUE"; RECORD_COUNTS=1 ;;
   *) echo "Unknown task: $CASE" >&2; exit 2 ;;
 esac
 
@@ -92,6 +92,9 @@ for _ in $(seq 1 30); do
 done
 [[ -n "$collect_ready" ]] || { echo "celery-collect did not start" >&2; exit 1; }
 
+if [[ "${RECORD_COUNTS:-0}" == 1 ]]; then
+  echo "counts are records in the CSV"
+fi
 echo "mark_min,pending,in_progress,done" | tee "$OUT"
 start=$(date +%s)
 for mark in $MARKS; do
@@ -100,13 +103,37 @@ for mark in $MARKS; do
   if (( target > now )); then
     sleep $((target - now))
   fi
-  row="$(kubectl -n "$NS" exec celery-collect -- psql -At -F, -c \
-    "SELECT ${mark},
+  if [[ "${RECORD_COUNTS:-0}" == 1 ]]; then
+    sql="SELECT ${mark},
+            GREATEST(
+              SUM(COALESCE(q.number_of_records_present, 0))
+              - SUM(COALESCE(logged.n, 0))
+              - SUM(CASE
+                  WHEN q.intake_form_ingestion_status IN ('PROCESSING','INPROGRESS')
+                   AND COALESCE(logged.n, 0) < COALESCE(q.number_of_records_present, 0)
+                  THEN 1 ELSE 0 END),
+              0),
+            SUM(CASE
+                  WHEN q.intake_form_ingestion_status IN ('PROCESSING','INPROGRESS')
+                   AND COALESCE(logged.n, 0) < COALESCE(q.number_of_records_present, 0)
+                  THEN 1 ELSE 0 END),
+            SUM(COALESCE(logged.n, 0))
+     FROM import_file_process_queue q
+     LEFT JOIN (
+       SELECT import_file_id, COUNT(*) AS n
+       FROM import_file_process_log
+       GROUP BY import_file_id
+     ) logged ON logged.import_file_id = q.import_file_id
+     WHERE q.import_file_id::text IN (SELECT row_id FROM celery_perf_cohort)"
+  else
+    sql="SELECT ${mark},
             COUNT(*) FILTER (WHERE ${COL} = 'PENDING' AND (${EXTRA})),
             COUNT(*) FILTER (WHERE ${COL} IN ('PROCESSING','INPROGRESS') AND (${EXTRA})),
             COUNT(*) FILTER (WHERE ${COL} IN ('PROCESSED','COMPLETED') AND (${EXTRA}))
      FROM ${TABLE}
-     WHERE ${PK}::text IN (SELECT row_id FROM celery_perf_cohort)")"
+     WHERE ${PK}::text IN (SELECT row_id FROM celery_perf_cohort)"
+  fi
+  row="$(kubectl -n "$NS" exec celery-collect -- psql -At -F, -c "$sql")"
   IFS=',' read -r _mark _pending _in_progress _done <<< "$row"
   echo "$row" | tee -a "$OUT"
   if [[ "${_pending}" -eq 0 && "${_in_progress}" -eq 0 ]]; then
