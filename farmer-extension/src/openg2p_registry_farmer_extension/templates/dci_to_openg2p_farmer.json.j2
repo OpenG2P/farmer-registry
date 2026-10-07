@@ -41,7 +41,7 @@
 {% endif %}
 
 {
-  "farmer_personal_info": [
+  "fr_farmer_personal_info": [
     {
       "record_name": "{{ (farmer_name.get('first_name', '') ~ ' ' ~ farmer_name.get('last_name', '')).strip() }}",
       "foundational_id": "{{ farmer_identifier.get('identifier_value', '') }}",
@@ -55,7 +55,7 @@
       "registration_date": "{{ (family_head.get('registration_date', d.get('registration_date', '')) or '').split('T')[0] }}"
     }
   ],
-  "farmer_socio_&_health": [
+  "fr_farmer_socio_and_health": [
     {
       "has_personal_phone": false,
       "disabled": {{ "true" if family_head.get("is_disabled") else "false" }},
@@ -63,7 +63,7 @@
       "national_id_masked": "{{ farmer_identifier.get('identifier_value', '') }}"
     }
   ],
-  "farmer_location": [
+  "fr_farmer_location": [
     {
       "locality": "{{ first_place.get('name', '') }}",
       "latitude": "{{ first_geo.get('latitude', '') }}",
@@ -112,7 +112,7 @@
       "poverty_score_type": "{{ family.get('poverty_score_type', '') }}"
     }
   ],
-  "farmer_land": [
+  "fr_farmer_land": [
 {% for farm in farm_details %}
     {% set place = farm.get("place", {}) %}
     {% set geo = place.get("geo", {}) %}
@@ -137,7 +137,7 @@
     }{% if not loop.last %},{% endif %}
 {% endfor %}
   ],
-  "farmer_farm_input": [
+  "fr_farmer_farm_input": [
 {% set farm_input_rows = namespace(first=true) %}
 {% for farm in farm_details %}
   {% for activity in farm.get("farming_activities", []) %}
@@ -157,7 +157,7 @@
   {% endfor %}
 {% endfor %}
   ],
-  "farmer_livestocks": [
+  "fr_farmer_livestocks": [
 {% set livestock_rows = namespace(first=true) %}
 {% for farm in farm_details %}
   {% for activity in farm.get("farming_activities", []) %}

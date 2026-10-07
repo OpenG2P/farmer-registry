@@ -23,15 +23,13 @@ See [../staff-api/test-scenarios.md](../staff-api/test-scenarios.md).
 
 **In scope**
 
-- The 17 scenarios in §4, one at a time. `ingest_data` and `change_request_ingest` share one beat producer. The other scenarios each have their own.
+- The scenarios in §4, one at a time. `ingest_data` and `change_request_ingest` share one beat producer. The other scenarios each have their own. `outgest_topic_register` and `import_file_process` are not 1, 2, 3 worker runs.
 - One beat pod. Worker pods at 1, then 2, then 3.
 - A fixed backlog size, passed to `./k8s/run.sh`.
 - The perftest namespace, image `vin0dkhichar/ofr-staff-celery:performance-test`.
 
 **Out of scope**
 
-- A blended mix of several producers on the same queue. Each run parks every
-producer except the one under test.
 - Staff-api and partner-api request latency.
 - Soak, chaos, and a Postgres tuning sweep.
 
@@ -49,10 +47,13 @@ A run is one cell: one scenario, one backlog size, one worker count.
 | Worker pods | `1`, then `2`, then `3`                                              | Beat is always 1 pod                                                  |
 
 
-Beat claims up to `REGISTRY_CELERY_BEAT_NO_OF_TASKS_TO_PROCESS` pending rows
-on each tick and sends one Celery message per row to `registry_worker_queue`.
-Workers take those messages and write the done status. The clock starts after
-the workers are ready, the backlog is pinned, and beat has logged that it
+Beat claims pending rows on each tick and sends one Celery message per row to
+`registry_worker_queue`. A set `REGISTRY_CELERY_BEAT_<PRODUCER>_NO_OF_TASKS`
+is that producer's claim size. Otherwise the claim size is
+`REGISTRY_CELERY_BEAT_NO_OF_TASKS_TO_PROCESS`. Each run enables only that
+scenario's producer and worker and disables the others. A worker pod runs
+`--concurrency=2`, so one pod has two processes. The clock starts after the
+workers are ready, the backlog is pinned, and beat has logged that it
 started. `./k8s/run.sh` then writes one CSV row per minute until `pending`
 and `in_progress` are both 0, or until minute 30.
 
@@ -70,6 +71,10 @@ Columns:
 | `in_progress` | Cohort rows in `PROCESSING` or `INPROGRESS` on that column.                        |
 | `done`        | Cohort rows in `PROCESSED` or `COMPLETED` on that column. A scenario uses one of those two. |
 
+
+`import_file_process` counts records inside the CSV, not queue rows. `pending`
+is records not started, `in_progress` is the record the process is ingesting,
+and `done` is rows already written to `import_file_process_log`.
 
 Rows finished in that minute are `done` at this mark minus `done` at the
 previous mark.
@@ -91,12 +96,13 @@ drain as fast as beat can send, a third worker does not shorten the run.
 
 ## 4. Test scenarios (`locust/celery/`)
 
-Each scenario is one `./k8s/run.sh` case. Populate it once with
+Each scenario is one `./k8s/run.sh` case. Populate it with
 `./k8s/populate.sh <scenario> <size>` while beat and workers are at 0
-replicas, then run workers 1, 2, and 3. `./k8s/run.sh` puts that cohort back
-to `PENDING` before the next worker count. Dedup runs also delete that
-cohort's result rows. Intake ingest gives the section rows new
-`internal_record_id` values so the live register is left in place.
+replicas, then run workers 1, 2, and 3. Populate again before the 2-worker
+and 3-worker runs. `./k8s/run.sh` puts that cohort back to `PENDING` before
+the next worker count. Dedup runs also delete that cohort's result rows.
+Intake ingest gives the section rows new `internal_record_id` values so the
+live register is left in place.
 
 Beat sets the in-progress status before it sends the task, except
 `intake_register_ingest`, where the worker sets `PROCESSING`. `done` in the
@@ -125,30 +131,36 @@ Purpose: turn a register change into a payload, publish it, and register the Web
 
 | Scenario                      | Table               | Status column            | Done        | What the worker does                                                                   |
 | ----------------------------- | ------------------- | ------------------------ | ----------- | -------------------------------------------------------------------------------------- |
-| `outgest_data_transformation` | `outgoing_raw_data` | `transformation_status`  | `PROCESSED` | Transforms one outgest payload.                                                        |
-| `outgest_data_publish`        | `outgoing_raw_data` | `publish_status`         | `PROCESSED` | Publishes one transformed payload.                                                     |
-| `outgest_topic_register`      | `outgoing_topics`   | `websub_register_status` | `PROCESSED` | Registers one WebSub topic. Uses topics that already exist. It does not invent topics. |
+| `outgest_data_transformation` | `outgoing_raw_data` | `transformation_status`  | `PROCESSED` | Transforms one outgest payload. Populate builds the rows. `publish_status` stays null. |
+| `outgest_data_publish`        | `outgoing_raw_data` | `publish_status`         | `PROCESSED` | Publishes one payload that is already transformed. |
+| `outgest_topic_register`      | `outgoing_topics`   | `websub_register_status` | `PROCESSED` | Registers one WebSub topic. Not run in the 1, 2, 3 worker series. |
+
+
+Publish posts to `https://websub.perftest.openg2p.org`.
+
+`outgest_topic_register` is left out of the worker-scaling runs. A topic is
+unique on `(data_model_id, register_id)`. This database has one data model
+and 9 registers, so 9 topics is the maximum. Each task is one register call,
+and that count does not grow with the farmer backlog, so 1, 2, and 3 worker
+pods do not show a drain.
 
 
 
 
 ### Deduplication
 
+**To be added.** None of these four scenarios has a backlog or a 1, 2, 3
+worker run yet.
+
 Purpose: score one record against a candidate set and write match rows when the score is at or above the threshold. An empty match list is still `COMPLETED`.
 
 
-| Scenario                   | Table                          | Status column                          | Done        | What the worker does                                                                                                                                                             |
-| -------------------------- | ------------------------------ | -------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `dedup_register`           | `g2p_register_change_requests` | `deduplication_register_status`        | `COMPLETED` | Scores one change request against farmers on the parent register. The section is farmer personal identification. The first 1000 rows of the requested count each match two new farmers: the row itself and one copy with the same name and birth date. Later rows match none. |
-| `dedup_change_request`     | `g2p_register_change_requests` | `deduplication_change_request_status`  | `COMPLETED` | Scores one pending change request against other pending change requests in the same section.                                                                                     |
-| `dedup_intake_vs_register` | `g2p_intake_form_submissions`  | `deduplication_status_vs_register`     | `COMPLETED` | Scores one `FINAL` intake submission against the register.                                                                                                                       |
-| `dedup_intake_vs_intake`   | `g2p_intake_form_submissions`  | `deduplication_status_vs_intake_forms` | `COMPLETED` | Scores one `FINAL` intake submission against other intake submissions.                                                                                                           |
-
-
-`dedup_register` and `dedup_change_request` share one beat frequency, and the
-two intake dedup scenarios share it as well. Populate sets the sibling status
-on the cohort to `FAILED`, so the other producer does not claim those rows.
-Pin then sets every other case's `PENDING` rows aside for the length of the run.
+| Scenario                   | Table                          | Status column                          | Done        | What the worker does                                                       |
+| -------------------------- | ------------------------------ | -------------------------------------- | ----------- | -------------------------------------------------------------------------- |
+| `dedup_register`           | `g2p_register_change_requests` | `deduplication_register_status`        | `COMPLETED` | Scores one change request against farmers on the parent register.          |
+| `dedup_change_request`     | `g2p_register_change_requests` | `deduplication_change_request_status`  | `COMPLETED` | Scores one pending change request against other pending change requests.   |
+| `dedup_intake_vs_register` | `g2p_intake_form_submissions`  | `deduplication_status_vs_register`     | `COMPLETED` | Scores one `FINAL` intake submission against the register.                 |
+| `dedup_intake_vs_intake`   | `g2p_intake_form_submissions`  | `deduplication_status_vs_intake_forms` | `COMPLETED` | Scores one `FINAL` intake submission against other intake submissions.     |
 
 ### Intake ingest
 
@@ -209,10 +221,22 @@ image after changing `farmer-extension/.../score_compute/services/poverty.py`.
 
 | Scenario              | Table                       | Status column                  | Done        | What the worker does                                                                                                                               |
 | --------------------- | --------------------------- | ------------------------------ | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `import_file_process` | `import_file_process_queue` | `intake_form_ingestion_status` | `PROCESSED` | Ingests one import file that already exists. Populate marks that many existing files `PENDING`. It fails when fewer files exist than the requested count. |
+| `import_file_process` | `import_file_process_queue` | `intake_form_ingestion_status` | `PROCESSED` | Ingests every row of one CSV. One file is one Celery task. Not run at 2 or 3 worker pods. |
 
 
+`./k8s/populate.sh import_file_process <records>` writes that many records
+into each CSV, up to 50000. `IMPORT_FILES` is the number of files. The run
+size is the number of files. The CSV counts records ingested, not queue rows.
 
+One process keeps a file until that file is finished. Another pod cannot
+take part of the same file, so 2 and 3 worker pods do not shorten the run.
+The 1-pod run with two files is enough: finish time stays the length of one
+file, and a second process only finishes a second file in that same time.
+
+```bash
+IMPORT_FILES=2 ./k8s/populate.sh import_file_process 10000
+./k8s/run.sh 1 import_file_process 2
+```
 
 ## 5. What a finished run shows
 
@@ -240,7 +264,7 @@ From `farmer-registry/performance-testing/locust/celery`, with
    workers are already at 0 replicas.
 
    ```bash
-   ./k8s/populate.sh dedup_register 10000
+   ./k8s/populate.sh outgest_data_transformation 10000
    ```
 
 2. Run one worker count. This puts the previous cohort back to `PENDING`,
@@ -248,15 +272,16 @@ From `farmer-registry/performance-testing/locust/celery`, with
    beat, and writes the CSV.
 
    ```bash
-   ./k8s/run.sh 1 dedup_register 10000
-   ./k8s/run.sh 2 dedup_register 10000
-   ./k8s/run.sh 3 dedup_register 10000
+   ./k8s/run.sh 1 outgest_data_transformation 10000
+   ./k8s/run.sh 2 outgest_data_transformation 10000
+   ./k8s/run.sh 3 outgest_data_transformation 10000
    ```
 
 3. Leave the terminal open until the script prints `COLLECTOR_FINISHED`.
 4. Save the beat CPU screenshot and the worker CPU screenshot next to that CSV.
-5. Use the same backlog for the 2-worker and 3-worker runs. `./k8s/run.sh`
-   resets the cohort. Populate again only when you want a new backlog.
+5. Populate again before the 2-worker and 3-worker runs. Skip
+   `outgest_topic_register` and `import_file_process`. The reasons are in
+   those sections.
 
 If `./k8s/run.sh` stops after the pods are already running, do not start it
 again. Use `./k8s/collect.sh <workers> <scenario> <size>`. That command only

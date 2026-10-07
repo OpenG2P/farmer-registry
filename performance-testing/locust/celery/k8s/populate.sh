@@ -35,8 +35,15 @@ fi
 SQL="$ROOT/sql/populate/${CASE}.sql"
 [[ -f "$SQL" ]] || { echo "No populate script for ${CASE}" >&2; exit 2; }
 
+IMPORT_FILES="${IMPORT_FILES:-1}"
+if [[ "$CASE" == "import_file_process" ]]; then
+  [[ "$IMPORT_FILES" =~ ^[1-9][0-9]*$ ]] || { echo "IMPORT_FILES must be a positive integer" >&2; exit 2; }
+  "$ROOT/import_csv.sh" "$COUNT" "$IMPORT_FILES"
+fi
+
 {
   printf '\\set count %s\n' "$COUNT"
+  printf '\\set files %s\n' "${IMPORT_FILES:-1}"
   cat "$SQL"
   case "$CASE" in
     dedup_intake_vs_register|dedup_intake_vs_intake|intake_register_ingest)

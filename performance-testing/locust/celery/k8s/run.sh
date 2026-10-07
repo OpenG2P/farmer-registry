@@ -35,7 +35,7 @@ case "$CASE" in
   functional_id_updation) TABLE=g2p_functional_id_generation_queue; PK=queue_id; COL=id_updation_status; EXTRA="TRUE" ;;
   score_compute) TABLE=g2p_score_compute_queue; PK=queue_id; COL=compute_status; EXTRA="TRUE" ;;
   completion_score) TABLE=g2p_completion_score_computation_queue; PK=queue_id; COL=compute_status; EXTRA="TRUE" ;;
-  import_file_process) TABLE=import_file_process_queue; PK=import_file_id; COL=intake_form_ingestion_status; EXTRA="TRUE" ;;
+  import_file_process) TABLE=import_file_process_queue; PK=import_file_id; COL=intake_form_ingestion_status; EXTRA="TRUE"; RECORD_COUNTS=1 ;;
   *) echo "Unknown task: $CASE" >&2; exit 2 ;;
 esac
 
@@ -238,6 +238,127 @@ if [[ "$CASE" == "intake_register_ingest" ]]; then
            register_ingest_process_last_error_code = NULL
      WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort);"
 fi
+# A finished cohort leaves rows or attempt counts that make the next run fail
+# or pull in a sibling producer. Clear only those, on the small queue tables.
+RERUN_SQL=""
+case "$CASE" in
+  ingest_data_classification)
+    RERUN_SQL="
+      DELETE FROM incoming_enriched_transformed_data
+       WHERE ingest_id IN (SELECT row_id FROM celery_perf_cohort);
+      DELETE FROM incoming_classified_data
+       WHERE ingest_id IN (SELECT row_id FROM celery_perf_cohort);
+      UPDATE incoming_raw_data
+         SET classification_number_of_attempts = 0,
+             classification_latest_error_code = NULL
+       WHERE ingest_id IN (SELECT row_id FROM celery_perf_cohort);"
+    ;;
+  ingest_data_transformation)
+    RERUN_SQL="
+      DELETE FROM incoming_enriched_transformed_data
+       WHERE ingest_id IN (SELECT row_id FROM celery_perf_cohort);
+      UPDATE incoming_classified_data
+         SET transformation_number_of_attempts = 0,
+             transformation_latest_error_code = NULL,
+             ingestion_status = 'NOT_APPLICABLE'
+       WHERE ingest_id IN (SELECT row_id FROM celery_perf_cohort);"
+    ;;
+  ingest_data)
+    RERUN_SQL="
+      UPDATE incoming_classified_data
+         SET intake_form_submission_id = NULL,
+             ingestion_number_of_attempts = 0,
+             ingestion_latest_error_code = NULL
+       WHERE ingest_id IN (SELECT row_id FROM celery_perf_cohort);"
+    ;;
+  change_request_ingest)
+    RERUN_SQL="
+      UPDATE incoming_classified_data
+         SET change_request_id = NULL,
+             ingestion_number_of_attempts = 0,
+             ingestion_latest_error_code = NULL
+       WHERE ingest_id IN (SELECT row_id FROM celery_perf_cohort);"
+    ;;
+  outgest_data_transformation)
+    RERUN_SQL="
+      DELETE FROM outgoing_transformed_data_payloads
+       WHERE outgest_id IN (SELECT row_id FROM celery_perf_cohort);
+      UPDATE outgoing_raw_data
+         SET transformation_number_of_attempts = 0,
+             transformation_latest_error_code = NULL,
+             publish_status = NULL,
+             publish_number_of_attempts = 0
+       WHERE outgest_id IN (SELECT row_id FROM celery_perf_cohort);"
+    ;;
+  outgest_data_publish)
+    RERUN_SQL="
+      UPDATE outgoing_raw_data
+         SET publish_number_of_attempts = 0,
+             publish_latest_error_code = NULL
+       WHERE outgest_id IN (SELECT row_id FROM celery_perf_cohort);"
+    ;;
+  outgest_topic_register)
+    RERUN_SQL="
+      UPDATE outgoing_topics
+         SET websub_register_number_of_attempts = 0,
+             websub_register_latest_error_code = NULL
+       WHERE topic_id IN (SELECT row_id FROM celery_perf_cohort);"
+    ;;
+  functional_id_allocation)
+    RERUN_SQL="
+      UPDATE g2p_functional_id_generation_queue
+         SET id_allocation_no_of_attempts = 0,
+             id_allocation_latest_error_code = NULL,
+             id_updation_status = 'NOT_APPLICABLE',
+             id_updation_no_of_attempts = 0,
+             id_updation_latest_error_code = NULL
+       WHERE queue_id IN (SELECT row_id FROM celery_perf_cohort);"
+    ;;
+  functional_id_updation)
+    RERUN_SQL="
+      UPDATE g2p_functional_id_generation_queue
+         SET id_updation_no_of_attempts = 0,
+             id_updation_latest_error_code = NULL
+       WHERE queue_id IN (SELECT row_id FROM celery_perf_cohort);"
+    ;;
+  score_compute)
+    RERUN_SQL="
+      UPDATE g2p_score_compute_queue
+         SET compute_no_of_attempts = 0,
+             compute_latest_error_code = NULL
+       WHERE queue_id IN (SELECT row_id FROM celery_perf_cohort);"
+    ;;
+  completion_score)
+    RERUN_SQL="
+      UPDATE g2p_completion_score_computation_queue
+         SET compute_number_of_attempts = 0,
+             compute_latest_error_code = NULL
+       WHERE queue_id IN (SELECT row_id FROM celery_perf_cohort);"
+    ;;
+  import_file_process)
+    RERUN_SQL="
+      DELETE FROM import_file_process_log
+       WHERE import_file_id IN (SELECT row_id FROM celery_perf_cohort);
+      UPDATE import_file_process_queue
+         SET intake_form_ingestion_attempts = 0,
+             intake_form_ingestion_error = NULL
+       WHERE import_file_id IN (SELECT row_id FROM celery_perf_cohort);"
+    ;;
+  dedup_intake_vs_register)
+    RERUN_SQL="
+      UPDATE g2p_intake_form_submissions
+         SET deduplication_register_forms_attempts = 0,
+             deduplication_register_error = NULL
+       WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort);"
+    ;;
+  dedup_intake_vs_intake)
+    RERUN_SQL="
+      UPDATE g2p_intake_form_submissions
+         SET deduplication_intake_forms_attempts = 0,
+             deduplication_intake_forms_error = NULL
+       WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort);"
+    ;;
+esac
 kubectl -n "$NS" exec celery-collect -- psql -v ON_ERROR_STOP=1 -c "
 DO \$\$
 DECLARE
@@ -249,6 +370,7 @@ BEGIN
     RETURN;
   END IF;
   ${INGEST_SQL}
+  ${RERUN_SQL}
   UPDATE ${TABLE}
      SET ${COL} = 'PENDING'
    WHERE CAST(${PK} AS text) IN (SELECT row_id FROM celery_perf_cohort)
@@ -307,6 +429,9 @@ echo "Starting beat"
 kubectl -n "$NS" scale deploy/farmer-registry-celery-beat-producer --replicas=1
 wait_celery_ready 1 'beat: Starting' "Beat" 'celery-beat-producer'
 
+if [[ "${RECORD_COUNTS:-0}" == 1 ]]; then
+  echo "counts are records in the CSV"
+fi
 echo "mark_min,pending,in_progress,done" | tee "$OUT"
 start=$(date +%s)
 for mark in $MARKS; do
@@ -315,13 +440,37 @@ for mark in $MARKS; do
   if (( target > now )); then
     sleep $((target - now))
   fi
-  row="$(kubectl -n "$NS" exec celery-collect -- psql -At -F, -c \
-    "SELECT ${mark},
+  if [[ "${RECORD_COUNTS:-0}" == 1 ]]; then
+    sql="SELECT ${mark},
+            GREATEST(
+              SUM(COALESCE(q.number_of_records_present, 0))
+              - SUM(COALESCE(logged.n, 0))
+              - SUM(CASE
+                  WHEN q.intake_form_ingestion_status IN ('PROCESSING','INPROGRESS')
+                   AND COALESCE(logged.n, 0) < COALESCE(q.number_of_records_present, 0)
+                  THEN 1 ELSE 0 END),
+              0),
+            SUM(CASE
+                  WHEN q.intake_form_ingestion_status IN ('PROCESSING','INPROGRESS')
+                   AND COALESCE(logged.n, 0) < COALESCE(q.number_of_records_present, 0)
+                  THEN 1 ELSE 0 END),
+            SUM(COALESCE(logged.n, 0))
+     FROM import_file_process_queue q
+     LEFT JOIN (
+       SELECT import_file_id, COUNT(*) AS n
+       FROM import_file_process_log
+       GROUP BY import_file_id
+     ) logged ON logged.import_file_id = q.import_file_id
+     WHERE q.import_file_id::text IN (SELECT row_id FROM celery_perf_cohort)"
+  else
+    sql="SELECT ${mark},
             COUNT(*) FILTER (WHERE ${COL} = 'PENDING' AND (${EXTRA})),
             COUNT(*) FILTER (WHERE ${COL} IN ('PROCESSING','INPROGRESS') AND (${EXTRA})),
             COUNT(*) FILTER (WHERE ${COL} IN ('PROCESSED','COMPLETED') AND (${EXTRA}))
      FROM ${TABLE}
-     WHERE ${PK}::text IN (SELECT row_id FROM celery_perf_cohort)")"
+     WHERE ${PK}::text IN (SELECT row_id FROM celery_perf_cohort)"
+  fi
+  row="$(kubectl -n "$NS" exec celery-collect -- psql -At -F, -c "$sql")"
   IFS=',' read -r _mark _pending _in_progress _done <<< "$row"
   echo "$row" | tee -a "$OUT"
   if [[ "${_pending}" -eq 0 && "${_in_progress}" -eq 0 ]]; then

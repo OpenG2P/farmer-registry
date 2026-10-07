@@ -1,30 +1,47 @@
--- UPDATE ingest. The farmer record and the section must already exist.
--- transformation_status is PROCESSED, so only the ingest producer claims it,
--- and that producer routes UPDATE rows to the change-request worker.
+-- UPDATE ingest. There is no classified UPDATE row to copy.
+-- One existing farmer is the subject. The payload is the personal-identification
+-- section, and that section must already have a tab on the farmer register.
+-- transformation_status is PROCESSED, so the ingest producer routes these
+-- rows to the change-request worker.
 
 BEGIN;
 
 CREATE TEMP TABLE perf_n ON COMMIT DROP AS SELECT :count::int AS n;
 
-
-CREATE TEMP TABLE perf_template ON COMMIT DROP AS
-SELECT c.*
-FROM incoming_classified_data c
-JOIN incoming_enriched_transformed_data e ON e.ingest_id = c.ingest_id
-JOIN g2p_register_farmers f ON f.internal_record_id = c.internal_record_id
-JOIN g2p_register_sections s ON s.section_id = c.section_id
-JOIN g2p_partners partner ON partner.partner_id = c.partner_id
-WHERE c.ingest_id NOT LIKE '-perf-%'
-  AND c.pipeline_action = 'UPDATE'
-  AND e.transformed_data_json IS NOT NULL
-ORDER BY c.classified_date_time DESC
+CREATE TEMP TABLE perf_subject ON COMMIT DROP AS
+SELECT
+  f.internal_record_id,
+  d.register_id,
+  s.section_id,
+  s.section_mnemonic,
+  p.data_model_id,
+  p.semantic_pattern_id
+FROM g2p_register_farmers f
+JOIN g2p_register_definitions d
+  ON lower(d.register_mnemonic) = 'farmer'
+JOIN g2p_register_sections s
+  ON s.section_id = 'farmer_farmer_personal_identification_section_01'
+ AND s.section_register_id = d.register_id
+ AND s.is_list = false
+JOIN g2p_register_ui_tab_sections ts
+  ON ts.section_id = s.section_id
+ AND ts.register_id = d.register_id
+JOIN g2p_register_ui_tabs t
+  ON t.tab_id = ts.tab_id
+ AND t.register_id = d.register_id
+JOIN incoming_model_semantic_patterns p
+  ON p.register_id = d.register_id
+JOIN g2p_intake_form_definitions form
+  ON form.form_id = p.intake_form_id
+ AND form.form_mnemonic = 'farmer_ingestion_intake'
+WHERE f.created_by IS NOT NULL
 LIMIT 1;
 
 DO $$
 BEGIN
-  IF (SELECT count(*) FROM perf_template) <> 1 THEN
+  IF (SELECT count(*) FROM perf_subject) <> 1 THEN
     RAISE EXCEPTION
-      'change_request_ingest needs one UPDATE classified row whose internal_record_id is in g2p_register_farmers, with a section and transformed JSON';
+      'change_request_ingest needs one farmer, the personal-identification section on a register tab, and the farmer ingestion semantic pattern';
   END IF;
 END $$;
 
@@ -36,32 +53,37 @@ WHERE ingest_id LIKE '-perf-ingest-upd-%';
 
 INSERT INTO incoming_classified_data (
   ingest_id, data_model_id, partner_id, register_id, pipeline_action,
-  section_id, internal_record_id, intake_form_id, semantic_pattern_id,
+  section_id, internal_record_id, semantic_pattern_id,
   classified_date_time,
   transformation_status, transformation_number_of_attempts,
   ingestion_status, ingestion_number_of_attempts
 )
 SELECT
   '-perf-ingest-upd-' || lpad(g::text, 8, '0'),
-  t.data_model_id, t.partner_id, t.register_id, 'UPDATE',
-  t.section_id, t.internal_record_id, t.intake_form_id, t.semantic_pattern_id,
+  s.data_model_id, 'perf-ingest-partner', s.register_id, 'UPDATE',
+  s.section_id, s.internal_record_id, s.semantic_pattern_id,
   now(),
   'PROCESSED', 1,
   'PENDING', 0
 FROM generate_series(1, :count) AS g
-CROSS JOIN perf_template t;
+CROSS JOIN perf_subject s;
 
 INSERT INTO incoming_enriched_transformed_data (
-  ingest_id, enriched_data_json, enriched_data_xml,
-  transformed_data_json, transformed_data_xml
+  ingest_id, transformed_data_json
 )
 SELECT
   '-perf-ingest-upd-' || lpad(g::text, 8, '0'),
-  e.enriched_data_json, e.enriched_data_xml,
-  e.transformed_data_json, e.transformed_data_xml
+  jsonb_build_object(
+    s.section_mnemonic,
+    jsonb_build_array(
+      jsonb_build_object(
+        'first_name', 'Perf',
+        'last_name', 'Ingest'
+      )
+    )
+  )::json
 FROM generate_series(1, :count) AS g
-CROSS JOIN perf_template t
-JOIN incoming_enriched_transformed_data e ON e.ingest_id = t.ingest_id;
+CROSS JOIN perf_subject s;
 
 DO $$
 DECLARE
