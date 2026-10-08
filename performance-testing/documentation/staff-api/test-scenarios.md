@@ -6,11 +6,14 @@ Establish, with reproducible evidence on the production-equivalent 3-node
 deployment ([`environment-topology.md`](../environment-topology.md)):
 
 1. **Per-pod API capacity** — the max RPS each of the 5 scenarios (and the
-   blended mix of all 5) sustains at its latency SLO with zero failures,
-   found by ramping load to failure.
-2. **Time-stability** — that capacity holds over an 8-hour soak at 80% of the
-   discovered blended max (no memory leak, connection leak, latency creep, or
-   error growth).
+   blended mix of all 5) sustains before any endpoint's p95/p99 SLO or the
+   pod's CPU headroom is exhausted — for Step 1 (isolated), not a
+   failure-rate threshold (§3, §6).
+2. **Time-stability** — that capacity holds over an 8-hour soak at a fixed
+   load chosen to hold pod CPU near a target band (currently ~1.7-1.8 of
+   the 2-vCPU pod limit, via `SOAK_USERS`/`SOAK_MAX_RPS` — §3/§7; not
+   derived from Step 2's measured max for the cell, see §6) (no memory
+   leak, connection leak, latency creep, or error growth).
 3. **Horizontal scaling factor** — how the blended max RPS changes from
    Pod-Scale 1 → 2 → 3, and the scaling efficiency (actual ÷ ideal-linear),
    derived from repeating Step 2 at each Pod-Scale, not run separately.
@@ -66,7 +69,9 @@ real ceiling.
 ### Pod-Scale
 
 The number of `staff-portal-api` replicas under test, HPA off,
-`requests == limits` at a fixed 1 vCPU / 4 GB per pod.
+`requests == limits`. Pod spec (vCPU/RAM): see
+[`environment-topology.md`](../environment-topology.md) ("Pod configuration")
+— the single source for this, not repeated here.
 
 | Pod-Scale | Replicas |
 |---|---|
@@ -76,9 +81,9 @@ The number of `staff-portal-api` replicas under test, HPA off,
 
 | Step | What it does | Duration |
 |---|---|---|
-| **1 — Isolated** | One of the 5 scenarios (§4) at a time. Ramp load stepwise until p95 breaches its SLO or the pod saturates (CPU/mem ≈100%) — that ramp point is the scenario's true max RPS at this cell. | Ramp-to-failure |
-| **2 — Blended** | An 80:20 read:write mix across all 5 scenarios. Same ramp-to-failure methodology as Step 1, giving the blended max RPS for this cell. | Ramp-to-failure |
-| **3 — Soak** | The blended mix again, but at a **fixed** load — 80% of *this same cell's* Step 2 result — run continuously. Not discovering a new ceiling; checking the Step-2 ceiling holds over time. | Fixed, 8h |
+| **1 — Isolated** | One of the 5 scenarios (§4) at a time. Ramp `+step_users` every `step_seconds`; each tracked endpoint's own p95/p99 SLO (§5) is checked every step. The ramp stops — freezing at whatever user count it has reached — the first time *either* an endpoint's SLO is breached for `SLO_BREACH_STEPS` consecutive windows *or* the pod's CPU crosses `CPU_BREACH_CORES` for `CPU_BREACH_POLLS` consecutive polls (quorum: 2-of-3+ pods, else 1-of-1-2). Failures are logged, not a stop condition (§6). The frozen level then holds for `SUSTAIN_MINUTES` — that steady-state window, not the ramp itself, is what's reported. | Ramp-until-freeze, then hold |
+| **2 — Blended** | An 80:20 read:write mix across all 5 scenarios, by weight (§4). Driven by `BlendedRampShape`, a subclass of Step 1's `SLOStepRampShape` with no logic changes — identical ramp/freeze mechanics, just spawning the weighted mix instead of one scenario. | Ramp-until-freeze, then hold |
+| **3 — Soak** | The same hardcoded 80:20 weighted mix as Step 2, but **not** ramped by `SLOStepRampShape` — plain Locust `-u`/`-r`/`-t` at a fixed `SOAK_USERS` count, with total HTTP throughput capped by a token-bucket rate gate (`SOAK_MAX_RPS`) so CPU doesn't climb back to the ramp's closed-loop ceiling once latency settles. Both values are set directly in `k8s/soak-job.yaml`, chosen to hold pod CPU near a target band (~1.7-1.8 of the 2-vCPU limit) — **not derived from this cell's Step 2 result**: at `primary`, `SOAK_USERS=36`/`SOAK_MAX_RPS=172` ran ~30% above Step 2's own measured RPS (32 users → 123.70 RPS); at `stretch`, the identical `36`/`172` values were reused unchanged even though Step 2 there peaked at a different user count (52), so the soak ran at fewer users than Step 2 itself reached. In-cluster only (`IN_CLUSTER_SOAK=1` gates the rate cap and pod pinning); not discovering a new ceiling — checking stability holds over time at this CPU-targeted load, not specifically at the Step-2 ceiling. | Fixed users + RPS cap, 8h |
 
 Which Steps run at which Volume-Tier × Pod-Scale:
 
@@ -137,9 +142,23 @@ connection pooling, or disk? See §7 for the procedure.
 
 The endpoints below are the **real routes** of the OpenG2P Registry platform
 (`registry-platform/apis/...`), POST JSON unless noted. Each scenario is a
-standalone Locust `User` class, run in isolation for Step 1 (§3); a blended
-locustfile for Steps 2–3 is follow-up work. All 5 acquire one OIDC token per
-simulated user at `on_start`, cached and refreshed on expiry.
+standalone Locust `User` class, run in isolation for Step 1 (§3). For Step 2
+(§3, §7), the same 5 `User` classes are spawned together as a weighted mix by
+[`blended/blended_locustfile.py`](../../locust/api/staff-api/blended/blended_locustfile.py)
+— no separate scenario code, just each class's `weight` set so Locust's
+spawner draws users in that ratio:
+
+| Scenario | Weight | Share of users | Read/Write |
+|---|---:|---:|---|
+| `register_read` | 40 | 40% | read |
+| `cr_read_and_approve` | 20 | 20% | read |
+| `intake_read_and_approve` | 20 | 20% | read |
+| `cr_create` | 10 | 10% | write |
+| `intake_create` | 10 | 10% | write |
+
+40 + 20 + 20 = 80% read, 10 + 10 = 20% write — the "80:20 read:write mix"
+referenced throughout this doc. All 5 acquire one OIDC token per simulated
+user at `on_start`, cached and refreshed on expiry.
 
 Each endpoint has its **own** p95/p99 SLO — see §5. The Class column is only
 a scenario grouping, not a shared latency budget.
@@ -284,7 +303,10 @@ by any of the 5 scenarios yet — its SLO (§5) is reserved for future use.
 ## 5. Service-Level Objectives (per endpoint)
 
 Each Locust `name=` has its own p95/p99 in `locust/api/env.sh` (`ENDPOINT_SLOS`).
-The ramp checks that pair, not a class-wide number.
+The ramp checks that pair, not a class-wide number. For Step 1, this is the
+exact pair `SLOStepRampShape` (`locust/api/shared/slo_shape.py`) evaluates
+every ramp step against — see §3/§6/§7 for how a breach here (or on the pod's
+CPU) freezes the ramp.
 
 Bands (primary isolated stats):
 
@@ -297,14 +319,59 @@ Bands (primary isolated stats):
 
 ## 6. Pass / fail criteria
 
-A configuration **passes** at a given RPS when, at steady state:
-- p95 (and p99) ≤ the endpoint SLO, **and**
-- error rate = 0 (no 5xx, no timeouts, no DB-connection errors), **and**
-- for Step 3 (soak): the above hold for the full 8h with no upward
-  memory/latency trend.
+**Steps 1–2 (isolated, blended).** Both are driven by the same shape
+(`SLOStepRampShape` for Step 1; `BlendedRampShape` — an unmodified subclass
+— for Step 2), so both follow the same rule. The ramp does not stop on
+failures — 5xx/timeouts are logged per endpoint but never freeze the ramp
+or feed the p95/p99 that's checked (only successful request times count;
+see `slo_shape.py`'s `_on_request`). Instead, the ramp freezes the first
+time *either*:
+- an endpoint's own p95 **or** p99 crosses its SLO (§5) for
+  `SLO_BREACH_STEPS` (2) consecutive 30s windows — each window needs
+  ≥`min_requests_for_check` (100) successful samples for that endpoint
+  before it's evaluated at all, so one slow outlier can't trigger it — **or**
+- the pod's CPU crosses `CPU_BREACH_CORES` (1.85, out of a 2 vCPU / 2000m
+  limit) for `CPU_BREACH_POLLS` (2) consecutive 10s `kubectl top` polls,
+  with quorum (2-of-3+ replicas hot, or 1-of-1-2).
 
-The **reported max RPS** (Steps 1–2) is the highest ramp step satisfying all
-three at the defined resource-saturation stop condition.
+For Step 2, "an endpoint's own SLO" means any endpoint fired by *any* of the
+5 weighted scenarios (§4) — a breach in one scenario's traffic (e.g.
+`cr_create`'s `create_change_request` at only 10% weight) freezes the whole
+blended ramp, not just that scenario's share.
+
+The **reported result** for a cell is the frozen user count and its RPS —
+the level the ramp had reached when the breach was confirmed — held for
+`SUSTAIN_MINUTES` afterward so the reported endpoint stats come from a
+steady-state window, not mid-ramp. Which condition triggered the freeze
+(which endpoint's SLO, or CPU) is recorded as the saturating factor.
+Reaching `MAX_USERS` with no breach freezes and holds the same way, with
+`max_users` itself as the result.
+
+**Step 3 (soak).** Runs the same 5-scenario mix as Steps 1-2, at the same
+hardcoded weights (`register_read` 40, `cr_read_and_approve` 20,
+`intake_read_and_approve` 20, `cr_create` 10, `intake_create` 10 — set
+directly in
+[`soak_locustfile.py`](../../locust/api/staff-api/blended/soak_locustfile.py),
+not read from an environment variable). It does **not** use
+`SLOStepRampShape` — no SLO/CPU-breach freeze logic applies here. Instead
+it's plain Locust `-u`/`-r`/`-t`: a fixed `SOAK_USERS` count, ramped at a
+fixed spawn rate, held for `SOAK_RUN_TIME` (8h). Total HTTP throughput is
+capped by
+[`shared/rps_gate.py`](../../locust/api/shared/rps_gate.py)'s
+`SOAK_MAX_RPS` token-bucket limiter, active only when `IN_CLUSTER_SOAK=1`
+([`shared/in_cluster.py`](../../locust/api/shared/in_cluster.py)) — so
+soak is an in-cluster-only Step; end-to-end/laptop runs of Steps 1-2 must
+leave it unset. `SOAK_USERS`/`SOAK_MAX_RPS` are set directly in `k8s/soak-job.yaml`,
+chosen to hold pod CPU near a target band — **~1.7-1.8 of the 2-vCPU pod
+limit** — rather than derived from the cell's own Step 2 result. As
+actually run, both are a fixed `36`/`172` regardless of Volume-Tier: the
+same values are used at `primary` and `stretch` alike, not recalculated
+per tier. Record what was actually configured (`SOAK_USERS`,
+`SOAK_MAX_RPS`, and the CPU band it held) for each soak cell. Pass/fail is
+different from Steps 1-2's freeze-based one: at steady state, p95 (and
+p99) ≤ the endpoint SLO **and** error rate = 0 (no 5xx, no timeouts, no
+DB-connection errors) **and** both hold for the full 8h with no upward
+memory/latency trend.
 
 ## 7. Execution runbook
 
@@ -320,24 +387,38 @@ three at the defined resource-saturation stop condition.
    `postgres_exporter` + `pg_stat_statements` on the storage node. Confirm
    dashboards show live data.
 5. **Pin the pod under test** — `replicas` = the Pod-Scale you're about to
-   run, HPA off, `requests == limits` at **1 vCPU / 4 GB**. Sweep
-   gunicorn/uvicorn `NO_OF_WORKERS ∈ {1,2,4}` at a fixed moderate load and
-   keep the value with best RPS-at-SLO; record it.
+   run, HPA off, `requests == limits` at the spec in
+   [`environment-topology.md`](../environment-topology.md) ("Pod
+   configuration"). Sweep gunicorn/uvicorn `NO_OF_WORKERS ∈ {1,2,4}` at a
+   fixed moderate load and keep the value with best RPS-at-SLO; record it.
 6. **Deploy Locust** in-cluster (for per-pod/scaling) and/or on an external
    host (for end-to-end). Load the seed manifest. Validate one of each
    request type returns 2xx before load.
 
 ### Step 1 — Isolated (per Volume-Tier × Pod-Scale cell)
 
-For each of the 5 scenarios in §4:
-1. Warm up 3–5 min at low load; **discard** this window.
-2. Ramp users stepwise (e.g. +N users every 60–120 s) so each step reaches
-   steady state. Hold each step long enough for stable percentiles.
-3. At each step record: RPS, p50/p90/p95/p99/max, error count by type, pod
-   CPU/mem, DB connections, DB CPU/IO.
-4. Identify **max RPS** = highest step where p95 ≤ SLO **and** errors = 0
-   **and** pod CPU≈100% or mem≈100%. Note the saturating resource.
-5. Repeat each point ≥ 2× on separate runs; report median + spread.
+Driven by a custom Locust shape, `SLOStepRampShape`
+(`locust/api/shared/slo_shape.py`), not a manually-stepped ramp. For each of
+the 5 scenarios in §4:
+1. Warm up at `warmup_users` for `warmup_seconds`; this window's samples are
+   discarded so cold-start latency can't trigger a breach.
+2. Ramp `+step_users` every `step_seconds` — no per-user RPS cap, each
+   simulated user fires its scenario's calls back-to-back, as fast as the
+   API answers. Every step, check the p95/p99 of each endpoint this
+   scenario actually fires (§5) against that endpoint's own SLO, and poll
+   pod CPU via `kubectl top` (§6).
+3. The ramp freezes — no step-down — the first time an SLO breach or a CPU
+   breach is *confirmed* (§6's consecutive-window/poll rule, so a one-off
+   spike doesn't trigger it). Failures (5xx, timeouts) are logged per
+   endpoint throughout but never trigger the freeze.
+4. Once frozen, hold the **same** user count for `SUSTAIN_MINUTES`, still
+   recording — this steady-state window, not the ramp itself, is where the
+   reported numbers come from. Reaching `MAX_USERS` with no breach freezes
+   and holds the same way.
+5. Record: RPS, p50/p90/p95/p99/max, error count by type (logged, not
+   gating), pod CPU (from the same `kubectl top` polls that drove the
+   freeze), DB connections, DB CPU/IO.
+6. Repeat each point ≥ 2× on separate runs; report median + spread.
 
 Deliverable: raw per-endpoint numbers for this cell in
 [`raw-report.md`](raw-report.md) (regenerate via `create_raw_report.py`),
@@ -346,9 +427,23 @@ latency-vs-RPS "knee" chart) via `synthesize_report.py`.
 
 ### Step 2 — Blended (per Volume-Tier × Pod-Scale cell)
 
-Same ramp-to-failure procedure as Step 1, but driving an 80:20 read:write mix
-across all 5 scenarios instead of one at a time. Requires the combined
-locustfile (follow-up work — not built yet).
+Run [`blended/blended_locustfile.py`](../../locust/api/staff-api/blended/blended_locustfile.py)
+instead of a single scenario's locustfile — same ramp/warmup/freeze/hold
+procedure as Step 1 (§6, `BlendedRampShape` changes no logic, only which
+`User` classes are spawned), but Locust draws simulated users from all 5
+scenarios by weight instead of running one at a time:
+
+| Scenario | Weight | Share of users | Read/Write |
+|---|---:|---:|---|
+| `register_read` | 40 | 40% | read |
+| `cr_read_and_approve` | 20 | 20% | read |
+| `intake_read_and_approve` | 20 | 20% | read |
+| `cr_create` | 10 | 10% | write |
+| `intake_create` | 10 | 10% | write |
+
+The ramp tracks every endpoint fired by any of the 5 (their union), so a
+breach caused by a low-weight scenario (e.g. `intake_create` at 10%) still
+freezes the whole run — see §6.
 
 Deliverable: raw numbers in [`raw-report.md`](raw-report.md), plus the
 curated `blended-capacity.csv` for this cell. Comparing this across
@@ -358,15 +453,36 @@ across Volume-Tier (fixed pod-scale) gives **data-volume sensitivity** — see
 
 ### Step 3 — Soak (typically one cell — the production-representative one)
 
-1. Set load to **80% of this cell's Step 2 max RPS**.
-2. Run **8 hours** continuously (blended mix).
+Run via the in-cluster Job,
+[`k8s/soak-job.yaml`](../../locust/api/k8s/soak-job.yaml) — a laptop
+run through `locust-staff-api.sh` exists as a fallback but is not the
+production-representative path (no RPS cap, no pod pinning; the script
+itself warns "will die if the machine sleeps"):
+
+1. Set `SOAK_USERS` and `SOAK_MAX_RPS` in `k8s/soak-job.yaml` — in
+   practice this has meant picking values that hold pod CPU near a target
+   band (~1.7-1.8 of the 2-vCPU limit), **not** deriving them from this
+   cell's own Step 2 result. Both `primary` and `stretch` so far ran with
+   the identical `SOAK_USERS=36`/`SOAK_MAX_RPS=172`, despite Step 2
+   freezing at different user counts (32 vs. 52) and different RPS
+   (123.70 vs. 124.13) at those two tiers — so this value is not
+   currently being recalculated per cell at all. Record what's actually
+   set against what Step 2 measured for the same cell, whatever it turns
+   out to be.
+2. Run the Job for `SOAK_RUN_TIME` (8h). `soak_locustfile.py` spawns the
+   same 80:20 weighted mix as Step 2 (hardcoded weights, not from env) at
+   the fixed user count — no ramp, no SLO/CPU freeze logic.
 3. Watch for: upward memory trend (leak), growing DB connections
-   (pool/handle leak), latency creep, any errors.
+   (pool/handle leak), latency creep, any errors. `kubectl top` /
+   Grafana pod panels cover CPU/memory; Locust's own stats cover
+   RPS/latency/errors — DB connection counts need a separate capture, not
+   part of either.
 4. Pass = SLOs hold + 0 errors + flat memory for the full window.
 
 Deliverable: the time series in [`raw-report.md`](raw-report.md) (from
-Locust's `_stats_history.csv`, RPS/p95/error rate), plus pod memory/DB conns
-recorded manually into `soak.csv` for this cell.
+Locust's `_stats_history.csv`, RPS/p95/error rate), pod CPU/memory
+dashboard exports per replica, plus DB conns recorded manually into
+`soak.csv` for this cell.
 
 ### `db-sweep` (separate from the matrix — see §3)
 
@@ -405,7 +521,9 @@ so there's no auto-generated raw table — drop the readings as a CSV (schema:
   Unlimited or use non-burstable for `db-sweep`/Step 3.
 - Shared single compute node → other platform pods add noise; run in quiet
   windows, capture node-level metrics, record co-tenants.
-- gunicorn worker count vs 1 vCPU → tune, don't accept the default 8.
+- gunicorn worker count vs the pod's actual vCPU
+  ([`environment-topology.md`](../environment-topology.md)) → tune, don't
+  accept the default 8.
 - DB connection exhaustion (pods × workers × pool) → size pools, use
   PgBouncer.
 - Benchmarking through the 2-vCPU RP for end-to-end runs → RP can cap
