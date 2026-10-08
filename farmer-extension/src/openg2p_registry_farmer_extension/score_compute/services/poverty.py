@@ -31,18 +31,17 @@ class G2PScoreComputeServicePoverty(G2PScoreComputeInterface):
     async def compute_score(
         self,
         link_internal_record_id: str,
+        contributing_attribute_config: list[dict[str, Any]],
         contributing_attribute_values: dict,
-        score_config: dict,
     ) -> float:
         """
-        Compute poverty score based on configured household attributes.
-        
+        Compute poverty score from the contributing-attribute rows the worker loads.
+
         Args:
             link_internal_record_id: UUID of the subject register record
-            contributing_attribute_values: Dictionary containing attribute values
-                that feed into this score computation
-            score_config: Configuration dictionary containing weights and parameters
-                
+            contributing_attribute_config: Rows with attribute_name and attribute_weightage
+            contributing_attribute_values: Attribute values for this queue item
+
         Returns:
             float: Computed poverty score (higher indicates more vulnerable)
         """
@@ -51,28 +50,20 @@ class G2PScoreComputeServicePoverty(G2PScoreComputeInterface):
             f"with {len(contributing_attribute_values)} attributes"
         )
 
-        # The worker passes values for the score definition's configured
-        # contributing_attributes, and score_config contains matching weights.
-        weights = score_config.get(
-            "weights",
-            {
-                "size_of_group": 0.4,
-                "number_of_children": 0.6,
-            },
-        )
         score = 0.0
-
-        if "size_of_group" in contributing_attribute_values:
-            score += (
-                self._to_number(contributing_attribute_values.get("size_of_group"))
-                * weights.get("size_of_group", 0.0)
-            )
-
-        if "number_of_children" in contributing_attribute_values:
-            score += (
-                self._to_number(contributing_attribute_values.get("number_of_children"))
-                * weights.get("number_of_children", 0.0)
-            )
+        for item in contributing_attribute_config or []:
+            name = item.get("attribute_name")
+            if not name or name not in contributing_attribute_values:
+                continue
+            try:
+                weight = float(item.get("attribute_weightage") or 0.0)
+            except (TypeError, ValueError):
+                weight = 0.0
+            raw_value = contributing_attribute_values.get(name)
+            lookup = item.get("attribute_computation_value") or {}
+            if isinstance(lookup, dict) and raw_value in lookup:
+                raw_value = lookup[raw_value]
+            score += self._to_number(raw_value) * weight
 
         _logger.info(
             f"Computed poverty score: {round(score, 4)} for record {link_internal_record_id}"
