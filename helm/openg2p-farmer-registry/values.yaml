@@ -113,10 +113,11 @@ registry:
   # registry-agnostic and comes from the subchart.
   iamRegister:
     applicationDescription: "Farmer Registry"
-    # Rancher skips Helm hooks. Null these so the Job/ConfigMap are regular
-    # resources (same as commons does for master-data / AWE / PM).
-    annotations: null
-    payloadAnnotations: null
+    # Rancher may skip Helm hooks: run IAM registration as a regular resource
+    # (same as commons does for master-data / AWE / PM). Needs a platform chart
+    # with iamRegister.runAsHook; a parent `null` cannot clear the subchart's
+    # hook annotations (Helm warns "cannot overwrite table with non table").
+    runAsHook: false
 
   # Functional-ID pools, one per register. The subchart defaults to the REFERENCE
   # registry's registers (individual + household), so the farmer register must be
