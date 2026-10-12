@@ -2,8 +2,8 @@
 -- People are inserted only into g2p_register_farmers. Child tables are left alone.
 -- Existing farmer rows are not updated. A rerun deletes only perf-farmer-* rows.
 -- Every new farmer has first_name, last_name, and birth_date.
--- The first 1000 change requests match exactly two farmer rows: the row itself
--- and one copy with the same name and birth date. Each of those 1000 has its
+-- The first 4000 change requests match exactly two farmer rows: the row itself
+-- and one copy with the same name and birth date. Each of those 4000 has its
 -- own birth date and a name that is not a near-copy of the others.
 -- Every later change request uses a name and birth date that no farmer has.
 -- The change request sits on farmer personal identification.
@@ -13,7 +13,8 @@
 
 BEGIN;
 
-CREATE TEMP TABLE perf_n ON COMMIT DROP AS SELECT :count::int AS n;
+CREATE TEMP TABLE perf_n ON COMMIT DROP AS
+SELECT :count::int AS n, least(:count::int, 4000) AS matches;
 
 
 CREATE TEMP TABLE perf_template ON COMMIT DROP AS
@@ -50,20 +51,21 @@ CREATE TEMP TABLE perf_farmers ON COMMIT DROP AS
 SELECT
   g,
   'perf-farmer-' || lpad(g::text, 8, '0') AS internal_record_id,
-  CASE WHEN g <= 1000
+  CASE WHEN g <= a.matches
     THEN substr(md5('fn-' || g::text), 1, 20)
     ELSE 'perfzxqfn' || lpad(g::text, 8, '0')
   END AS first_name,
-  CASE WHEN g <= 1000
+  CASE WHEN g <= a.matches
     THEN substr(md5('ln-' || g::text), 1, 20)
     ELSE 'perfzxqln' || lpad(g::text, 8, '0')
   END AS last_name,
-  CASE WHEN g <= 1000
+  CASE WHEN g <= a.matches
     THEN DATE '1217-03-01' + g
-    ELSE DATE '1800-01-01'
+    ELSE DATE '1000-01-01' + g
   END AS birth_date,
-  (g <= 1000) AS is_match
-FROM generate_series(1, :count) AS g;
+  (g <= a.matches) AS is_match
+FROM generate_series(1, :count) AS g
+CROSS JOIN perf_n a;
 
 DO $$
 BEGIN
@@ -152,7 +154,7 @@ SELECT
     'internal_record_id', f.internal_record_id,
     'first_name', CASE WHEN f.is_match THEN f.first_name ELSE 'perfzxqnomatch' || lpad(f.g::text, 8, '0') END,
     'last_name', CASE WHEN f.is_match THEN f.last_name ELSE 'perfzxqnomatchln' || lpad(f.g::text, 8, '0') END,
-    'birth_date', CASE WHEN f.is_match THEN to_char(f.birth_date, 'YYYY-MM-DD') ELSE '1801-01-01' END
+    'birth_date', CASE WHEN f.is_match THEN to_char(f.birth_date, 'YYYY-MM-DD') ELSE to_char(DATE '1300-01-01' + f.g, 'YYYY-MM-DD') END
   )),
   CASE WHEN f.is_match
     THEN f.first_name || ' ' || f.last_name
@@ -170,9 +172,9 @@ BEGIN
   FROM g2p_register_farmers
   WHERE internal_record_id >= 'perf-farmer-'
     AND internal_record_id < 'perf-farmer.';
-  IF farmers <> (SELECT n + least(n, 1000) FROM perf_n) THEN
+  IF farmers <> (SELECT n + matches FROM perf_n) THEN
     RAISE EXCEPTION 'dedup_register inserted % farmers, wanted %',
-      farmers, (SELECT n + least(n, 1000) FROM perf_n);
+      farmers, (SELECT n + matches FROM perf_n);
   END IF;
   SELECT count(*) INTO got
   FROM g2p_register_change_requests
@@ -194,9 +196,9 @@ BEGIN
   WHERE p.change_request_id LIKE '-perf-dedup-register-%'
     AND f.internal_record_id >= 'perf-farmer-'
     AND f.internal_record_id < 'perf-farmer.';
-  IF dupes <> (SELECT least(n, 1000) FROM perf_n) THEN
+  IF dupes <> (SELECT matches FROM perf_n) THEN
     RAISE EXCEPTION 'dedup_register seeded % matching payloads, wanted %',
-      dupes, (SELECT least(n, 1000) FROM perf_n);
+      dupes, (SELECT matches FROM perf_n);
   END IF;
   IF (
     SELECT count(*)
@@ -210,11 +212,11 @@ BEGIN
        AND f.internal_record_id >= 'perf-farmer-'
        AND f.internal_record_id < 'perf-farmer.'
       WHERE p.change_request_id LIKE '-perf-dedup-register-%'
-        AND right(p.change_request_id, 8)::int <= 1000
+        AND right(p.change_request_id, 8)::int <= (SELECT matches FROM perf_n)
       GROUP BY p.change_request_id
       HAVING count(*) = 2
     ) ok
-  ) <> (SELECT least(n, 1000) FROM perf_n) THEN
+  ) <> (SELECT matches FROM perf_n) THEN
     RAISE EXCEPTION 'a matching change request does not have exactly 2 farmer rows';
   END IF;
   RAISE NOTICE 'dedup_register farmers: %, pending change requests: %, matching payloads: %',

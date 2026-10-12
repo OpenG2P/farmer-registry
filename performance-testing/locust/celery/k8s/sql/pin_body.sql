@@ -45,19 +45,19 @@ BEGIN
          SELECT %L, %L, %I::text, %L, %I
          FROM %I
          WHERE %I = ''PENDING'' AND (%s)
-         ORDER BY %I
+         ORDER BY (CASE WHEN %I::text LIKE %L THEN 0 ELSE 1 END), %I
          OFFSET %s',
-        r.table_name, r.pk, r.pk, r.col, r.col, r.table_name, r.col, r.extra, r.pk, keep_size
+        r.table_name, r.pk, r.pk, r.col, r.col, r.table_name, r.col, r.extra, r.pk, r.prefer, r.pk, keep_size
       );
       EXECUTE format(
         'UPDATE %I SET %I = %L
          WHERE %I IN (
            SELECT %I FROM %I
            WHERE %I = ''PENDING'' AND (%s)
-           ORDER BY %I
+           ORDER BY (CASE WHEN %I::text LIKE %L THEN 0 ELSE 1 END), %I
            OFFSET %s
          )',
-        r.table_name, r.col, r.park, r.pk, r.pk, r.table_name, r.col, r.extra, r.pk, keep_size
+        r.table_name, r.col, r.park, r.pk, r.pk, r.table_name, r.col, r.extra, r.pk, r.prefer, r.pk, keep_size
       );
       GET DIAGNOSTICS parked = ROW_COUNT;
       EXECUTE format(

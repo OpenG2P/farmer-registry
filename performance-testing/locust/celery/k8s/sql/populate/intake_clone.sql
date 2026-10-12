@@ -57,6 +57,25 @@ BEGIN
       'intake populate needs one FINAL submission that has a g2p_intake_form_farmers row and a created_by';
   END IF;
 
+  DELETE FROM dedup_results_intake_forms_vs_register
+  WHERE submission_id LIKE '00000000-0000-4000-' || args.uuid_group || '-%'
+     OR submission_id IN (
+       SELECT submission_id::text FROM g2p_intake_form_submissions
+       WHERE application_reference LIKE args.tag || '-%'
+     );
+
+  DELETE FROM dedup_results_intake_forms_vs_intake_forms
+  WHERE submission_id LIKE '00000000-0000-4000-' || args.uuid_group || '-%'
+     OR candidate_submission_id LIKE '00000000-0000-4000-' || args.uuid_group || '-%'
+     OR submission_id IN (
+       SELECT submission_id::text FROM g2p_intake_form_submissions
+       WHERE application_reference LIKE args.tag || '-%'
+     )
+     OR candidate_submission_id IN (
+       SELECT submission_id::text FROM g2p_intake_form_submissions
+       WHERE application_reference LIKE args.tag || '-%'
+     );
+
   FOREACH tbl IN ARRAY intake_tables LOOP
     IF to_regclass(tbl) IS NULL THEN
       CONTINUE;
@@ -111,8 +130,76 @@ BEGIN
     PRIMARY KEY (submission_id, old_id)
   ) ON COMMIT DROP;
 
+  -- Dedup only needs the three search fields, same as dedup_register.
+  -- Copying every column of the template farmer is what makes 40000 rows sit
+  -- inside this one statement.
+  IF args.tag IN ('PERF-DEDUP-VS-INT', 'PERF-DEDUP-VS-REG') THEN
+    INSERT INTO g2p_intake_form_farmers (
+      submission_id, internal_record_id, first_name, last_name, birth_date,
+      record_name, search_text,
+      created_by, created_at, last_approved_at, last_approved_by, record_status
+    )
+    SELECT
+      n.submission_id,
+      CASE
+        WHEN args.tag = 'PERF-DEDUP-VS-INT' THEN 'perf-int-'
+        ELSE 'perf-ifrin-'
+      END || lpad(n.n::text, 8, '0'),
+      v.first_name,
+      v.last_name,
+      v.birth_date,
+      v.first_name || ' ' || v.last_name,
+      v.first_name,
+      a.created_by, now(), now(), a.last_approved_by, a.record_status
+    FROM perf_new_submissions n
+    CROSS JOIN (
+      SELECT
+        COALESCE(f.created_by, s.created_by) AS created_by,
+        COALESCE(f.last_approved_by, f.created_by, s.created_by) AS last_approved_by,
+        COALESCE(NULLIF(f.record_status, ''), 'ACTIVE') AS record_status
+      FROM g2p_intake_form_farmers f
+      JOIN g2p_intake_form_submissions s ON s.submission_id = f.submission_id
+      WHERE f.submission_id = template_id
+      LIMIT 1
+    ) a
+    CROSS JOIN LATERAL (
+      SELECT
+        CASE
+          WHEN args.tag = 'PERF-DEDUP-VS-INT' AND n.n <= (least(args.n, 8000) / 2) * 2
+            THEN 'perfzxqintdupfn' || lpad(((n.n + 1) / 2)::text, 8, '0')
+          WHEN args.tag = 'PERF-DEDUP-VS-INT'
+            THEN 'perfzxqintfn' || lpad(n.n::text, 8, '0')
+          WHEN n.n <= least(args.n, 4000)
+            THEN 'perfzxqifrmfn' || lpad(n.n::text, 8, '0')
+          ELSE 'perfzxqifrfn' || lpad(n.n::text, 8, '0')
+        END AS first_name,
+        CASE
+          WHEN args.tag = 'PERF-DEDUP-VS-INT' AND n.n <= (least(args.n, 8000) / 2) * 2
+            THEN 'perfzxqintdupln' || lpad(((n.n + 1) / 2)::text, 8, '0')
+          WHEN args.tag = 'PERF-DEDUP-VS-INT'
+            THEN 'perfzxqintln' || lpad(n.n::text, 8, '0')
+          WHEN n.n <= least(args.n, 4000)
+            THEN 'perfzxqifrmln' || lpad(n.n::text, 8, '0')
+          ELSE 'perfzxqifrln' || lpad(n.n::text, 8, '0')
+        END AS last_name,
+        CASE
+          WHEN args.tag = 'PERF-DEDUP-VS-INT' AND n.n <= (least(args.n, 8000) / 2) * 2
+            THEN DATE '1600-01-01' + ((n.n + 1) / 2)
+          WHEN args.tag = 'PERF-DEDUP-VS-INT'
+            THEN DATE '0600-01-01' + n.n
+          WHEN n.n <= least(args.n, 4000)
+            THEN DATE '1500-01-01' + n.n
+          ELSE DATE '0800-01-01' + n.n
+        END AS birth_date
+    ) v;
+  END IF;
+
   FOREACH tbl IN ARRAY intake_tables LOOP
     IF to_regclass(tbl) IS NULL THEN
+      CONTINUE;
+    END IF;
+    -- Dedup rows were inserted above. Ingest still copies every section.
+    IF args.tag IN ('PERF-DEDUP-VS-INT', 'PERF-DEDUP-VS-REG') THEN
       CONTINUE;
     END IF;
     EXECUTE format(
@@ -203,6 +290,89 @@ BEGIN
       tbl
     );
   END LOOP;
+
+  IF args.tag = 'PERF-DEDUP-VS-INT' THEN
+    -- 4000 pairs (rows 1-8000). Each pair shares the three dedup fields.
+    IF (
+      SELECT count(*) FROM (
+        SELECT first_name, last_name, birth_date
+        FROM g2p_intake_form_farmers
+        WHERE submission_id IN (SELECT submission_id FROM perf_new_submissions)
+        GROUP BY first_name, last_name, birth_date
+        HAVING count(*) = 2
+      ) pairs
+    ) <> (least(args.n, 8000) / 2) THEN
+      RAISE EXCEPTION 'intake-vs-intake did not build % pairs', (least(args.n, 8000) / 2);
+    END IF;
+  ELSIF args.tag = 'PERF-DEDUP-VS-REG' THEN
+    -- First 4000 intakes each match two new farmers. The other intakes match none.
+    DELETE FROM g2p_register_farmers
+    WHERE internal_record_id >= 'perf-ifr-'
+      AND internal_record_id < 'perf-ifr.';
+
+    INSERT INTO g2p_register_farmers (
+      internal_record_id, first_name, last_name, birth_date,
+      record_name, search_text,
+      created_by, created_at, last_approved_at, last_approved_by, record_status
+    )
+    SELECT
+      copies.id_prefix || lpad(src.n::text, 8, '0'),
+      src.first_name, src.last_name, src.birth_date,
+      src.first_name || ' ' || src.last_name,
+      src.first_name,
+      a.created_by, now(), now(), a.last_approved_by, a.record_status
+    FROM (
+      SELECT DISTINCT ON (n.n)
+        n.n, f.first_name, f.last_name, f.birth_date
+      FROM perf_new_submissions n
+      JOIN g2p_intake_form_farmers f ON f.submission_id = n.submission_id
+      WHERE n.n <= least(args.n, 4000)
+      ORDER BY n.n
+    ) src
+    CROSS JOIN (VALUES ('perf-ifr-'), ('perf-ifr-b')) AS copies(id_prefix)
+    CROSS JOIN (
+      SELECT
+        COALESCE(f.created_by, s.created_by) AS created_by,
+        COALESCE(f.last_approved_by, f.created_by, s.created_by) AS last_approved_by,
+        COALESCE(NULLIF(f.record_status, ''), 'ACTIVE') AS record_status
+      FROM g2p_intake_form_farmers f
+      JOIN g2p_intake_form_submissions s ON s.submission_id = f.submission_id
+      WHERE f.submission_id = template_id
+      LIMIT 1
+    ) a;
+
+    IF (
+      SELECT count(*)
+      FROM (
+        SELECT f.submission_id
+        FROM g2p_intake_form_farmers f
+        JOIN perf_new_submissions n ON n.submission_id = f.submission_id
+        JOIN g2p_register_farmers r
+          ON r.first_name = f.first_name
+         AND r.last_name = f.last_name
+         AND r.birth_date = f.birth_date
+         AND r.internal_record_id >= 'perf-ifr-'
+         AND r.internal_record_id < 'perf-ifr.'
+        WHERE n.n <= least(args.n, 4000)
+        GROUP BY f.submission_id
+        HAVING count(*) = 2
+      ) ok
+    ) <> least(args.n, 4000)
+    OR EXISTS (
+      SELECT 1
+      FROM g2p_intake_form_farmers f
+      JOIN perf_new_submissions n ON n.submission_id = f.submission_id
+      JOIN g2p_register_farmers r
+        ON r.first_name = f.first_name
+       AND r.last_name = f.last_name
+       AND r.birth_date = f.birth_date
+       AND r.internal_record_id >= 'perf-ifr-'
+       AND r.internal_record_id < 'perf-ifr.'
+      WHERE n.n > least(args.n, 4000)
+    ) THEN
+      RAISE EXCEPTION 'intake-vs-register did not give % intakes exactly 2 farmers', least(args.n, 4000);
+    END IF;
+  END IF;
 
   IF (SELECT count(*) FROM g2p_intake_form_submissions
       WHERE application_reference LIKE args.tag || '-%') <> args.n THEN

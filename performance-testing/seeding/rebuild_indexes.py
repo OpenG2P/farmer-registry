@@ -88,6 +88,14 @@ INTAKE_TABLES = (
     "g2p_intake_form_membership_details",
 )
 
+# Dedup candidate lookup: ILIKE on names, equality and ranges on birth_date.
+DEDUP_PERSON_TABLES = (
+    "g2p_register_farmers",
+    "g2p_register_household_members",
+    "g2p_intake_form_farmers",
+    "g2p_intake_form_household_members",
+)
+
 GIN_LIVE_ORDER = (
     "g2p_register_farmers",
     "g2p_register_households",
@@ -208,6 +216,20 @@ def plan() -> list[tuple[str, str]]:
             using="gin",
         ))
         steps.append(fts_gin(f"idx_{table}_search_text_fts", table))
+    for table in DEDUP_PERSON_TABLES:
+        steps.append(idx(
+            f"idx_{table}_first_name_trgm",
+            table,
+            "first_name gin_trgm_ops",
+            using="gin",
+        ))
+        steps.append(idx(
+            f"idx_{table}_last_name_trgm",
+            table,
+            "last_name gin_trgm_ops",
+            using="gin",
+        ))
+        steps.append(idx(f"ix_{table}_birth_date", table, "birth_date"))
     steps.append(idx(
         "ix_g2p_register_change_request_payloads_search_text_gin",
         "g2p_register_change_request_payloads",
@@ -260,6 +282,10 @@ def run_sql(cur, label: str, sql: str, allow_unique_fallback: bool = True) -> st
         log(f"SKIP  {label} (already exists) in {time.monotonic() - started:.0f}s")
         return "skip"
     except (errors.UniqueViolation, errors.IntegrityError) as exc:
+        message = str(exc)
+        if "pg_class_relname_nsp_index" in message:
+            log(f"SKIP  {label} (already exists) in {time.monotonic() - started:.0f}s")
+            return "skip"
         if allow_unique_fallback and "UNIQUE INDEX" in sql:
             fallback_name = label.split(".", 1)[-1]
             table = label.split(".", 1)[0]
