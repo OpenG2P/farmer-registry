@@ -83,9 +83,25 @@ INSERT INTO outgoing_raw_data_payloads (
 SELECT
   '-perf-outgest-xform-' || lpad(g::text, 8, '0'),
   NULL, NULL,
-  '{"first_name":"Perf","last_name":"Farmer","foundational_id":"PERF","gender":"MALE","language_spoken":"","land":[],"machinery":[]}'::jsonb,
+  jsonb_build_object(
+    'first_name', 'q7oxf7n' || lpad(g::text, 8, '0'),
+    'last_name', 'q7oxl7n' || lpad(g::text, 8, '0'),
+    'foundational_id', 'q7oxi7d' || lpad(g::text, 8, '0'),
+    'gender', 'MALE',
+    'language_spoken', '',
+    'land', '[]'::jsonb,
+    'machinery', '[]'::jsonb
+  ),
   NULL,
-  '{"first_name":"Perf","last_name":"Farmer","foundational_id":"PERF","gender":"MALE","language_spoken":"","land":[],"machinery":[]}'
+  jsonb_build_object(
+    'first_name', 'q7oxf7n' || lpad(g::text, 8, '0'),
+    'last_name', 'q7oxl7n' || lpad(g::text, 8, '0'),
+    'foundational_id', 'q7oxi7d' || lpad(g::text, 8, '0'),
+    'gender', 'MALE',
+    'language_spoken', '',
+    'land', '[]'::jsonb,
+    'machinery', '[]'::jsonb
+  )::text
 FROM generate_series(1, :count) AS g;
 
 INSERT INTO outgoing_raw_data (

@@ -68,9 +68,25 @@ INSERT INTO outgoing_raw_data_payloads (
 SELECT
   '-perf-outgest-pub-' || lpad(g::text, 8, '0'),
   NULL, NULL,
-  '{"first_name":"Perf","last_name":"Farmer","foundational_id":"PERF","gender":"MALE","language_spoken":"","land":[],"machinery":[]}'::jsonb,
+  jsonb_build_object(
+    'first_name', 'q7pub7fn' || lpad(g::text, 8, '0'),
+    'last_name', 'q7pub7ln' || lpad(g::text, 8, '0'),
+    'foundational_id', 'q7pub7id' || lpad(g::text, 8, '0'),
+    'gender', 'MALE',
+    'language_spoken', '',
+    'land', '[]'::jsonb,
+    'machinery', '[]'::jsonb
+  ),
   NULL,
-  '{"first_name":"Perf","last_name":"Farmer","foundational_id":"PERF","gender":"MALE","language_spoken":"","land":[],"machinery":[]}'
+  jsonb_build_object(
+    'first_name', 'q7pub7fn' || lpad(g::text, 8, '0'),
+    'last_name', 'q7pub7ln' || lpad(g::text, 8, '0'),
+    'foundational_id', 'q7pub7id' || lpad(g::text, 8, '0'),
+    'gender', 'MALE',
+    'language_spoken', '',
+    'land', '[]'::jsonb,
+    'machinery', '[]'::jsonb
+  )::text
 FROM generate_series(1, :count) AS g;
 
 INSERT INTO outgoing_raw_data (
@@ -99,7 +115,13 @@ SELECT
   '-perf-outgest-pub-' || lpad(g::text, 8, '0'),
   '-perf-outgest-pub-' || lpad(g::text, 8, '0'),
   NULL, NULL,
-  '{"farmer_personal_details":{"demographic_info":{"name":{"given_name":"Perf"}}}}'::jsonb,
+  jsonb_build_object(
+    'farmer_personal_details', jsonb_build_object(
+      'demographic_info', jsonb_build_object(
+        'name', jsonb_build_object('given_name', 'q7pub7fn' || lpad(g::text, 8, '0'))
+      )
+    )
+  ),
   NULL
 FROM generate_series(1, :count) AS g;
 

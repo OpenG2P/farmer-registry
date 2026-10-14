@@ -297,8 +297,8 @@ their pending rows are parked.
 
 Each producer keeps the frequency from its isolated run. Every producer
 claims at most 3000 tasks per tick. Each case keeps that run's backlog.
-`import_file_process` keeps 2 files per worker pod (2, 4, then 6), 10000
-records in each file, the same as the isolated import runs. `./k8s/blend.sh`
+`import_file_process` keeps 2 files per worker pod (2, 4, then 6). The files
+together hold 10000 records. `./k8s/blend.sh`
 populates every included case, then pins those backlogs, then starts beat
 and the workers.
 
@@ -308,20 +308,20 @@ use frequency 10 and 3000 tasks. The deduplication producers share frequency
 
 | Case | Backlog | Frequency (seconds) | Tasks per tick | How the CSV counts it |
 | --- | --- | --- | --- | --- |
-| `dedup_register` | 40000 | 10 | 3000 | status rows |
-| `completion_score` | 100000 | 10 | 3000 | status rows |
-| `dedup_intake_vs_register` | 40000 | 10 | 3000 | status rows |
-| `dedup_intake_vs_intake` | 40000 | 10 | 3000 | status rows |
+| `dedup_register` | 10000 | 10 | 3000 | status rows |
+| `completion_score` | 10000 | 10 | 3000 | status rows |
+| `dedup_intake_vs_register` | 10000 | 10 | 3000 | status rows |
+| `dedup_intake_vs_intake` | 10000 | 10 | 3000 | status rows |
 | `intake_register_ingest` | 10000 | 10 | 3000 | status rows |
-| `functional_id_allocation` | 50000 | 10 | 3000 | status rows |
-| `score_compute` | 100000 | 10 | 3000 | status rows |
-| `ingest_data_classification` | 50000 | 10 | 3000 | status rows |
+| `functional_id_allocation` | 10000 | 10 | 3000 | status rows |
+| `score_compute` | 10000 | 10 | 3000 | status rows |
+| `ingest_data_classification` | 10000 | 10 | 3000 | status rows |
 | `ingest_data_transformation` | 10000 | 10 | 3000 | status rows |
-| `ingest_data` | 40000 | 10 | 3000 | status rows |
-| `change_request_ingest` | 50000 | 10 | 3000 | status rows |
+| `ingest_data` | 10000 | 10 | 3000 | status rows |
+| `change_request_ingest` | 10000 | 10 | 3000 | status rows |
 | `outgest_data_transformation` | 10000 | 10 | 3000 | status rows |
-| `outgest_data_publish` | 50000 | 10 | 3000 | status rows |
-| `import_file_process` | 2 files per worker pod | 10 | 3000 | records in those files |
+| `outgest_data_publish` | 10000 | 10 | 3000 | status rows |
+| `import_file_process` | 10000 records, 2 files per worker pod | 10 | 3000 | records in those files |
 
 One CSV holds every case. A minute is several rows, one per case. Status
 cases use the same pending, in-progress, and done columns as an isolated

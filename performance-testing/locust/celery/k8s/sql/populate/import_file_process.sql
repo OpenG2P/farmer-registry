@@ -28,7 +28,8 @@ VALUES (
   NULL,
   true
 )
-ON CONFLICT (data_model_id) DO NOTHING;
+ON CONFLICT (data_model_id) DO UPDATE
+SET response_template_document_id = NULL;
 
 INSERT INTO incoming_model_key_paths (
   key_path_id, data_model_id,
@@ -65,6 +66,35 @@ VALUES (
   'G2PDciFarmerCreateEnricherService'
 )
 ON CONFLICT (semantic_pattern_id) DO NOTHING;
+
+INSERT INTO g2p_registry_documents (
+  document_id, document_store_id, bucket, source_filename, created_by, created_at
+)
+VALUES (
+  'perf-import-csv-template',
+  'csv_to_farmer_intake.json.j2',
+  'templates',
+  'csv_to_farmer_intake.json.j2',
+  'seeder',
+  now()
+)
+ON CONFLICT (document_id) DO NOTHING;
+
+INSERT INTO incoming_templates (
+  template_id, register_id, data_model_id, template_document_id,
+  jsonld_expansion_required, created_at
+)
+VALUES (
+  'IN-TMPL-IMPORT-CSV',
+  'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
+  '088211ee-577c-4623-9cc8-ffb674f4ab4a',
+  'perf-import-csv-template',
+  false,
+  now()
+)
+ON CONFLICT (data_model_id, register_id) DO UPDATE
+SET template_document_id = EXCLUDED.template_document_id,
+    jsonld_expansion_required = false;
 
 DELETE FROM import_file_process_log
 WHERE import_file_id LIKE '-perf-import-%';

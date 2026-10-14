@@ -1,0 +1,40 @@
+{% set row = expanded if expanded is mapping else {} %}
+{% set disabled_value = (row.get("disabled", "") | string | lower) in ["true", "1", "yes"] %}
+{% set phone_value = (row.get("has_personal_phone", "") | string | lower) in ["true", "1", "yes"] %}
+{
+  "fr_farmer_personal_info": [
+    {
+      "first_name": "{{ row.get('first_name', '') }}",
+      "middle_name": "{{ row.get('middle_name', '') }}",
+      "last_name": "{{ row.get('last_name', '') }}",
+      "given_name": "{{ row.get('first_name', '') }}",
+      "gender": "{{ row.get('gender', '') }}",
+      "marital_status": "{{ row.get('marital_status', '') }}",
+      "birth_date": "{{ row.get('birth_date', '') }}",
+      "foundational_id": "{{ row.get('foundational_id', '') }}",
+      "registration_date": "{{ row.get('registration_date', '') }}"
+    }
+  ],
+  "fr_farmer_socio_and_health": [
+    {
+      "has_personal_phone": {{ "true" if phone_value else "false" }},
+      "disabled": {{ "true" if disabled_value else "false" }},
+      "disability_type": "{{ row.get('disability_type', '') }}",
+      "disability_severity": "{{ row.get('disability_severity', '') }}",
+      "source_of_income": "{{ row.get('source_of_income', '') }}",
+      "source_of_income_other": "{{ row.get('source_of_income_other', '') }}",
+      "education_level": "{{ row.get('education_level', '') }}",
+      "language_spoken": "{{ row.get('language_spoken', '') }}",
+      "national_id_masked": "{{ row.get('national_id_masked', '') }}"
+    }
+  ],
+  "fr_farmer_location": [
+    {
+      "address_line_1": "{{ row.get('address_line_1', '') }}",
+      "address_line_2": "{{ row.get('address_line_2', '') }}",
+      "locality": "{{ row.get('locality', '') }}",
+      "postal_code": "{{ row.get('postal_code', '') }}",
+      "country_code": "{{ row.get('country_code', '') }}"
+    }
+  ]
+}

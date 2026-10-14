@@ -166,21 +166,21 @@ BEGIN
       SELECT
         CASE
           WHEN args.tag = 'PERF-DEDUP-VS-INT' AND n.n <= (least(args.n, 8000) / 2) * 2
-            THEN 'perfzxqintdupfn' || lpad(((n.n + 1) / 2)::text, 8, '0')
+            THEN 'q7int7dup7fn' || lpad(((n.n + 1) / 2)::text, 8, '0')
           WHEN args.tag = 'PERF-DEDUP-VS-INT'
-            THEN 'perfzxqintfn' || lpad(n.n::text, 8, '0')
+            THEN 'q7int7fn' || lpad(n.n::text, 8, '0')
           WHEN n.n <= least(args.n, 4000)
-            THEN 'perfzxqifrmfn' || lpad(n.n::text, 8, '0')
-          ELSE 'perfzxqifrfn' || lpad(n.n::text, 8, '0')
+            THEN 'q7ifr7mfn' || lpad(n.n::text, 8, '0')
+          ELSE 'q7ifr7fn' || lpad(n.n::text, 8, '0')
         END AS first_name,
         CASE
           WHEN args.tag = 'PERF-DEDUP-VS-INT' AND n.n <= (least(args.n, 8000) / 2) * 2
-            THEN 'perfzxqintdupln' || lpad(((n.n + 1) / 2)::text, 8, '0')
+            THEN 'q7int7dup7ln' || lpad(((n.n + 1) / 2)::text, 8, '0')
           WHEN args.tag = 'PERF-DEDUP-VS-INT'
-            THEN 'perfzxqintln' || lpad(n.n::text, 8, '0')
+            THEN 'q7int7ln' || lpad(n.n::text, 8, '0')
           WHEN n.n <= least(args.n, 4000)
-            THEN 'perfzxqifrmln' || lpad(n.n::text, 8, '0')
-          ELSE 'perfzxqifrln' || lpad(n.n::text, 8, '0')
+            THEN 'q7ifr7mln' || lpad(n.n::text, 8, '0')
+          ELSE 'q7ifr7ln' || lpad(n.n::text, 8, '0')
         END AS last_name,
         CASE
           WHEN args.tag = 'PERF-DEDUP-VS-INT' AND n.n <= (least(args.n, 8000) / 2) * 2
@@ -291,6 +291,29 @@ BEGIN
     );
   END LOOP;
 
+  -- Ingest copies the template farmer, including a shared short name.
+  -- Give each submission its own search fields so a later dedup cannot match the set.
+  IF args.tag NOT IN ('PERF-DEDUP-VS-INT', 'PERF-DEDUP-VS-REG') THEN
+    UPDATE g2p_intake_form_farmers f
+    SET first_name = 'q7iri7fn' || lpad(n.n::text, 8, '0'),
+        last_name = 'q7iri7ln' || lpad(n.n::text, 8, '0'),
+        birth_date = DATE '0900-01-01' + n.n,
+        record_name = 'q7iri7fn' || lpad(n.n::text, 8, '0') || ' ' || 'q7iri7ln' || lpad(n.n::text, 8, '0'),
+        search_text = 'q7iri7fn' || lpad(n.n::text, 8, '0')
+    FROM perf_new_submissions n
+    WHERE f.submission_id = n.submission_id;
+
+    IF EXISTS (
+      SELECT 1
+      FROM g2p_intake_form_farmers f
+      JOIN perf_new_submissions n ON n.submission_id = f.submission_id
+      GROUP BY f.first_name, f.last_name, f.birth_date
+      HAVING count(DISTINCT f.submission_id) > 1
+    ) THEN
+      RAISE EXCEPTION 'intake ingest submissions share a dedup name';
+    END IF;
+  END IF;
+
   IF args.tag = 'PERF-DEDUP-VS-INT' THEN
     -- 4000 pairs (rows 1-8000). Each pair shares the three dedup fields.
     IF (
@@ -301,14 +324,25 @@ BEGIN
         GROUP BY first_name, last_name, birth_date
         HAVING count(*) = 2
       ) pairs
-    ) <> (least(args.n, 8000) / 2) THEN
-      RAISE EXCEPTION 'intake-vs-intake did not build % pairs', (least(args.n, 8000) / 2);
+    ) <> (least(args.n, 8000) / 2)
+    OR EXISTS (
+      SELECT 1
+      FROM g2p_intake_form_farmers
+      WHERE submission_id IN (SELECT submission_id FROM perf_new_submissions)
+      GROUP BY first_name, last_name, birth_date
+      HAVING count(*) > 2
+    ) THEN
+      RAISE EXCEPTION 'intake-vs-intake pairs must be 1 to 1, got a group larger than 2';
     END IF;
   ELSIF args.tag = 'PERF-DEDUP-VS-REG' THEN
-    -- First 4000 intakes each match two new farmers. The other intakes match none.
+    -- First 4000 intakes each match one new farmer. The other intakes match none.
     DELETE FROM g2p_register_farmers
     WHERE internal_record_id >= 'perf-ifr-'
       AND internal_record_id < 'perf-ifr.';
+
+    DELETE FROM g2p_register_farmers
+    WHERE internal_record_id >= 'perf-ifr-b'
+      AND internal_record_id < 'perf-ifr-c';
 
     INSERT INTO g2p_register_farmers (
       internal_record_id, first_name, last_name, birth_date,
@@ -329,7 +363,7 @@ BEGIN
       WHERE n.n <= least(args.n, 4000)
       ORDER BY n.n
     ) src
-    CROSS JOIN (VALUES ('perf-ifr-'), ('perf-ifr-b')) AS copies(id_prefix)
+    CROSS JOIN (VALUES ('perf-ifr-')) AS copies(id_prefix)
     CROSS JOIN (
       SELECT
         COALESCE(f.created_by, s.created_by) AS created_by,
@@ -355,7 +389,7 @@ BEGIN
          AND r.internal_record_id < 'perf-ifr.'
         WHERE n.n <= least(args.n, 4000)
         GROUP BY f.submission_id
-        HAVING count(*) = 2
+        HAVING count(*) = 1
       ) ok
     ) <> least(args.n, 4000)
     OR EXISTS (
@@ -370,7 +404,7 @@ BEGIN
        AND r.internal_record_id < 'perf-ifr.'
       WHERE n.n > least(args.n, 4000)
     ) THEN
-      RAISE EXCEPTION 'intake-vs-register did not give % intakes exactly 2 farmers', least(args.n, 4000);
+      RAISE EXCEPTION 'intake-vs-register did not give % intakes exactly 1 farmer', least(args.n, 4000);
     END IF;
   END IF;
 

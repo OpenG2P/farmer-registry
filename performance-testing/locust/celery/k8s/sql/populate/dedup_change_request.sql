@@ -157,19 +157,19 @@ SELECT
     WHEN s.section_id = 'farmer_farmer_personal_identification_section_01' THEN
       jsonb_build_array(jsonb_build_object(
         'edit_action', 'UPDATE',
-        'internal_record_id', CASE WHEN g % 10 = 0 THEN f.internal_record_id ELSE t.internal_record_id END,
-        'first_name', CASE WHEN g % 10 = 0 THEN f.first_name ELSE 'perfzxqfn' || lpad(g::text, 8, '0') END,
-        'last_name', CASE WHEN g % 10 = 0 THEN f.last_name ELSE 'perfzxqln' || lpad(g::text, 8, '0') END,
-        'birth_date', CASE WHEN g % 10 = 0 THEN f.birth_date ELSE '1800-01-01' END
+        'internal_record_id', CASE WHEN g = 10 THEN f.internal_record_id ELSE t.internal_record_id END,
+        'first_name', CASE WHEN g = 10 THEN f.first_name ELSE 'q7crd7edu7pfn' || lpad(g::text, 8, '0') END,
+        'last_name', CASE WHEN g = 10 THEN f.last_name ELSE 'q7crd7edu7pln' || lpad(g::text, 8, '0') END,
+        'birth_date', CASE WHEN g = 10 THEN f.birth_date ELSE to_char(DATE '1800-01-01' + g, 'YYYY-MM-DD') END
       ))
-    WHEN g % 10 = 0 THEN jsonb_build_array(sp.payload_object)
+    WHEN g = 10 THEN jsonb_build_array(sp.payload_object)
     ELSE jsonb_build_array((
       SELECT jsonb_object_agg(
         e.key,
         CASE
           WHEN e.key = 'edit_action' THEN e.value
           WHEN jsonb_typeof(e.value) = 'string'
-            THEN to_jsonb('perfzxq' || lpad(g::text, 8, '0'))
+            THEN to_jsonb('q7crd7edu7p' || lpad(g::text, 8, '0'))
           ELSE e.value
         END
       )
@@ -177,12 +177,12 @@ SELECT
     ))
   END,
   CASE
-    WHEN s.section_id = 'farmer_farmer_personal_identification_section_01' AND g % 10 = 0
+    WHEN s.section_id = 'farmer_farmer_personal_identification_section_01' AND g = 10
       THEN f.first_name || ' ' || f.last_name
     WHEN s.section_id = 'farmer_farmer_personal_identification_section_01'
-      THEN 'perfzxqfn' || lpad(g::text, 8, '0')
-    WHEN g % 10 = 0 THEN sp.search_text
-    ELSE 'perfzxq' || lpad(g::text, 8, '0')
+      THEN 'q7crd7edu7pfn' || lpad(g::text, 8, '0')
+    WHEN g = 10 THEN sp.search_text
+    ELSE 'q7crd7edu7p' || lpad(g::text, 8, '0')
   END
 FROM generate_series(1, :count) AS g
 CROSS JOIN perf_template t
@@ -231,14 +231,8 @@ BEGIN
     AND (p.change_payload::jsonb -> 0 ->> 'first_name') = (SELECT first_name FROM perf_match_farmer)
     AND (p.change_payload::jsonb -> 0 ->> 'last_name') = (SELECT last_name FROM perf_match_farmer)
     AND (p.change_payload::jsonb -> 0 ->> 'birth_date') = (SELECT birth_date FROM perf_match_farmer);
-  IF personal_matches <> (
-    SELECT count(*)
-    FROM g2p_register_change_requests
-    WHERE change_request_id LIKE '-perf-dedup-cr-%'
-      AND section_id = 'farmer_farmer_personal_identification_section_01'
-      AND right(change_request_id, 8)::int % 10 = 0
-  ) THEN
-    RAISE EXCEPTION 'personal section matched % rows, wanted the 10%% slice', personal_matches;
+  IF personal_matches <> 1 THEN
+    RAISE EXCEPTION 'personal section matched % rows, wanted 1', personal_matches;
   END IF;
   IF EXISTS (
     SELECT 1

@@ -62,11 +62,11 @@ the first argument changed.
 ./k8s/run.sh 1 outgest_data_publish 10000
 ```
 
-`import_file_process` uses 10000 as the records in each CSV. One pod has two
-processes, so this example queues 2 files:
+`import_file_process` uses 10000 records in total. One pod has two processes,
+so this example queues 2 files of 5000:
 
 ```bash
-IMPORT_FILES=2 ./k8s/populate.sh import_file_process 10000
+IMPORT_FILES=2 ./k8s/populate.sh import_file_process 5000
 ./k8s/run.sh 1 import_file_process 2
 ```
 

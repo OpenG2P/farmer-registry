@@ -64,7 +64,10 @@ SELECT
               'reg_type', 'Farmer',
               'reg_record_type', 'Farmer',
               'reg_records', jsonb_build_array(
-                jsonb_build_object('first_name', 'Perf', 'last_name', 'Ingest')
+                jsonb_build_object(
+                  'first_name', 'q7xfm7fn' || lpad(g::text, 8, '0'),
+                  'last_name', 'q7xfm7ln' || lpad(g::text, 8, '0')
+                )
               )
             )
           )

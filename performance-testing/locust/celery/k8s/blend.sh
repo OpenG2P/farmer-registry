@@ -2,8 +2,8 @@
 # One blend run: every beat producer and worker on, except dedup_change_request,
 # outgest_topic_register, and functional_id_updation. Each producer keeps its
 # isolated frequency. Every producer claims at most 3000 tasks per tick.
-# Each case keeps its isolated backlog.
-# import_file_process keeps 2 files per worker pod, 10000 records in each file.
+# Each case keeps a backlog of 10000.
+# import_file_process keeps 2 files per worker pod. The files together hold 10000 records.
 # The script populates every included case, then pins, then starts the run.
 # Counts are written inside pod celery-collect. Copy that file when you want it.
 #
@@ -29,19 +29,19 @@ export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/perftest.yaml}"
 # name, isolated backlog. Order is the CSV order.
 # dedup_change_request, outgest_topic_register, and functional_id_updation are omitted.
 BLEND_CASES=(
-  "dedup_register:40000"
-  "completion_score:100000"
-  "dedup_intake_vs_register:40000"
-  "dedup_intake_vs_intake:40000"
+  "dedup_register:10000"
+  "completion_score:10000"
+  "dedup_intake_vs_register:10000"
+  "dedup_intake_vs_intake:10000"
   "intake_register_ingest:10000"
-  "functional_id_allocation:50000"
-  "score_compute:100000"
-  "ingest_data_classification:50000"
+  "functional_id_allocation:10000"
+  "score_compute:10000"
+  "ingest_data_classification:10000"
   "ingest_data_transformation:10000"
-  "ingest_data:40000"
-  "change_request_ingest:50000"
+  "ingest_data:10000"
+  "change_request_ingest:10000"
   "outgest_data_transformation:10000"
-  "outgest_data_publish:50000"
+  "outgest_data_publish:10000"
   "import_file_process:${IMPORT_FILES}"
 )
 
@@ -147,8 +147,8 @@ for item in "${BLEND_CASES[@]}"; do
   name="${item%%:*}"
   size="${item##*:}"
   if [[ "$name" == "import_file_process" ]]; then
-    echo "Populating import_file_process: ${size} files, 10000 records each"
-    IMPORT_FILES="$size" "$ROOT/populate.sh" import_file_process 10000
+    echo "Populating import_file_process: ${size} files, $((10000 / size)) records each, 10000 records in total"
+    IMPORT_FILES="$size" "$ROOT/populate.sh" import_file_process "$((10000 / size))"
   else
     echo "Populating ${name} ${size}"
     "$ROOT/populate.sh" "$name" "$size"

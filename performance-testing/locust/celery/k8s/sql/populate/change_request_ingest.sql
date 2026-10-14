@@ -77,8 +77,8 @@ SELECT
     s.section_mnemonic,
     jsonb_build_array(
       jsonb_build_object(
-        'first_name', 'Perf',
-        'last_name', 'Ingest'
+        'first_name', 'q7crf7n' || lpad(g::text, 8, '0'),
+        'last_name', 'q7crl7n' || lpad(g::text, 8, '0')
       )
     )
   )::json

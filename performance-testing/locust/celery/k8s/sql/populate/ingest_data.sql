@@ -47,7 +47,11 @@ SELECT
   p.semantic_pattern_id,
   jsonb_build_object(
     s.section_mnemonic,
-    jsonb_build_array(jsonb_build_object('first_name', 'Perf', 'last_name', 'Ingest'))
+    jsonb_build_array(jsonb_build_object(
+      'first_name', 'q7ing7fn00000000',
+      'last_name', 'q7ing7ln00000000',
+      'birth_date', '0400-01-02'
+    ))
   )::json
 FROM incoming_model_semantic_patterns p
 JOIN g2p_intake_form_definitions f
@@ -100,7 +104,37 @@ INSERT INTO incoming_enriched_transformed_data (
 )
 SELECT
   '-perf-ingest-add-' || lpad(g::text, 8, '0'),
-  t.transformed_data_json
+  (
+    SELECT jsonb_object_agg(
+      e.key,
+      CASE
+        WHEN jsonb_typeof(e.value) = 'array'
+         AND jsonb_typeof(e.value -> 0) = 'object'
+        THEN jsonb_set(
+               jsonb_set(
+                 jsonb_set(
+                   e.value,
+                   '{0,first_name}',
+                   to_jsonb('q7ing7fn' || lpad(g::text, 8, '0'))
+                 ),
+                 '{0,last_name}',
+                 to_jsonb('q7ing7ln' || lpad(g::text, 8, '0'))
+               ),
+               '{0,birth_date}',
+               to_jsonb(to_char(DATE '0400-01-01' + g, 'YYYY-MM-DD'))
+             )
+        ELSE e.value
+      END
+    )::json
+    FROM jsonb_each(t.transformed_data_json::jsonb) e
+    WHERE e.key IN (
+      SELECT s.section_mnemonic
+      FROM g2p_register_sections s
+      JOIN g2p_intake_form_ui_tab_sections ts ON ts.section_id = s.section_id
+      JOIN g2p_intake_form_ui_tabs tab ON tab.tab_id = ts.tab_id
+      WHERE tab.form_id = t.intake_form_id
+    )
+  )
 FROM generate_series(1, :count) AS g
 CROSS JOIN perf_source t;
 
