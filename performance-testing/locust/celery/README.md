@@ -62,11 +62,11 @@ the first argument changed.
 ./k8s/run.sh 1 outgest_data_publish 10000
 ```
 
-`import_file_process` uses 10000 as the records in each CSV. One pod has two
-processes, so this example queues 2 files:
+`import_file_process` uses 10000 records in total. One pod has two processes,
+so this example queues 2 files of 5000:
 
 ```bash
-IMPORT_FILES=2 ./k8s/populate.sh import_file_process 10000
+IMPORT_FILES=2 ./k8s/populate.sh import_file_process 5000
 ./k8s/run.sh 1 import_file_process 2
 ```
 
@@ -100,3 +100,18 @@ queue rows.
 
 `k8s/collector-job.yaml` is the older collector. `./k8s/run.sh` does not use
 that image.
+
+A blend run populates every included case, then turns every producer and worker on together, except
+`dedup_change_request`, `outgest_topic_register`, and `functional_id_updation`. Each producer keeps its
+isolated frequency and backlog. Every producer claims at most 3000 tasks per tick. The CSV is one file per worker
+count, with one row per case per minute, written inside pod `celery-collect`:
+
+```bash
+./k8s/blend.sh 1
+./k8s/blend.sh 2
+./k8s/blend.sh 3
+```
+
+`results/pod-<workers>/blend/blend-workers-<workers>.csv`. The settings and
+the column reading are in
+[the test scenarios](../../documentation/celery/test-scenarios.md).

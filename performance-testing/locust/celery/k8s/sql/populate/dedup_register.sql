@@ -2,9 +2,9 @@
 -- People are inserted only into g2p_register_farmers. Child tables are left alone.
 -- Existing farmer rows are not updated. A rerun deletes only perf-farmer-* rows.
 -- Every new farmer has first_name, last_name, and birth_date.
--- The first 1000 change requests match exactly two farmer rows: the row itself
--- and one copy with the same name and birth date. Each of those 1000 has its
--- own birth date and a name that is not a near-copy of the others.
+-- The first 4000 change requests match exactly one farmer row, the row itself.
+-- Each of those 4000 has its own birth date and a name that is not a near-copy
+-- of the others. A second copy is not inserted.
 -- Every later change request uses a name and birth date that no farmer has.
 -- The change request sits on farmer personal identification.
 -- deduplication_register_status = PENDING
@@ -13,7 +13,8 @@
 
 BEGIN;
 
-CREATE TEMP TABLE perf_n ON COMMIT DROP AS SELECT :count::int AS n;
+CREATE TEMP TABLE perf_n ON COMMIT DROP AS
+SELECT :count::int AS n, least(:count::int, 4000) AS matches;
 
 
 CREATE TEMP TABLE perf_template ON COMMIT DROP AS
@@ -50,20 +51,21 @@ CREATE TEMP TABLE perf_farmers ON COMMIT DROP AS
 SELECT
   g,
   'perf-farmer-' || lpad(g::text, 8, '0') AS internal_record_id,
-  CASE WHEN g <= 1000
-    THEN substr(md5('fn-' || g::text), 1, 20)
-    ELSE 'perfzxqfn' || lpad(g::text, 8, '0')
+  CASE WHEN g <= a.matches
+    THEN 'q7mat7chf7n' || lpad(g::text, 8, '0')
+    ELSE 'q7reg7fn' || lpad(g::text, 8, '0')
   END AS first_name,
-  CASE WHEN g <= 1000
-    THEN substr(md5('ln-' || g::text), 1, 20)
-    ELSE 'perfzxqln' || lpad(g::text, 8, '0')
+  CASE WHEN g <= a.matches
+    THEN 'q7mat7chl7n' || lpad(g::text, 8, '0')
+    ELSE 'q7reg7ln' || lpad(g::text, 8, '0')
   END AS last_name,
-  CASE WHEN g <= 1000
+  CASE WHEN g <= a.matches
     THEN DATE '1217-03-01' + g
-    ELSE DATE '1800-01-01'
+    ELSE DATE '1000-01-01' + g
   END AS birth_date,
-  (g <= 1000) AS is_match
-FROM generate_series(1, :count) AS g;
+  (g <= a.matches) AS is_match
+FROM generate_series(1, :count) AS g
+CROSS JOIN perf_n a;
 
 DO $$
 BEGIN
@@ -83,6 +85,10 @@ END $$;
 DELETE FROM g2p_register_farmers
 WHERE internal_record_id >= 'perf-farmer-'
   AND internal_record_id < 'perf-farmer.';
+
+DELETE FROM g2p_register_farmers
+WHERE internal_record_id >= 'perf-farmer-b'
+  AND internal_record_id < 'perf-farmer-c';
 
 DELETE FROM deduplication_register_results
 WHERE change_request_id LIKE '-perf-dedup-register-%';
@@ -105,21 +111,6 @@ SELECT
   a.created_by, now(), now(), a.last_approved_by, a.record_status
 FROM perf_farmers f
 CROSS JOIN perf_actor a;
-
-INSERT INTO g2p_register_farmers (
-  internal_record_id, first_name, last_name, birth_date,
-  record_name, search_text,
-  created_by, created_at, last_approved_at, last_approved_by, record_status
-)
-SELECT
-  'perf-farmer-b' || lpad(f.g::text, 8, '0'),
-  f.first_name, f.last_name, f.birth_date,
-  f.first_name || ' ' || f.last_name,
-  f.first_name || ' ' || f.last_name,
-  a.created_by, now(), now(), a.last_approved_by, a.record_status
-FROM perf_farmers f
-CROSS JOIN perf_actor a
-WHERE f.is_match;
 
 INSERT INTO g2p_register_change_requests (
   change_request_id, record_name, register_id, tab_id, section_id, section_register_id,
@@ -150,13 +141,13 @@ SELECT
   jsonb_build_array(jsonb_build_object(
     'edit_action', 'UPDATE',
     'internal_record_id', f.internal_record_id,
-    'first_name', CASE WHEN f.is_match THEN f.first_name ELSE 'perfzxqnomatch' || lpad(f.g::text, 8, '0') END,
-    'last_name', CASE WHEN f.is_match THEN f.last_name ELSE 'perfzxqnomatchln' || lpad(f.g::text, 8, '0') END,
-    'birth_date', CASE WHEN f.is_match THEN to_char(f.birth_date, 'YYYY-MM-DD') ELSE '1801-01-01' END
+    'first_name', CASE WHEN f.is_match THEN f.first_name ELSE 'q7nom7atc7h' || lpad(f.g::text, 8, '0') END,
+    'last_name', CASE WHEN f.is_match THEN f.last_name ELSE 'q7nom7atc7hln' || lpad(f.g::text, 8, '0') END,
+    'birth_date', CASE WHEN f.is_match THEN to_char(f.birth_date, 'YYYY-MM-DD') ELSE to_char(DATE '1300-01-01' + f.g, 'YYYY-MM-DD') END
   )),
   CASE WHEN f.is_match
     THEN f.first_name || ' ' || f.last_name
-    ELSE 'perfzxqnomatch' || lpad(f.g::text, 8, '0')
+    ELSE 'q7nom7atc7h' || lpad(f.g::text, 8, '0')
   END
 FROM perf_farmers f;
 
@@ -170,9 +161,9 @@ BEGIN
   FROM g2p_register_farmers
   WHERE internal_record_id >= 'perf-farmer-'
     AND internal_record_id < 'perf-farmer.';
-  IF farmers <> (SELECT n + least(n, 1000) FROM perf_n) THEN
+  IF farmers <> (SELECT n FROM perf_n) THEN
     RAISE EXCEPTION 'dedup_register inserted % farmers, wanted %',
-      farmers, (SELECT n + least(n, 1000) FROM perf_n);
+      farmers, (SELECT n FROM perf_n);
   END IF;
   SELECT count(*) INTO got
   FROM g2p_register_change_requests
@@ -194,9 +185,9 @@ BEGIN
   WHERE p.change_request_id LIKE '-perf-dedup-register-%'
     AND f.internal_record_id >= 'perf-farmer-'
     AND f.internal_record_id < 'perf-farmer.';
-  IF dupes <> (SELECT least(n, 1000) FROM perf_n) THEN
+  IF dupes <> (SELECT matches FROM perf_n) THEN
     RAISE EXCEPTION 'dedup_register seeded % matching payloads, wanted %',
-      dupes, (SELECT least(n, 1000) FROM perf_n);
+      dupes, (SELECT matches FROM perf_n);
   END IF;
   IF (
     SELECT count(*)
@@ -210,12 +201,12 @@ BEGIN
        AND f.internal_record_id >= 'perf-farmer-'
        AND f.internal_record_id < 'perf-farmer.'
       WHERE p.change_request_id LIKE '-perf-dedup-register-%'
-        AND right(p.change_request_id, 8)::int <= 1000
+        AND right(p.change_request_id, 8)::int <= (SELECT matches FROM perf_n)
       GROUP BY p.change_request_id
-      HAVING count(*) = 2
+      HAVING count(*) = 1
     ) ok
-  ) <> (SELECT least(n, 1000) FROM perf_n) THEN
-    RAISE EXCEPTION 'a matching change request does not have exactly 2 farmer rows';
+  ) <> (SELECT matches FROM perf_n) THEN
+    RAISE EXCEPTION 'a matching change request does not have exactly 1 farmer row';
   END IF;
   RAISE NOTICE 'dedup_register farmers: %, pending change requests: %, matching payloads: %',
     farmers, got, dupes;

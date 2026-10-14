@@ -114,7 +114,7 @@ wait_celery_ready() {
     local name phase
     while read -r name phase; do
       [[ -n "${name:-}" && "$phase" == "Running" ]] || continue
-      if kubectl -n "$NS" logs "$name" --tail=400 2>/dev/null | grep -q "$needle"; then
+      if timeout 8 kubectl -n "$NS" logs "$name" --tail=30 2>/dev/null | grep -qE "$needle"; then
         ready_pods=$((ready_pods + 1))
       fi
     done <<< "$names"
@@ -152,91 +152,91 @@ if [[ "$CASE" == "intake_register_ingest" ]]; then
     SELECT DISTINCT x.internal_record_id AS old_id, gen_random_uuid()::text AS new_id
       FROM (
         SELECT internal_record_id FROM g2p_intake_form_farmers
-         WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+         WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
         UNION ALL
         SELECT internal_record_id FROM g2p_intake_form_lands
-         WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+         WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
         UNION ALL
         SELECT internal_record_id FROM g2p_intake_form_crops
-         WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+         WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
         UNION ALL
         SELECT internal_record_id FROM g2p_intake_form_livestocks
-         WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+         WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
         UNION ALL
         SELECT internal_record_id FROM g2p_intake_form_farm_inputs
-         WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+         WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
         UNION ALL
         SELECT internal_record_id FROM g2p_intake_form_membership_details
-         WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+         WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
       ) x
      WHERE x.internal_record_id IS NOT NULL;
 
     UPDATE g2p_intake_form_farmers f
        SET internal_record_id = m.new_id
       FROM perf_id_remap m
-     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
        AND f.internal_record_id = m.old_id;
     UPDATE g2p_intake_form_lands f
        SET internal_record_id = m.new_id
       FROM perf_id_remap m
-     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
        AND f.internal_record_id = m.old_id;
     UPDATE g2p_intake_form_crops f
        SET internal_record_id = m.new_id
       FROM perf_id_remap m
-     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
        AND f.internal_record_id = m.old_id;
     UPDATE g2p_intake_form_livestocks f
        SET internal_record_id = m.new_id
       FROM perf_id_remap m
-     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
        AND f.internal_record_id = m.old_id;
     UPDATE g2p_intake_form_farm_inputs f
        SET internal_record_id = m.new_id
       FROM perf_id_remap m
-     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
        AND f.internal_record_id = m.old_id;
     UPDATE g2p_intake_form_membership_details f
        SET internal_record_id = m.new_id
       FROM perf_id_remap m
-     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
        AND f.internal_record_id = m.old_id;
 
     UPDATE g2p_intake_form_farmers f
        SET link_internal_record_id = m.new_id
       FROM perf_id_remap m
-     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
        AND f.link_internal_record_id = m.old_id;
     UPDATE g2p_intake_form_lands f
        SET link_internal_record_id = m.new_id
       FROM perf_id_remap m
-     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
        AND f.link_internal_record_id = m.old_id;
     UPDATE g2p_intake_form_crops f
        SET link_internal_record_id = m.new_id
       FROM perf_id_remap m
-     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
        AND f.link_internal_record_id = m.old_id;
     UPDATE g2p_intake_form_livestocks f
        SET link_internal_record_id = m.new_id
       FROM perf_id_remap m
-     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
        AND f.link_internal_record_id = m.old_id;
     UPDATE g2p_intake_form_farm_inputs f
        SET link_internal_record_id = m.new_id
       FROM perf_id_remap m
-     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
        AND f.link_internal_record_id = m.old_id;
     UPDATE g2p_intake_form_membership_details f
        SET link_internal_record_id = m.new_id
       FROM perf_id_remap m
-     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort)
+     WHERE f.submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
        AND f.link_internal_record_id = m.old_id;
 
     UPDATE g2p_intake_form_submissions
        SET register_ingest_process_attempts = 0,
            register_ingest_process_last_error_code = NULL
-     WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort);"
+     WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');"
 fi
 # A finished cohort leaves rows or attempt counts that make the next run fail
 # or pull in a sibling producer. Clear only those, on the small queue tables.
@@ -349,14 +349,14 @@ case "$CASE" in
       UPDATE g2p_intake_form_submissions
          SET deduplication_register_forms_attempts = 0,
              deduplication_register_error = NULL
-       WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort);"
+       WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');"
     ;;
   dedup_intake_vs_intake)
     RERUN_SQL="
       UPDATE g2p_intake_form_submissions
          SET deduplication_intake_forms_attempts = 0,
              deduplication_intake_forms_error = NULL
-       WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort);"
+       WHERE submission_id IN (SELECT row_id::uuid FROM celery_perf_cohort WHERE row_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');"
     ;;
 esac
 kubectl -n "$NS" exec celery-collect -- psql -v ON_ERROR_STOP=1 -c "

@@ -70,6 +70,7 @@ done
 
 kubectl -n "$NS" exec "$POD" -- python -c '
 import io, os
+from datetime import date, timedelta
 from minio import Minio
 from minio.deleteobjects import DeleteObject
 
@@ -102,9 +103,11 @@ for file_no in range(1, files + 1):
     buf.write(header.encode())
     for i in range(1, count + 1):
         fid = f"3361{file_no:02d}{i:08d}"
+        token = f"{file_no:02d}{i:08d}"
+        birth = date(500, 1, 1) + timedelta(days=(file_no - 1) * 100000 + i)
         buf.write(
             (
-                f"Adam,,Woods,MALE,MARRIED,1990-05-12,,{fid},BASIC,true,false,,,"
+                f"q7imp7fn{token},,q7imp7ln{token},MALE,MARRIED,{birth.isoformat()},,{fid},BASIC,true,false,,,"
                 f"SOI_CROP_PRODUCTION,,ENGLISH,{fid},12 Farm Road,,Sikar,332001,IN,null,null,2026-09-20\n"
             ).encode()
         )

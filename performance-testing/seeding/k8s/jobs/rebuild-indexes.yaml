@@ -16,7 +16,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: rebuild-indexes
-          image: vin0dkhichar/farmer-registry-seeding:v50m
+          image: vin0dkhichar/farmer-registry-seeding:v50m-dedup
           imagePullPolicy: Always
           command:
             - python
