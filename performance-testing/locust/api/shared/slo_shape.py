@@ -205,6 +205,9 @@ class SLOStepRampShape(LoadTestShape):
     cpu_breach_cores = float(os.environ.get("CPU_BREACH_CORES", "1.8"))
     cpu_breach_polls = int(os.environ.get("CPU_BREACH_POLLS", "2"))
     slo_breach_steps = int(os.environ.get("SLO_BREACH_STEPS", "2"))
+    # Partner shapes set this. A step that does not raise successful RPS
+    # above the previous step freezes at the previous user count.
+    freeze_when_rps_flat = False
     kube_namespace = os.environ.get("STAFF_API_KUBE_NAMESPACE", "perftest")
     pod_grep = os.environ.get("STAFF_API_POD_GREP", "farmer-registry-staff-portal-api")
     cpu_poll_seconds = 10
@@ -243,7 +246,43 @@ class SLOStepRampShape(LoadTestShape):
         self._soak_started = False
         self._soak_last_report_at: float | None = None
         self._soak_slo_failed = False
+        self._prev_step_rps: float | None = None
+        self._prev_step_users: int | None = None
+        self._rps_success_at_step_start = 0
+        self._rps_step_started_at = 0.0
         self._tracked_names = set(self.endpoint_slo_p95_ms) | set(self.endpoint_slo_p99_ms)
+
+    def _success_count(self) -> int:
+        total = self.runner.stats.total
+        return int(total.num_requests - total.num_failures)
+
+    def _note_step_rps(self, run_time: float, completed_users: int) -> bool:
+        """Log this step's success RPS. Freeze when it did not rise."""
+        elapsed = run_time - self._rps_step_started_at
+        if elapsed <= 0:
+            elapsed = float(self.step_seconds)
+        successes = self._success_count() - self._rps_success_at_step_start
+        rps = successes / elapsed
+        prev_rps = self._prev_step_rps
+        prev_users = self._prev_step_users
+        if prev_rps is None:
+            print(f"[shape] step RPS {rps:.3f}/s at {completed_users} users")
+        else:
+            print(
+                f"[shape] step RPS {rps:.3f}/s at {completed_users} users "
+                f"(previous {prev_rps:.3f}/s at {prev_users} users)"
+            )
+        if prev_rps is not None and rps <= prev_rps:
+            self._freeze_users(
+                prev_users,
+                run_time,
+                f"RPS flat {rps:.3f}/s at {completed_users} users "
+                f"vs {prev_rps:.3f}/s at {prev_users} users",
+            )
+            return True
+        self._prev_step_rps = rps
+        self._prev_step_users = completed_users
+        return False
 
     def _on_request(self, request_type, name, response_time, response_length, exception=None, **_kwargs):
         # Only successful requests' latencies feed the SLO percentile check
@@ -597,13 +636,19 @@ class SLOStepRampShape(LoadTestShape):
             self._step = -1
             self._step_start = {}
             self._step_success_times = {}
+            rps_bit = (
+                "; freeze when a step's success RPS does not rise"
+                if self.freeze_when_rps_flat
+                else ""
+            )
             print(
                 f"[shape] warmup complete ({self.warmup_seconds}s at "
                 f"{self.warmup_users} users); starting ramp "
                 f"(SLO check needs ≥{self.min_requests_for_check} successes/endpoint/step; "
                 f"no RPS cap; freeze users then soak; "
                 f"CPU 2-of-3 or 1-of-1/2 at {self.cpu_breach_cores} cores "
-                f"({self.cpu_breach_polls} polls); SLO {self.slo_breach_steps} windows)"
+                f"({self.cpu_breach_polls} polls); SLO {self.slo_breach_steps} windows"
+                f"{rps_bit})"
             )
 
         if self._hold_users is not None:
@@ -626,10 +671,17 @@ class SLOStepRampShape(LoadTestShape):
             return self._tick_soak(run_time, entries)
 
         if step != self._step:
+            if self.freeze_when_rps_flat and self._step >= 0:
+                completed_users = min(self.max_users, self.step_users * (self._step + 1))
+                if self._note_step_rps(run_time, completed_users):
+                    return self._tick_soak(run_time, entries)
             self._step = step
             self._slo_counted_this_step = False
             self._step_start = {key: (e.num_requests, e.num_failures) for key, e in entries.items()}
             self._step_success_times = {}
+            if self.freeze_when_rps_flat:
+                self._rps_success_at_step_start = self._success_count()
+                self._rps_step_started_at = run_time
         elif self._note_slo_window(user_count, entries, run_time):
             return self._tick_soak(run_time, entries)
 
