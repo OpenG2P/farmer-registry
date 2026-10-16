@@ -629,7 +629,7 @@ def _fr_id(ind: dict) -> str:
 # Deterministic -- picked by the farmer's sequence number, so a re-seed and the
 # demo script agree on who grows what -- and never repeated within a farmer.
 SAMPLE_MAIN_CROPS = [
-    "CROP_TEFF", "CROP_WHEAT", "CROP_MAIZE",
+    "CROP_TEFF", "CROP_BREAD_WHEAT", "CROP_MAIZE",
     "CROP_SORGHUM", "CROP_BARLEY", "CROP_FABA_BEAN",
 ]
 

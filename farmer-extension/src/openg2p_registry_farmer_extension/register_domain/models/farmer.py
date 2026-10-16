@@ -22,7 +22,7 @@ class G2PFarmer:
     education_level: Mapped[EducationalLevelEnum] = mapped_column(String, nullable=True)       # EducationalLevelEnum
     national_id_masked: Mapped[str] = mapped_column(String, nullable=True)
     # Crops the farmer mainly grows, as declared at registration: a list of
-    # Master Data CROP_COMMODITY codes (e.g. ["CROP_TEFF", "CROP_WHEAT"]). No
+    # Master Data CROP_COMMODITY codes (e.g. ["CROP_TEFF", "CROP_BREAD_WHEAT"]). No
     # dates, areas or seasons -- what is actually sown each season belongs to
     # the Crop Sown Registry. JSONB list, the same shape RP uses for its own
     # multi-valued fields (phone_numbers, emails).

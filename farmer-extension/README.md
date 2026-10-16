@@ -30,7 +30,7 @@ The Farmer Registry holds no crop records. What a farmer sows each season, and
 where, belongs to the Crop Sown Registry. The farmer record carries only
 `main_crops`: the crops the farmer mainly grows, as declared at registration — a
 JSONB list of Master Data `CROP_COMMODITY` codes (e.g. `["CROP_TEFF",
-"CROP_WHEAT"]`), entered with a multi-select bound to that code list in the
+"CROP_BREAD_WHEAT"]`), entered with a multi-select bound to that code list in the
 farmer's socio-economic section. No dates, areas or seasons.
 
 An install that predates this keeps its `g2p_register_crops` tables and rows;

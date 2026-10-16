@@ -111,7 +111,7 @@ DISABILITY_SEV = [("SOME_DIFFICULTY", 0.55), ("A_LOT_OF_DIFFICULTY", 0.31), ("CA
 
 # Main crops, as Master Data CROP_COMMODITY codes (ETH agriculture pack): the
 # field's dropdown and validator read that list, so these must be its codes.
-MAIN_CROPS = [("CROP_MAIZE", 0.22), ("CROP_TEFF", 0.18), ("CROP_WHEAT", 0.14),
+MAIN_CROPS = [("CROP_MAIZE", 0.22), ("CROP_TEFF", 0.18), ("CROP_BREAD_WHEAT", 0.14),
               ("CROP_SORGHUM", 0.11), ("CROP_BARLEY", 0.09), ("CROP_COFFEE", 0.07),
               ("CROP_HARICOT_BEAN", 0.06), ("CROP_FABA_BEAN", 0.05),
               ("CROP_SESAME", 0.04), ("CROP_CHICKPEA", 0.02),
