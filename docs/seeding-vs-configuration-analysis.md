@@ -54,7 +54,7 @@ Outside db-seed, later in the same Helm hook chain:
 
 | Weight | Job | Classification |
 |---|---|---|
-| 11–13 | `sanity-pm-seed`, `sanity-cm-seed`, `sanity-data-seed` | **Test fixtures** (only when `sanity.runE2e=true`; never deleted) |
+| 11–13 | `sanity-pm-seed` (partner key + access policy), `sanity-data-seed` | **Test fixtures** (only when `sanity.runE2e=true`; never deleted) |
 | 40 | `bulk-sample` | **Bulk data** (100,000 farmers) |
 | 45 | `reporting-views` | **Configuration** (views the dashboards read) |
 | 50 | `dashboards` | **Configuration** (Superset import) |

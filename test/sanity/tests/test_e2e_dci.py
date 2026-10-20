@@ -60,8 +60,6 @@ def _require_succ(resp):
     header = resp.get("header") or {}
     status = header.get("status")
     reason = header.get("status_reason_message") or ""
-    if status == "rjct" and "pending" in reason.lower():
-        pytest.skip(f"consent policy pending approval (AWE enabled): {reason}")
     assert status == "succ", f"expected 'succ', got '{status}': {reason}"
     return resp
 

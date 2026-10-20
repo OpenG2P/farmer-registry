@@ -4,7 +4,7 @@ The Farmer Registry does **not** carry its own copy of the sanity suite. The
 registry-platform publishes the whole suite as an image,
 `openg2p/openg2p-registry-sanity-tests`, containing:
 
-- the **harness** — signing, DCI envelope building, PM/CM/Keycloak/AWE seeding,
+- the **harness** — signing, DCI envelope building, PM (partner key + policy)/Keycloak/AWE seeding,
   DB helpers, step logging, and the `conftest.py` banners/fixtures;
 - **Set 1 (extension-independent tests)** — `test_smoke.py` and
   `test_e2e_negative.py`: liveness, wiring, and the fail-closed cases (search

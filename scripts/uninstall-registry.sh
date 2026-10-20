@@ -19,7 +19,7 @@
 #                                           helm-owned secrets & configmaps)
 #   3. Delete leftover Jobs + their Pods   (helm hook jobs like db-seed,
 #                                           keycloak-init, postgres-init, and the
-#                                           sanity jobs (pm-seed, cm-seed, sanity)
+#                                           sanity jobs (pm-seed, data-seed, sanity)
 #                                           keep themselves around via
 #                                           hook-delete-policy: before-hook-creation)
 #   4. Sweep leftover Secrets/ConfigMaps   (label: app.kubernetes.io/instance)
@@ -35,11 +35,11 @@
 #      (typically `Released` PVs created with reclaimPolicy=Retain)
 #
 # NOT removed (by design): the sanity e2e seeds a SHARED, persistent test partner
-# into Partner Management (PARTNER_CM_SANITY key) and a binding+policy into the
-# Consent Manager (FR_SANITY_PARTNER). Those live in PM's / CM's own databases —
-# not in this registry's release or DBs — and are intentionally left in place:
-# PARTNER_CM_SANITY is shared with the Consent Manager's own sanity, and CM
-# partner-delete is soft (audit integrity). Remove them via PM/CM if desired.
+# into Partner Management (PARTNER_CM_SANITY: its key and its access policy for
+# this registry's data controller). Those live in PM's own database — not in this
+# registry's release or DBs — and are intentionally left in place:
+# PARTNER_CM_SANITY is shared with the other registries' and the Consent
+# Manager's sanity suites. Revoke the policy or disable the partner in PM if desired.
 #
 # Refuses to start while a Helm operation on the release is still running
 # (status pending-install / pending-upgrade / pending-rollback, or a Rancher
