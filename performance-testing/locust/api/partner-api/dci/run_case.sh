@@ -32,6 +32,10 @@ export ENDPOINT_SLOS="
 sync:btree_fid 1000000 5000
 sync:btree_uin 1000000 5000
 sync:btree_birth 1000000 5000
+sync:expression 1000000 5000
+sync:predicate 1000000 5000
+sync:graphql 1000000 5000
+sync:idtype_value 1000000 5000
 sync:gin_first 1000000 5000
 sync:gin_last 1000000 5000
 sync:gin_text 1000000 5000
@@ -41,6 +45,10 @@ sync:id_uin 1000000 5000
 async:btree_fid 1000000 5000
 async:btree_uin 1000000 5000
 async:btree_birth 1000000 5000
+async:expression 1000000 5000
+async:predicate 1000000 5000
+async:graphql 1000000 5000
+async:idtype_value 1000000 5000
 async:gin_first 1000000 5000
 async:gin_last 1000000 5000
 async:gin_text 1000000 5000
@@ -74,7 +82,7 @@ if [[ "${HEADLESS:-}" == "1" ]]; then
   ARGS+=(--headless)
 else
   echo "Locust web UI: http://127.0.0.1:${WEB_PORT:-8089}"
-  echo "Click Start swarming. The shape starts at 4 users and adds 4 every 30s until CPU is 1.85 or p99 is over 5000ms. Tag ${CASE}."
+  echo "Click Start swarming. The shape starts at 2 users and adds 2 every 30s until CPU is 1.85 or p99 is over 5000ms. Tag ${CASE}."
 fi
 
 exec "${LOCUST[@]}" "${ARGS[@]}"

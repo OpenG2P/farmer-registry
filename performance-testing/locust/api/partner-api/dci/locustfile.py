@@ -14,7 +14,7 @@ import math
 import os
 import random
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from locust import HttpUser, constant, tag, task
@@ -26,11 +26,12 @@ from signing import load_private_key, sign_envelope
 
 
 class PartnerSearchRampShape(SLOStepRampShape):
-    """4 users, then +4 every 30s. Stop adding users when a step's successful
+    """2 users, then +2 every 30s. Stop adding users when a step's successful
     RPS does not rise. Also freeze at 1.85 cores or p99 over 1000ms for two
     windows. Then soak at the last user count that still raised RPS."""
 
-    warmup_users = 4
+    warmup_users = 2
+    step_users = 2
     freeze_when_rps_flat = True
 
 HOST = os.environ.get(
@@ -140,7 +141,7 @@ class DciSearchUser(HttpUser):
         random.shuffle(chosen)
         self.pending_pages = chosen
 
-    def _criteria(self, query_type: str, query: dict, page: int, size: int) -> dict:
+    def _criteria(self, query_type: str, query: dict | list, page: int, size: int) -> dict:
         return {
             "version": "1.0.0",
             "reg_type": "Farmer",
@@ -149,6 +150,17 @@ class DciSearchUser(HttpUser):
             "query": query,
             "pagination": {"page_size": size, "page_number": page},
         }
+
+    def _fresh_row(self):
+        """One new farmer, page 1. Used when paging the same row repeats one result set."""
+        self._active_pool = self.pool
+        return self._new_term(), 1, PAGE_SIZE
+
+    @staticmethod
+    def _birth_window(row) -> tuple[str, str]:
+        """Seven days from this farmer's birth date, so one page holds more than one day."""
+        start = datetime.fromisoformat(row["birth_date"]).date()
+        return start.isoformat(), (start + timedelta(days=6)).isoformat()
 
     def _expression(self, query_body: dict, page: int, size: int) -> dict:
         return self._criteria(
@@ -297,6 +309,86 @@ class DciSearchUser(HttpUser):
                         {"birth_date": {"$eq": row["birth_date"]}},
                     ]
                 },
+                page,
+                size,
+            ),
+        )
+
+    @tag("expression")
+    @task
+    def query_expression(self):
+        row, page, size = self._fresh_row()
+        start, end = self._birth_window(row)
+        self._post(
+            "expression",
+            self._expression(
+                {"$and": [{"birth_date": {"$gte": start}}, {"birth_date": {"$lte": end}}]},
+                page,
+                size,
+            ),
+        )
+
+    @tag("predicate")
+    @task
+    def query_predicate(self):
+        row, page, size = self._fresh_row()
+        start, end = self._birth_window(row)
+        self._post(
+            "predicate",
+            self._criteria(
+                "predicate",
+                [
+                    {
+                        "seq_num": 1,
+                        "expression1": {
+                            "attribute_name": "birth_date",
+                            "operator": "ge",
+                            "attribute_value": start,
+                        },
+                    },
+                    {
+                        "seq_num": 2,
+                        "expression1": {
+                            "attribute_name": "birth_date",
+                            "operator": "le",
+                            "attribute_value": end,
+                        },
+                    },
+                ],
+                page,
+                size,
+            ),
+        )
+
+    @tag("graphql")
+    @task
+    def query_graphql(self):
+        row, page, size = self._fresh_row()
+        start, end = self._birth_window(row)
+        document = (
+            "query { farmer(birth_date: "
+            f'{{ gte: "{start}", lte: "{end}" }}) '
+            "{ functional_record_id } }"
+        )
+        self._post(
+            "graphql",
+            self._criteria(
+                "graphql",
+                {"type": "graphql", "value": {"expression": document}},
+                page,
+                size,
+            ),
+        )
+
+    @tag("idtype_value")
+    @task
+    def query_idtype_value(self):
+        row, page, size = self._ready(self.pool)
+        self._post(
+            "idtype_value",
+            self._criteria(
+                "idtype-value",
+                {"type": "FID", "value": row["functional_record_id"]},
                 page,
                 size,
             ),
