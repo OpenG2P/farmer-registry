@@ -16,6 +16,12 @@
 
 # ── Globals (propagate to the openg2p-registry subchart) ──────────────────────
 global:
+  # DCI identifier types a partner may search by → the subject ID types consents
+  # use (the country's SUBJECT_ID_TYPE list). Used when a search carries no
+  # consent and the registry asks its Consent Manager to find one. DCI calls
+  # the national ID "UIN"; FARMER_ID is the same in both.
+  consentSubjectIdTypes:
+    UIN: FAYDA_FAN
   # THE single source of truth for every public hostname. Declared here as well
   # as in the openg2p-registry subchart because Helm globals flow parent -> child
   # only: without this, the parent's own templates resolve it to "" and hosts
