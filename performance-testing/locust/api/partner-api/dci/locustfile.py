@@ -26,13 +26,14 @@ from signing import load_private_key, sign_envelope
 
 
 class PartnerSearchRampShape(SLOStepRampShape):
-    """2 users, then +2 every 30s. Stop adding users when a step's successful
-    RPS does not rise. Also freeze at 1.85 cores or p99 over 1000ms for two
-    windows. Then soak at the last user count that still raised RPS."""
+    """4 users, then +4 every 30s, up to 100. Keep adding users while CPU
+    and p99 are inside the gates. Freeze at 1.85 cores or p99 over 5000ms
+    for two windows. Then hold that user count for 5 minutes and stop."""
 
-    warmup_users = 2
-    step_users = 2
-    freeze_when_rps_flat = True
+    warmup_users = 4
+    step_users = 4
+    freeze_when_rps_flat = False
+    sustain_seconds = 5 * 60
 
 HOST = os.environ.get(
     "PARTNER_API_BASE",
@@ -44,7 +45,9 @@ RECEIVER_ID = os.environ.get("DCI_RECEIVER_ID", "farmer-registry")
 KID = os.environ.get("PARTNER_KEY_KID", "perftest-staff-portal")
 _SEED = Path(__file__).resolve().parents[6] / "perf-seed"
 POOL = Path(os.environ.get("DCI_SEARCH_POOL", _SEED / "partner_search_pool.csv"))
+FIDS = Path(os.environ.get("DCI_FID_POOL", _SEED / "partner_btree_fids.txt"))
 TERMS = Path(os.environ.get("DCI_SEARCH_TERMS", _SEED / "register_search_terms.txt"))
+FID_POOL_SIZE = 100_000
 
 PATHS = {
     "sync": "/dci/sync/search",
@@ -61,6 +64,24 @@ def _load_pool() -> list[dict]:
         rows = list(csv.DictReader(handle))
     if not rows:
         raise SystemExit(f"search pool is empty: {POOL}")
+    return rows
+
+
+def _load_fids() -> list[dict]:
+    if not FIDS.is_file():
+        raise SystemExit(f"functional id pool not found: {FIDS}. Run prepare_fids.sh first.")
+    rows = []
+    seen = set()
+    for raw in FIDS.read_text().splitlines():
+        fid = raw.strip()
+        if not fid or fid.startswith("#") or fid in seen:
+            continue
+        seen.add(fid)
+        rows.append({"functional_record_id": fid})
+    if len(rows) < FID_POOL_SIZE:
+        raise SystemExit(
+            f"functional id pool has {len(rows)} ids; need {FID_POOL_SIZE}: {FIDS}"
+        )
     return rows
 
 
@@ -85,6 +106,7 @@ class DciSearchUser(HttpUser):
         if MODE not in PATHS:
             raise SystemExit("DCI_MODE must be sync or async")
         self.pool = _load_pool()
+        self.fids = None
         self.terms = _load_terms()
         self.private_key = load_private_key()
         self._active_pool = None
@@ -234,7 +256,9 @@ class DciSearchUser(HttpUser):
     @tag("btree_fid")
     @task
     def btree_functional_id(self):
-        row, page, size = self._ready(self.pool)
+        if self.fids is None:
+            self.fids = _load_fids()
+        row, page, size = self._ready(self.fids)
         self._post(
             "btree_fid",
             self._expression({"functional_record_id": {"$eq": row["functional_record_id"]}}, page, size),

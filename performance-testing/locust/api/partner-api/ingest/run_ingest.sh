@@ -7,7 +7,7 @@
 # sets POD_SCALE (CPU freeze quorum) and the results folder.
 # Then open http://127.0.0.1:8089 and click Start swarming.
 # HEADLESS=1 runs until the shape finishes the soak, without the UI.
-# CSVs land in results/pod-<N>/.
+# CSVs land in locust/api/results/partner-api/ingest/pod-<N>/.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -17,7 +17,7 @@ if ! [[ "${POD_SCALE}" =~ ^[123]$ ]]; then
   echo "pass 1, 2, or 3 (got ${POD_SCALE})" >&2
   exit 1
 fi
-OUT="${HERE}/results/pod-${POD_SCALE}"
+OUT="${HERE}/../../results/partner-api/ingest/pod-${POD_SCALE}"
 mkdir -p "${OUT}"
 
 export PARTNER_API_BASE="${HOST}"

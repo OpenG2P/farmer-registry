@@ -83,7 +83,13 @@ def main() -> int:
     url = dsn()
     log(f"connecting {redact(url)}")
     log(f"max_per_week={MAX_PER_WEEK} per_day={PER_DAY} batch={BATCH_SIZE}")
-    conn = psycopg2.connect(url)
+    conn = psycopg2.connect(
+        url,
+        keepalives=1,
+        keepalives_idle=30,
+        keepalives_interval=10,
+        keepalives_count=5,
+    )
     conn.autocommit = True
     cur = conn.cursor()
     wall = time.monotonic()
