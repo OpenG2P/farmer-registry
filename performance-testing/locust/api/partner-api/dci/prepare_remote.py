@@ -3,7 +3,7 @@ import csv
 import os
 import sys
 import uuid
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 import httpx
 import psycopg2
@@ -96,6 +96,15 @@ for fid, found, first, last, birth in cur.fetchall():
     if len(kept) >= 10000:
         break
 print("pool_rows", len(kept), file=sys.stderr)
+# Live birth_date values stay on the old calendar until spread-birth-dates
+# finishes. The pool uses the span that job writes: 1200-01-01 .. 2165-08-30.
+span_start = date(1200, 1, 1)
+span_days = 352702
+stamped = []
+for i, (fid, found, first, last, _birth) in enumerate(kept):
+    offset = 0 if len(kept) == 1 else (i * (span_days - 1)) // (len(kept) - 1)
+    stamped.append((fid, found, first, last, (span_start + timedelta(days=offset)).isoformat()))
+kept = stamped
 writer = csv.writer(sys.stdout)
 writer.writerow(["functional_record_id", "foundational_id", "first_name", "last_name", "birth_date"])
 writer.writerows(kept)

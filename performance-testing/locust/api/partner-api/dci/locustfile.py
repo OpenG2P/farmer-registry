@@ -14,7 +14,7 @@ import math
 import os
 import random
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from locust import HttpUser, constant, tag, task
@@ -26,12 +26,14 @@ from signing import load_private_key, sign_envelope
 
 
 class PartnerSearchRampShape(SLOStepRampShape):
-    """4 users, then +4 every 30s. Stop adding users when a step's successful
-    RPS does not rise. Also freeze at 1.85 cores or p99 over 1000ms for two
-    windows. Then soak at the last user count that still raised RPS."""
+    """4 users, then +4 every 30s, up to 100. Keep adding users while CPU
+    and p99 are inside the gates. Freeze at 1.85 cores or p99 over 5000ms
+    for two windows. Then hold that user count for 5 minutes and stop."""
 
     warmup_users = 4
-    freeze_when_rps_flat = True
+    step_users = 4
+    freeze_when_rps_flat = False
+    sustain_seconds = 5 * 60
 
 HOST = os.environ.get(
     "PARTNER_API_BASE",
@@ -43,7 +45,9 @@ RECEIVER_ID = os.environ.get("DCI_RECEIVER_ID", "farmer-registry")
 KID = os.environ.get("PARTNER_KEY_KID", "perftest-staff-portal")
 _SEED = Path(__file__).resolve().parents[6] / "perf-seed"
 POOL = Path(os.environ.get("DCI_SEARCH_POOL", _SEED / "partner_search_pool.csv"))
+FIDS = Path(os.environ.get("DCI_FID_POOL", _SEED / "partner_btree_fids.txt"))
 TERMS = Path(os.environ.get("DCI_SEARCH_TERMS", _SEED / "register_search_terms.txt"))
+FID_POOL_SIZE = 100_000
 
 PATHS = {
     "sync": "/dci/sync/search",
@@ -60,6 +64,24 @@ def _load_pool() -> list[dict]:
         rows = list(csv.DictReader(handle))
     if not rows:
         raise SystemExit(f"search pool is empty: {POOL}")
+    return rows
+
+
+def _load_fids() -> list[dict]:
+    if not FIDS.is_file():
+        raise SystemExit(f"functional id pool not found: {FIDS}. Run prepare_fids.sh first.")
+    rows = []
+    seen = set()
+    for raw in FIDS.read_text().splitlines():
+        fid = raw.strip()
+        if not fid or fid.startswith("#") or fid in seen:
+            continue
+        seen.add(fid)
+        rows.append({"functional_record_id": fid})
+    if len(rows) < FID_POOL_SIZE:
+        raise SystemExit(
+            f"functional id pool has {len(rows)} ids; need {FID_POOL_SIZE}: {FIDS}"
+        )
     return rows
 
 
@@ -84,6 +106,7 @@ class DciSearchUser(HttpUser):
         if MODE not in PATHS:
             raise SystemExit("DCI_MODE must be sync or async")
         self.pool = _load_pool()
+        self.fids = None
         self.terms = _load_terms()
         self.private_key = load_private_key()
         self._active_pool = None
@@ -140,7 +163,7 @@ class DciSearchUser(HttpUser):
         random.shuffle(chosen)
         self.pending_pages = chosen
 
-    def _criteria(self, query_type: str, query: dict, page: int, size: int) -> dict:
+    def _criteria(self, query_type: str, query: dict | list, page: int, size: int) -> dict:
         return {
             "version": "1.0.0",
             "reg_type": "Farmer",
@@ -149,6 +172,17 @@ class DciSearchUser(HttpUser):
             "query": query,
             "pagination": {"page_size": size, "page_number": page},
         }
+
+    def _fresh_row(self):
+        """One new farmer, page 1. Used when paging the same row repeats one result set."""
+        self._active_pool = self.pool
+        return self._new_term(), 1, PAGE_SIZE
+
+    @staticmethod
+    def _birth_window(row) -> tuple[str, str]:
+        """Seven days from this farmer's birth date, so one page holds more than one day."""
+        start = datetime.fromisoformat(row["birth_date"]).date()
+        return start.isoformat(), (start + timedelta(days=6)).isoformat()
 
     def _expression(self, query_body: dict, page: int, size: int) -> dict:
         return self._criteria(
@@ -222,7 +256,9 @@ class DciSearchUser(HttpUser):
     @tag("btree_fid")
     @task
     def btree_functional_id(self):
-        row, page, size = self._ready(self.pool)
+        if self.fids is None:
+            self.fids = _load_fids()
+        row, page, size = self._ready(self.fids)
         self._post(
             "btree_fid",
             self._expression({"functional_record_id": {"$eq": row["functional_record_id"]}}, page, size),
@@ -297,6 +333,86 @@ class DciSearchUser(HttpUser):
                         {"birth_date": {"$eq": row["birth_date"]}},
                     ]
                 },
+                page,
+                size,
+            ),
+        )
+
+    @tag("expression")
+    @task
+    def query_expression(self):
+        row, page, size = self._fresh_row()
+        start, end = self._birth_window(row)
+        self._post(
+            "expression",
+            self._expression(
+                {"$and": [{"birth_date": {"$gte": start}}, {"birth_date": {"$lte": end}}]},
+                page,
+                size,
+            ),
+        )
+
+    @tag("predicate")
+    @task
+    def query_predicate(self):
+        row, page, size = self._fresh_row()
+        start, end = self._birth_window(row)
+        self._post(
+            "predicate",
+            self._criteria(
+                "predicate",
+                [
+                    {
+                        "seq_num": 1,
+                        "expression1": {
+                            "attribute_name": "birth_date",
+                            "operator": "ge",
+                            "attribute_value": start,
+                        },
+                    },
+                    {
+                        "seq_num": 2,
+                        "expression1": {
+                            "attribute_name": "birth_date",
+                            "operator": "le",
+                            "attribute_value": end,
+                        },
+                    },
+                ],
+                page,
+                size,
+            ),
+        )
+
+    @tag("graphql")
+    @task
+    def query_graphql(self):
+        row, page, size = self._fresh_row()
+        start, end = self._birth_window(row)
+        document = (
+            "query { farmer(birth_date: "
+            f'{{ gte: "{start}", lte: "{end}" }}) '
+            "{ functional_record_id } }"
+        )
+        self._post(
+            "graphql",
+            self._criteria(
+                "graphql",
+                {"type": "graphql", "value": {"expression": document}},
+                page,
+                size,
+            ),
+        )
+
+    @tag("idtype_value")
+    @task
+    def query_idtype_value(self):
+        row, page, size = self._ready(self.pool)
+        self._post(
+            "idtype_value",
+            self._criteria(
+                "idtype-value",
+                {"type": "FID", "value": row["functional_record_id"]},
                 page,
                 size,
             ),
