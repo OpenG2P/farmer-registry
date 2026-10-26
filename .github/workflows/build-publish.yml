@@ -33,6 +33,11 @@ jobs:
             "dockerfile": "docker/staff-api/Dockerfile"
           },
           {
+            "name": "staff-ui",
+            "repo": "openg2p/openg2p-farmer-registry-staff-ui",
+            "dockerfile": "docker/staff-ui/Dockerfile"
+          },
+          {
             "name": "partner-api",
             "repo": "openg2p/openg2p-farmer-registry-partner-api",
             "dockerfile": "docker/partner-api/Dockerfile"
@@ -57,7 +62,7 @@ jobs:
       chart-path: helm/openg2p-farmer-registry
 
       chart-image-paths: |
-        [".registry.staffApi.image.tag",".registry.partnerApi.image.tag",".registry.celeryWorker.image.tag",".registry.celeryBeat.image.tag",".registry.dbSeed.image.tag",".registry.sanity.image.tag"]
+        [".registry.staffApi.image.tag",".registry.partnerApi.image.tag",".registry.celeryWorker.image.tag",".registry.celeryBeat.image.tag",".registry.dbSeed.image.tag",".registry.staffUi.image.tag",".registry.sanity.image.tag"]
 
       packaging-ref: v1
 
