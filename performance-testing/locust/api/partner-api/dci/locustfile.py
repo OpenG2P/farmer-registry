@@ -13,11 +13,14 @@ import logging
 import math
 import os
 import random
+import time
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
-from locust import HttpUser, constant, tag, task
+import gevent
+from gevent.lock import Semaphore
+from locust import HttpUser, constant, events, tag, task
 from shared.slo_shape import SLOStepRampShape
 
 _log = logging.getLogger("locust")
@@ -28,12 +31,34 @@ from signing import load_private_key, sign_envelope
 class PartnerSearchRampShape(SLOStepRampShape):
     """4 users, then +4 every 30s, up to 100. Keep adding users while CPU
     and p99 are inside the gates. Freeze at 1.85 cores or p99 over 5000ms
-    for two windows. Then hold that user count for 5 minutes and stop."""
+    for two windows. Then hold that user count for 5 minutes and stop.
 
-    warmup_users = 4
-    step_users = 4
+    Range cases set DCI_FIXED_USERS to 8 per pod (8, 16, or 24). Those
+    runs stay at that count and stop 10 minutes after Start. Each user
+    sends one request, waits for the response, then sends the next.
+    It does not add users.
+    """
+
+    _fixed_users = os.environ.get("DCI_FIXED_USERS", "").strip()
+    warmup_users = int(_fixed_users) if _fixed_users.isdigit() else 4
+    step_users = int(_fixed_users) if _fixed_users.isdigit() else 4
     freeze_when_rps_flat = False
     sustain_seconds = 5 * 60
+    range_run_seconds = 10 * 60
+
+    def tick(self):
+        if not self._fixed_users:
+            return super().tick()
+        run_time = self.get_run_time()
+        if run_time >= self.range_run_seconds:
+            if not getattr(self, "_range_stopped", False):
+                self._range_stopped = True
+                print(
+                    f"[shape] range run complete: {self.range_run_seconds}s "
+                    f"at {self.warmup_users} users"
+                )
+            return None
+        return (self.warmup_users, self.step_users)
 
 HOST = os.environ.get(
     "PARTNER_API_BASE",
@@ -45,6 +70,7 @@ RECEIVER_ID = os.environ.get("DCI_RECEIVER_ID", "farmer-registry")
 KID = os.environ.get("PARTNER_KEY_KID", "perftest-staff-portal")
 _SEED = Path(__file__).resolve().parents[6] / "perf-seed"
 POOL = Path(os.environ.get("DCI_SEARCH_POOL", _SEED / "partner_search_pool.csv"))
+WEEKS = Path(os.environ.get("DCI_BIRTH_WEEKS", _SEED / "partner_birth_weeks.csv"))
 FIDS = Path(os.environ.get("DCI_FID_POOL", _SEED / "partner_btree_fids.txt"))
 TERMS = Path(os.environ.get("DCI_SEARCH_TERMS", _SEED / "register_search_terms.txt"))
 FID_POOL_SIZE = 100_000
@@ -53,8 +79,102 @@ PATHS = {
     "sync": "/dci/sync/search",
     "async": "/dci/async/search",
 }
-PAGE_SIZE = 10
+PAGE_SIZE = int(os.environ.get("DCI_PAGE_SIZE", "10"))
 MAX_PAGES = 10
+RECORDS_LOG = os.environ.get("DCI_RECORDS_LOG", "").strip()
+
+
+class _RecordsServed:
+    """Records returned in response bodies, one row per minute."""
+
+    def __init__(self):
+        self._lock = Semaphore()
+        self.started = 0.0
+        self.total = 0
+        self._open_minute = 0
+        self._open_count = 0
+        self._minutes: list[int] = []
+        self._written = 0
+        self._loop = None
+
+    def start(self):
+        with self._lock:
+            self.started = time.monotonic()
+            self.total = 0
+            self._open_minute = 0
+            self._open_count = 0
+            self._minutes = []
+            self._written = 0
+        if self._loop is None:
+            self._loop = gevent.spawn(self._watch)
+
+    def add(self, count: int):
+        if count <= 0 or self.started <= 0:
+            return
+        with self._lock:
+            self._roll()
+            self._open_count += count
+            self.total += count
+
+    def _roll(self):
+        minute = int((time.monotonic() - self.started) // 60)
+        while self._open_minute < minute:
+            self._minutes.append(self._open_count)
+            self._open_minute += 1
+            self._open_count = 0
+
+    def _write(self, rows: list[int], include_log: bool):
+        running = 0
+        lines = ["minute,processed_records,records_total"]
+        for minute, count in enumerate(rows, start=1):
+            running += count
+            lines.append(f"{minute},{count},{running}")
+            if include_log and minute > self._written:
+                print(f"[served] minute {minute}: processed {count}, total {running}")
+        if RECORDS_LOG:
+            Path(RECORDS_LOG).write_text("\n".join(lines) + "\n")
+        self._written = len(rows)
+
+    def _watch(self):
+        while True:
+            gevent.sleep(5)
+            if self.started <= 0:
+                continue
+            with self._lock:
+                self._roll()
+                if len(self._minutes) <= self._written:
+                    continue
+                self._write(list(self._minutes), include_log=True)
+
+    def finish(self):
+        if self.started <= 0:
+            return
+        with self._lock:
+            self._roll()
+            rows = list(self._minutes)
+            if self._open_count or not rows:
+                rows.append(self._open_count)
+            elapsed = time.monotonic() - self.started
+            total = self.total
+            self._write(rows, include_log=True)
+        print(f"[served] {elapsed / 60:.1f} min: processed {total} records")
+        if RECORDS_LOG:
+            print(f"[served] wrote {RECORDS_LOG}")
+
+
+_served = _RecordsServed()
+
+
+@events.test_start.add_listener
+def _served_start(environment, **kwargs):
+    if RECORDS_LOG:
+        _served.start()
+
+
+@events.test_stop.add_listener
+def _served_stop(environment, **kwargs):
+    if RECORDS_LOG:
+        _served.finish()
 
 
 def _load_pool() -> list[dict]:
@@ -64,6 +184,17 @@ def _load_pool() -> list[dict]:
         rows = list(csv.DictReader(handle))
     if not rows:
         raise SystemExit(f"search pool is empty: {POOL}")
+    return rows
+
+
+def _load_weeks() -> list[dict]:
+    """One-week windows on birth dates the spread job already committed."""
+    if not WEEKS.is_file():
+        raise SystemExit(f"birth week file not found: {WEEKS}")
+    with WEEKS.open(newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    if len(rows) < 1000:
+        raise SystemExit(f"birth week file has {len(rows)} rows: {WEEKS}")
     return rows
 
 
@@ -106,6 +237,8 @@ class DciSearchUser(HttpUser):
         if MODE not in PATHS:
             raise SystemExit("DCI_MODE must be sync or async")
         self.pool = _load_pool()
+        self.weeks = _load_weeks()
+        _log.info("birth weeks %s rows from %s", len(self.weeks), WEEKS)
         self.fids = None
         self.terms = _load_terms()
         self.private_key = load_private_key()
@@ -114,6 +247,10 @@ class DciSearchUser(HttpUser):
         self._probe = True
         self.pending_pages = []
         self._last_index = None
+        self.range_start = None
+        self.range_end = None
+        self.range_page = 1
+        self.range_pages = None
 
     def _new_term(self):
         pool = self._active_pool
@@ -173,16 +310,47 @@ class DciSearchUser(HttpUser):
             "pagination": {"page_size": size, "page_number": page},
         }
 
-    def _fresh_row(self):
-        """One new farmer, page 1. Used when paging the same row repeats one result set."""
-        self._active_pool = self.pool
-        return self._new_term(), 1, PAGE_SIZE
+    def _pick_week(self) -> tuple[str, str]:
+        """One start/end pair from perf-seed/partner_birth_weeks.csv."""
+        row = random.choice(self.weeks)
+        start, end = row.get("start_date", ""), row.get("end_date", "")
+        if not start or not end:
+            raise SystemExit(f"birth week row has no start_date/end_date: {row}")
+        return start, end
 
-    @staticmethod
-    def _birth_window(row) -> tuple[str, str]:
-        """Seven days from this farmer's birth date, so one page holds more than one day."""
-        start = datetime.fromisoformat(row["birth_date"]).date()
-        return start.isoformat(), (start + timedelta(days=6)).isoformat()
+    def _range_page(self) -> tuple[str, str, int, int]:
+        """Stay on one week until every page of that week has been requested."""
+        if self.range_start is None:
+            self.range_start, self.range_end = self._pick_week()
+            self.range_page = 1
+            self.range_pages = None
+            _log.info(
+                "%s range %s..%s page 1",
+                MODE,
+                self.range_start,
+                self.range_end,
+            )
+        return self.range_start, self.range_end, self.range_page, PAGE_SIZE
+
+    def _finish_range_page(self, payload: dict) -> None:
+        _served.add(_page_record_count(payload))
+        if self.range_pages is None:
+            total = _total_count(payload)
+            if isinstance(total, int):
+                self.range_pages = max(1, math.ceil(total / PAGE_SIZE))
+            else:
+                self.range_pages = self.range_page
+        if self.range_page >= self.range_pages:
+            _log.info(
+                "%s range %s..%s done pages=%s",
+                MODE,
+                self.range_start,
+                self.range_end,
+                self.range_pages,
+            )
+            self.range_start = None
+            return
+        self.range_page += 1
 
     def _expression(self, query_body: dict, page: int, size: int) -> dict:
         return self._criteria(
@@ -192,7 +360,7 @@ class DciSearchUser(HttpUser):
             size,
         )
 
-    def _post(self, name: str, criteria: dict) -> None:
+    def _post(self, name: str, criteria: dict, track_pages: bool = True) -> dict | None:
         message_id = uuid.uuid4().hex
         header = {
             "version": "1.0.0",
@@ -222,20 +390,20 @@ class DciSearchUser(HttpUser):
             catch_response=True,
         ) as response:
             _log.info("%s %s %s", f"{MODE}:{name}", response.status_code, response.text)
-            self._check(response)
+            return self._check(response, track_pages=track_pages)
 
-    def _check(self, response) -> None:
+    def _check(self, response, track_pages: bool = True) -> dict | None:
         if response.status_code != 200:
             response.failure(f"HTTP {response.status_code}")
-            return
+            return None
         try:
             payload = response.json()
         except ValueError:
             response.failure("response is not JSON")
-            return
+            return None
         if payload.get("errors"):
             response.failure(str(payload["errors"]))
-            return
+            return None
         if MODE == "sync":
             status = (payload.get("header") or {}).get("status")
             if status != "succ":
@@ -243,15 +411,18 @@ class DciSearchUser(HttpUser):
                 response.failure(
                     f"status={status} {header.get('status_reason_code')} {header.get('status_reason_message')}"
                 )
-                return
-            self._plan_pages(payload)
-            return
+                return None
+            if track_pages:
+                self._plan_pages(payload)
+            return payload
         ack = (payload.get("message") or {}).get("ack_status")
         if ack != "ACK":
             error = (payload.get("message") or {}).get("error")
             response.failure(f"ack_status={ack} {error}")
-            return
-        self._plan_pages(payload)
+            return None
+        if track_pages:
+            self._plan_pages(payload)
+        return payload
 
     @tag("btree_fid")
     @task
@@ -276,8 +447,8 @@ class DciSearchUser(HttpUser):
     @tag("btree_birth")
     @task
     def btree_birth_date(self):
-        row, page, size = self._ready(self.pool)
-        day = row["birth_date"]
+        row, page, size = self._ready(self.weeks)
+        day = row["start_date"]
         self._post(
             "btree_birth",
             self._expression(
@@ -341,23 +512,24 @@ class DciSearchUser(HttpUser):
     @tag("expression")
     @task
     def query_expression(self):
-        row, page, size = self._fresh_row()
-        start, end = self._birth_window(row)
-        self._post(
+        start, end, page, size = self._range_page()
+        payload = self._post(
             "expression",
             self._expression(
                 {"$and": [{"birth_date": {"$gte": start}}, {"birth_date": {"$lte": end}}]},
                 page,
                 size,
             ),
+            track_pages=False,
         )
+        if payload is not None:
+            self._finish_range_page(payload)
 
     @tag("predicate")
     @task
     def query_predicate(self):
-        row, page, size = self._fresh_row()
-        start, end = self._birth_window(row)
-        self._post(
+        start, end, page, size = self._range_page()
+        payload = self._post(
             "predicate",
             self._criteria(
                 "predicate",
@@ -382,19 +554,21 @@ class DciSearchUser(HttpUser):
                 page,
                 size,
             ),
+            track_pages=False,
         )
+        if payload is not None:
+            self._finish_range_page(payload)
 
     @tag("graphql")
     @task
     def query_graphql(self):
-        row, page, size = self._fresh_row()
-        start, end = self._birth_window(row)
+        start, end, page, size = self._range_page()
         document = (
             "query { farmer(birth_date: "
             f'{{ gte: "{start}", lte: "{end}" }}) '
             "{ functional_record_id } }"
         )
-        self._post(
+        payload = self._post(
             "graphql",
             self._criteria(
                 "graphql",
@@ -402,7 +576,10 @@ class DciSearchUser(HttpUser):
                 page,
                 size,
             ),
+            track_pages=False,
         )
+        if payload is not None:
+            self._finish_range_page(payload)
 
     @tag("idtype_value")
     @task
@@ -445,6 +622,16 @@ class DciSearchUser(HttpUser):
                 size,
             ),
         )
+
+
+def _page_record_count(payload: dict) -> int:
+    message = payload.get("message") or {}
+    count = 0
+    for item in message.get("search_response") or []:
+        records = ((item or {}).get("data") or {}).get("reg_records") or []
+        if isinstance(records, list):
+            count += len(records)
+    return count
 
 
 def _total_count(payload: dict) -> int | None:

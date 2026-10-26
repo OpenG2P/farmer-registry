@@ -1,0 +1,2 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,sync:predicate,CatchResponseError('HTTP 503'),1,2026-10-26T11:00:37Z,2026-10-26T11:00:37Z
