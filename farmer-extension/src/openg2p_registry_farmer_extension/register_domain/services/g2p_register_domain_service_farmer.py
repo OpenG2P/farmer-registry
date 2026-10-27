@@ -4,6 +4,7 @@ from datetime import date
 from openg2p_registry_core.models import G2PRegisterChangeRequest
 from openg2p_registry_core.models.enum import ChangeActionEnum
 from openg2p_registry_core.services import G2PRegisterDomainService
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
@@ -23,9 +24,21 @@ _logger = logging.getLogger("g2p-register-domain-service")
 def _enum_fields() -> dict:
     # Imported lazily: ..models imports these services at module level, so a
     # top-level import here would be circular whenever services load first.
-    from ..models.enums import DisabilitySeverityEnum, DisabilityTypeEnum, EducationalLevelEnum, SourceOfIncomeEnum
+    from ..models.enums import (
+        DisabilitySeverityEnum,
+        DisabilityTypeEnum,
+        EducationalLevelEnum,
+        HouseholdRegistrationStatusEnum,
+        SourceOfIncomeEnum,
+    )
 
-    return {"disability_type": DisabilityTypeEnum, "disability_severity": DisabilitySeverityEnum, "source_of_income": SourceOfIncomeEnum, "education_level": EducationalLevelEnum}
+    return {
+        "disability_type": DisabilityTypeEnum,
+        "disability_severity": DisabilitySeverityEnum,
+        "source_of_income": SourceOfIncomeEnum,
+        "education_level": EducationalLevelEnum,
+        "household_registration_status": HouseholdRegistrationStatusEnum,
+    }
 
 
 class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
@@ -37,6 +50,73 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
             validate_enum_values(record, _enum_fields())
             self._validate_birth_date(record)
             self._validate_estimated_age(record)
+
+    async def validate_intake_parent_link(self, record: dict, link_internal_record_id: str | None, session: AsyncSession) -> None:
+        submission_id = await self._submission_id_for_record(record, session)
+        status = await self._household_registration_status(record, submission_id, session)
+        if status is None:
+            return
+        created_here = await self._household_created_in_submission(
+            submission_id, link_internal_record_id, session
+        )
+        if status == "ALREADY_REGISTERED" and link_internal_record_id and created_here:
+            validation_error(
+                "Select a registered or in-flight household, not one entered in this form"
+            )
+        if status == "NOT_REGISTERED" and link_internal_record_id and not created_here:
+            validation_error("Enter the household in this form instead of selecting an existing one")
+        if status == "NOT_REQUIRED" and link_internal_record_id:
+            validation_error("A household link is not allowed when household registration is not required")
+
+    async def _submission_id_for_record(self, record: dict, session: AsyncSession) -> str | None:
+        if record.get("submission_id"):
+            return str(record["submission_id"])
+        internal_record_id = record.get("internal_record_id")
+        if not internal_record_id:
+            return None
+        from ..models.farmer import G2PIntakeFormFarmer
+
+        found = (
+            await session.execute(
+                select(G2PIntakeFormFarmer.submission_id).where(
+                    G2PIntakeFormFarmer.internal_record_id == str(internal_record_id)
+                ).limit(1)
+            )
+        ).scalar_one_or_none()
+        return str(found) if found else None
+
+    async def _household_registration_status(self, record: dict, submission_id: str | None, session: AsyncSession) -> str | None:
+        raw = record.get("household_registration_status")
+        if raw not in (None, ""):
+            return str(raw)
+        if not submission_id:
+            return None
+        from ..models.farmer import G2PIntakeFormFarmer
+
+        rows = (
+            await session.execute(
+                select(G2PIntakeFormFarmer.household_registration_status).where(
+                    G2PIntakeFormFarmer.submission_id == submission_id,
+                    G2PIntakeFormFarmer.household_registration_status.is_not(None),
+                ).limit(1)
+            )
+        ).scalar_one_or_none()
+        return str(rows) if rows else None
+
+    async def _household_created_in_submission(self, submission_id, link_internal_record_id, session: AsyncSession) -> bool:
+        if not submission_id or not link_internal_record_id:
+            return False
+        from ..models.household import G2PIntakeFormHousehold
+
+        found = (
+            await session.execute(
+                select(G2PIntakeFormHousehold.internal_record_id).where(
+                    G2PIntakeFormHousehold.submission_id == str(submission_id),
+                    G2PIntakeFormHousehold.internal_record_id == str(link_internal_record_id),
+                ).limit(1)
+            )
+        ).scalar_one_or_none()
+        return found is not None
 
     @staticmethod
     def _clear_disability_details_when_not_disabled(record: dict) -> bool:

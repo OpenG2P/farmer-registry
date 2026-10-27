@@ -74,6 +74,12 @@ class LivestockSystemEnum(StrEnum):
     MIXED = "MIXED"
     INDUSTRIAL = "INDUSTRIAL"
 
+# HouseholdRegistrationInputEnum
+class HouseholdRegistrationStatusEnum(StrEnum):
+    ALREADY_REGISTERED = "ALREADY_REGISTERED"
+    NOT_REGISTERED = "NOT_REGISTERED"
+    NOT_REQUIRED = "NOT_REQUIRED"
+
 
 class FarmerClusterRoleEnum(StrEnum):
     LEAD = "LEAD"
