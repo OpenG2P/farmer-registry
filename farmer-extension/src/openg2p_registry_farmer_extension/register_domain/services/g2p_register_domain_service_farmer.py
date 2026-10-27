@@ -68,6 +68,59 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
         if status == "NOT_REQUIRED" and link_internal_record_id:
             validation_error("A household link is not allowed when household registration is not required")
 
+    async def validate_intake_submission(self, submission, session: AsyncSession) -> None:
+        submission_id = getattr(submission, "submission_id", None)
+        if not submission_id:
+            return
+        from ..models.farmer import G2PIntakeFormFarmer
+        from ..models.household import G2PRegisterHousehold
+        from .household_submission_validation import validate_household_submission
+
+        farmers = (
+            await session.execute(
+                select(G2PIntakeFormFarmer).where(
+                    G2PIntakeFormFarmer.submission_id == str(submission_id)
+                )
+            )
+        ).scalars().all()
+        if not farmers:
+            return
+
+        for farmer in farmers:
+            status = str(farmer.household_registration_status or "").strip() or None
+            link_id = str(farmer.link_internal_record_id or "").strip() or None
+            if status is None:
+                continue
+
+            created_here = await self._household_created_in_submission(
+                submission_id, link_id, session
+            )
+            if status == "ALREADY_REGISTERED":
+                if not link_id:
+                    validation_error(
+                        "A registered household must be linked when household_registration_status is ALREADY_REGISTERED"
+                    )
+                if created_here:
+                    validation_error(
+                        "Select a registered or in-flight household, not one entered in this form"
+                    )
+                live_household = await session.get(G2PRegisterHousehold, link_id)
+                if live_household is None:
+                    validation_error(
+                        f"Linked household '{link_id}' is not present in the live household register"
+                    )
+            elif status == "NOT_REGISTERED":
+                if not link_id or not created_here:
+                    validation_error(
+                        "Household details must be entered in this form when household_registration_status is NOT_REGISTERED"
+                    )
+                await validate_household_submission(str(submission_id), session)
+            elif status == "NOT_REQUIRED":
+                if link_id:
+                    validation_error(
+                        "A household link is not allowed when household registration is not required"
+                    )
+
     async def _submission_id_for_record(self, record: dict, session: AsyncSession) -> str | None:
         if record.get("submission_id"):
             return str(record["submission_id"])

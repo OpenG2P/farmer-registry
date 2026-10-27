@@ -140,6 +140,23 @@ class G2PRegisterDomainServiceHousehold(G2PRegisterDomainService):
         if str(status) in {"ALREADY_REGISTERED", "NOT_REQUIRED"}:
             validation_error("Household details are not collected for this farmer")
 
+    async def validate_intake_submission(self, submission, session: AsyncSession) -> None:
+        submission_id = getattr(submission, "submission_id", None)
+        if not submission_id:
+            return
+        from ..models.household import G2PIntakeFormHousehold
+        from .household_submission_validation import validate_household_submission
+
+        has_household = (
+            await session.execute(
+                select(G2PIntakeFormHousehold.internal_record_id).where(
+                    G2PIntakeFormHousehold.submission_id == str(submission_id)
+                ).limit(1)
+            )
+        ).scalar_one_or_none()
+        if has_household is not None:
+            await validate_household_submission(str(submission_id), session)
+
     def construct_search_text(self, payload: dict, extra: list[str] = None) -> str:
         _logger.info("Constructing search text for household")
 
