@@ -17,6 +17,15 @@ Three search shapes, each run once as sync and once as async, plus ingest.
 | `composite` | `last_name` `$startsWith` and `first_name` `$startsWith` (GIN) plus `birth_date` `$eq` (btree) |
 | `ingest` | `POST /partner/ingest_data?data_model=IMPORT_FARMER_CSV` |
 
+DCI query types from `search/dci/queries`. `gin_text` and `composite` stay the index cases above. `expression`, `predicate`, and `graphql` use `birth_date` only. Each request uses a new farmer and the seven days from that birth date, so the page is not one shared birth date. `idtype-value` has no range operator, so it looks up `FID`.
+
+| Tag | `query_type` | Filter |
+|---|---|---|
+| `expression` | `expression` | `birth_date` `$gte` day and `$lte` day+6 |
+| `predicate` | `predicate` | `birth_date` `ge` day and `le` day+6 |
+| `graphql` | `graphql` | `birth_date: { gte: day, lte: day+6 }` |
+| `idtype_value` | `idtype-value` | `FID` equals `functional_record_id` |
+
 `btree_uin`, `btree_birth`, `gin_first`, `gin_last`, `id_fid`, and `id_uin` are still tasks in the locust file. `./run_all.sh` does not run them.
 
 Sync is `POST /dci/sync/search`. A row passes when HTTP is 200 and `header.status` is `succ`.
@@ -69,8 +78,8 @@ Checked on the current file:
 
 Same shape as staff (`locust/api/shared/slo_shape.py`). Click Start in the web UI. The shape then owns the user count.
 
-- Start at 4 users.
-- Add 4 users every 30 seconds, up to 100.
+- Search starts at 2 users, then adds 2 every 30 seconds, up to 100.
+- Ingest still starts at 4 users and adds 4 every 30 seconds.
 - RPS is the first stop. If a step's successful requests/s do not rise above the previous step, freeze at the previous user count.
 - Also freeze when the partner pod stays at 1.85 cores for 2 polls, or when p99 stays above 1000 ms for 2 windows.
 - Soak 5 minutes at that user count, then stop.
@@ -93,9 +102,17 @@ cd farmer-registry/performance-testing/locust/api/partner-api/dci
 ./run_case.sh sync btree_fid
 ./run_case.sh sync gin_text
 ./run_case.sh sync composite
+./run_case.sh sync expression
+./run_case.sh sync predicate
+./run_case.sh sync graphql
+./run_case.sh sync idtype_value
 ./run_case.sh async btree_fid
 ./run_case.sh async gin_text
 ./run_case.sh async composite
+./run_case.sh async expression
+./run_case.sh async predicate
+./run_case.sh async graphql
+./run_case.sh async idtype_value
 ./run_all.sh sync
 ./run_all.sh async
 

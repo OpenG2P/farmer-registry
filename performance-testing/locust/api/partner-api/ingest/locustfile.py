@@ -25,10 +25,11 @@ _log = logging.getLogger("locust")
 class PartnerIngestRampShape(SLOStepRampShape):
     """4 users, then +4 every 30s. Stop adding users when a step's successful
     RPS does not rise. Also freeze at 1.85 cores or p99 over 1000ms for two
-    windows. Then soak at the last user count that still raised RPS."""
+    windows. Then hold that user count for 5 minutes and stop."""
 
     warmup_users = 4
     freeze_when_rps_flat = True
+    sustain_seconds = 5 * 60
 
 HOST = os.environ.get(
     "PARTNER_API_BASE",
