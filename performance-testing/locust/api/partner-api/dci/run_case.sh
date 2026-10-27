@@ -51,7 +51,55 @@ if [[ "${CASE}" == "expression" || "${CASE}" == "predicate" || "${CASE}" == "gra
   export DCI_FIXED_USERS="${RANGE_USERS}"
   export MAX_USERS="${RANGE_USERS}"
   CSV_NAME="${CASE}_p${PAGE_SIZE}"
-  export DCI_RECORDS_LOG="${OUT}/${CSV_NAME}_records.csv"
+  SYNC_CSV_NAME="${CSV_NAME}"
+  if [[ -n "${RUN_LABEL:-}" ]]; then
+    CSV_NAME="${CSV_NAME}_${RUN_LABEL}"
+  fi
+  if [[ -n "${RUN_MINUTES:-}" ]]; then
+    if ! [[ "${RUN_MINUTES}" =~ ^[0-9]+$ ]] || [[ "${RUN_MINUTES}" -lt 1 ]]; then
+      echo "RUN_MINUTES must be a positive number of minutes (got ${RUN_MINUTES})" >&2
+      exit 1
+    fi
+    export DCI_RANGE_RUN_SECONDS=$((RUN_MINUTES * 60))
+  fi
+  if [[ "${MODE}" == "sync" ]]; then
+    export DCI_RECORDS_LOG="${OUT}/${CSV_NAME}_records.csv"
+  else
+    # The ACK body has no farmers. fill_kafka_records.py writes this file.
+    # Request the same record total the matching sync run already returned,
+    # unless RUN_MINUTES is set, in which case the run stops on the clock.
+    if [[ -n "${RUN_MINUTES:-}" ]]; then
+      unset DCI_RECORD_BUDGET || true
+      DCI_RECORD_BUDGET=0
+    else
+      SYNC_RECORDS="${HERE}/../../results/partner-api/sync/pod-${POD_SCALE}/${SYNC_CSV_NAME}_records.csv"
+      if [[ ! -f "${SYNC_RECORDS}" ]]; then
+        echo "no sync records file for this case: ${SYNC_RECORDS}" >&2
+        exit 1
+      fi
+      DCI_RECORD_BUDGET="$(awk -F, 'NR>1 {n=$3} END {print n}' "${SYNC_RECORDS}")"
+      if ! [[ "${DCI_RECORD_BUDGET}" =~ ^[0-9]+$ ]] || [[ "${DCI_RECORD_BUDGET}" -lt 1 ]]; then
+        echo "sync records file has no total: ${SYNC_RECORDS}" >&2
+        exit 1
+      fi
+      export DCI_RECORD_BUDGET
+    fi
+    export DCI_RUN_ID="r$(date +%s)-$$"
+    # 2 workers per pod, 8 searches on a worker. The pool allows 30, so a
+    # search gets a connection instead of dying after 30s. Page 500 holds
+    # a connection much longer, so that cap is half.
+    if [[ "${PAGE_SIZE}" == "500" ]]; then
+      export DCI_ASYNC_INFLIGHT=$((POD_SCALE * 8))
+    else
+      export DCI_ASYNC_INFLIGHT=$((POD_SCALE * 16))
+    fi
+    unset DCI_RECORDS_LOG || true
+    export DCI_KAFKA_RECORDS_START="${OUT}/.${CSV_NAME}_kafka_start"
+    export DCI_KAFKA_RECORDS_STOP="${OUT}/.${CSV_NAME}_kafka_stop"
+    export DCI_KAFKA_DONE_FILE="${OUT}/.${CSV_NAME}_kafka_done"
+    KAFKA_READY="${OUT}/.${CSV_NAME}_kafka_ready"
+    rm -f "${DCI_KAFKA_RECORDS_START}" "${DCI_KAFKA_RECORDS_STOP}" "${KAFKA_READY}" "${DCI_KAFKA_DONE_FILE}"
+  fi
   LOCUST_USERS="${RANGE_USERS}"
   RANGE_CASE=1
 fi
@@ -113,7 +161,13 @@ if [[ "${HEADLESS:-}" == "1" ]]; then
   ARGS+=(--headless)
 else
   echo "Locust web UI: http://127.0.0.1:${WEB_PORT:-8089}"
-  if [[ "${RANGE_CASE}" == "1" ]]; then
+  if [[ "${RANGE_CASE}" == "1" && "${MODE}" == "async" && -n "${RUN_MINUTES:-}" ]]; then
+    echo "Click Start swarming. Leave Run time empty. ${LOCUST_USERS} users, at most ${DCI_ASYNC_INFLIGHT} searches in flight. Stops after ${RUN_MINUTES} minutes. Tag ${CASE}."
+  elif [[ "${RANGE_CASE}" == "1" && "${MODE}" == "async" ]]; then
+    echo "Click Start swarming. Leave Run time empty. ${LOCUST_USERS} users, at most ${DCI_ASYNC_INFLIGHT} searches in flight. Stops after requesting ${DCI_RECORD_BUDGET} records. Tag ${CASE}."
+  elif [[ "${RANGE_CASE}" == "1" && -n "${RUN_MINUTES:-}" ]]; then
+    echo "Click Start swarming. Leave Run time empty. This run stays at ${LOCUST_USERS} users, page size ${PAGE_SIZE}, and stops after ${RUN_MINUTES} minutes. Tag ${CASE}."
+  elif [[ "${RANGE_CASE}" == "1" ]]; then
     echo "Click Start swarming. Leave Run time empty. This run stays at ${LOCUST_USERS} users, page size ${PAGE_SIZE}, and stops at 10 minutes. Each user sends one request, waits for the response, then sends the next. Tag ${CASE}."
   else
     echo "Click Start swarming. The shape starts at 4 users and adds 4 every 30s until CPU is 1.85 or p99 is over 5000ms, then holds for 5 minutes and stops. Tag ${CASE}."
@@ -123,8 +177,67 @@ echo "POD_SCALE=${POD_SCALE}"
 echo "Results: ${OUT}/${CSV_NAME}"
 if [[ "${CASE}" == "expression" || "${CASE}" == "predicate" || "${CASE}" == "graphql" ]]; then
   echo "Birth ranges: ${HERE}/../../../../../../perf-seed/partner_birth_weeks.csv"
-  echo "Page size: ${PAGE_SIZE}. Users: ${LOCUST_USERS}. Each user keeps one week until every page of that week is done."
-  echo "Records served: ${DCI_RECORDS_LOG}"
+  if [[ "${MODE}" == "sync" ]]; then
+    if [[ -n "${RUN_MINUTES:-}" ]]; then
+      echo "Page size: ${PAGE_SIZE}. Users: ${LOCUST_USERS}. Each user keeps one week until every page of that week is done. Stops after ${RUN_MINUTES} minutes."
+    else
+      echo "Page size: ${PAGE_SIZE}. Users: ${LOCUST_USERS}. Each user keeps one week until every page of that week is done."
+    fi
+    echo "Records served: ${DCI_RECORDS_LOG}"
+  else
+    if [[ -n "${RUN_MINUTES:-}" ]]; then
+      echo "Page size: ${PAGE_SIZE}. Users: ${LOCUST_USERS}. At most ${DCI_ASYNC_INFLIGHT} searches in flight, under the 30-connection pool. Stops after ${RUN_MINUTES} minutes."
+    else
+      echo "Page size: ${PAGE_SIZE}. Users: ${LOCUST_USERS}. At most ${DCI_ASYNC_INFLIGHT} searches in flight, under the 30-connection pool. Stops after ${DCI_RECORD_BUDGET} records."
+    fi
+    echo "Records served: ${OUT}/${CSV_NAME}_records.csv"
+    echo "Time to publish that many farmers is read from Kafka topic http___websub_topics_PARTNER_STAFF_PORTAL."
+  fi
 fi
 
-exec "${LOCUST[@]}" "${ARGS[@]}"
+FILL_PID=""
+if [[ "${MODE}" == "async" && "${RANGE_CASE}" == "1" ]]; then
+  PY="${LOCUST[0]}"
+  if [[ "${PY}" != *python* ]]; then
+    PY="${HERE}/../../../../../../venv/.perf-venv/bin/python"
+  fi
+  "${PY}" "${HERE}/fill_kafka_records.py" \
+    --out "${OUT}/${CSV_NAME}_records.csv" \
+    --start-file "${DCI_KAFKA_RECORDS_START}" \
+    --stop-file "${DCI_KAFKA_RECORDS_STOP}" \
+    --ready-file "${KAFKA_READY}" \
+    --budget "${DCI_RECORD_BUDGET}" \
+    --run-id "${DCI_RUN_ID}" \
+    --done-file "${DCI_KAFKA_DONE_FILE}" &
+  FILL_PID=$!
+  for _ in $(seq 1 40); do
+    if [[ -f "${KAFKA_READY}" ]]; then
+      break
+    fi
+    if ! kill -0 "${FILL_PID}" 2>/dev/null; then
+      echo "Kafka record consumer exited before the run." >&2
+      wait "${FILL_PID}" || true
+      exit 1
+    fi
+    sleep 0.5
+  done
+  if [[ ! -f "${KAFKA_READY}" ]]; then
+    echo "Kafka record consumer did not become ready." >&2
+    kill "${FILL_PID}" 2>/dev/null || true
+    exit 1
+  fi
+fi
+
+set +e
+"${LOCUST[@]}" "${ARGS[@]}"
+status=$?
+set -e
+if [[ -n "${FILL_PID}" ]]; then
+  if [[ ! -f "${DCI_KAFKA_RECORDS_STOP}" ]]; then
+    kill -TERM "${FILL_PID}" 2>/dev/null || true
+  fi
+  echo "Waiting for Kafka records to finish."
+  wait "${FILL_PID}" || true
+  rm -f "${DCI_KAFKA_RECORDS_START}" "${DCI_KAFKA_RECORDS_STOP}" "${KAFKA_READY}" "${DCI_KAFKA_DONE_FILE}"
+fi
+exit "${status}"

@@ -20,7 +20,7 @@ from pathlib import Path
 
 import gevent
 from gevent.lock import Semaphore
-from locust import HttpUser, constant, events, tag, task
+from locust import HttpUser, constant, constant_pacing, events, tag, task
 from shared.slo_shape import SLOStepRampShape
 
 _log = logging.getLogger("locust")
@@ -34,9 +34,10 @@ class PartnerSearchRampShape(SLOStepRampShape):
     for two windows. Then hold that user count for 5 minutes and stop.
 
     Range cases set DCI_FIXED_USERS to 8 per pod (8, 16, or 24). Those
-    runs stay at that count and stop 10 minutes after Start. Each user
-    sends one request, waits for the response, then sends the next.
-    It does not add users.
+    runs stay at that count. Sync stops 10 minutes after Start. Async
+    sets DCI_RECORD_BUDGET and stops once that many records have been
+    requested. Each user sends one request, waits for the response, then
+    sends the next. It does not add users.
     """
 
     _fixed_users = os.environ.get("DCI_FIXED_USERS", "").strip()
@@ -44,11 +45,15 @@ class PartnerSearchRampShape(SLOStepRampShape):
     step_users = int(_fixed_users) if _fixed_users.isdigit() else 4
     freeze_when_rps_flat = False
     sustain_seconds = 5 * 60
-    range_run_seconds = 10 * 60
+    _range_seconds = os.environ.get("DCI_RANGE_RUN_SECONDS", "").strip()
+    range_run_seconds = int(_range_seconds) if _range_seconds.isdigit() else 10 * 60
+    record_budget = os.environ.get("DCI_RECORD_BUDGET", "").strip()
 
     def tick(self):
         if not self._fixed_users:
             return super().tick()
+        if self.record_budget:
+            return (self.warmup_users, self.step_users)
         run_time = self.get_run_time()
         if run_time >= self.range_run_seconds:
             if not getattr(self, "_range_stopped", False):
@@ -82,6 +87,9 @@ PATHS = {
 PAGE_SIZE = int(os.environ.get("DCI_PAGE_SIZE", "10"))
 MAX_PAGES = 10
 RECORDS_LOG = os.environ.get("DCI_RECORDS_LOG", "").strip()
+KAFKA_START = os.environ.get("DCI_KAFKA_RECORDS_START", "").strip()
+KAFKA_STOP = os.environ.get("DCI_KAFKA_RECORDS_STOP", "").strip()
+RUN_ID = os.environ.get("DCI_RUN_ID", "").strip()
 
 
 class _RecordsServed:
@@ -165,16 +173,156 @@ class _RecordsServed:
 _served = _RecordsServed()
 
 
+class _RecordBudget:
+    """Stop once this many farmer rows have been requested.
+
+    Async has no total_count on the ACK, so the cap is the sync run's
+    records_total. The last request uses a smaller page size when the
+    remainder is below the page size.
+    """
+
+    def __init__(self):
+        raw = os.environ.get("DCI_RECORD_BUDGET", "").strip()
+        self.limit = int(raw) if raw.isdigit() else 0
+        self.sent = 0
+        self._lock = Semaphore()
+        self._quit_sent = False
+        self.runner = None
+
+    def take(self, page_size: int) -> int | None:
+        if self.limit <= 0:
+            return page_size
+        with self._lock:
+            left = self.limit - self.sent
+            if left <= 0:
+                return None
+            size = page_size if page_size < left else left
+            self.sent += size
+            return size
+
+    def quit_if_spent(self):
+        if self.limit <= 0 or self.sent < self.limit or self._quit_sent:
+            return
+        self._quit_sent = True
+        print(
+            f"[served] requested {self.sent} records "
+            f"(budget {self.limit}); stopping"
+        )
+        if self.runner is not None:
+            self.runner.quit()
+
+
+_budget = _RecordBudget()
+
+
+class _KafkaDone:
+    """Ids whose on-search publish has been read from Kafka."""
+
+    def __init__(self):
+        self.path = os.environ.get("DCI_KAFKA_DONE_FILE", "").strip()
+        self.ids: set[str] = set()
+        self._lock = Semaphore()
+        self._offset = 0
+        self._loop = None
+
+    def start(self):
+        if not self.path or self._loop is not None:
+            return
+        self._loop = gevent.spawn(self._watch)
+
+    def _watch(self):
+        while True:
+            self._read()
+            gevent.sleep(0.2)
+
+    def _read(self):
+        path = Path(self.path)
+        if not path.is_file():
+            return
+        with path.open() as handle:
+            handle.seek(self._offset)
+            chunk = handle.read()
+            self._offset = handle.tell()
+        if not chunk:
+            return
+        with self._lock:
+            for line in chunk.splitlines():
+                tid = line.strip()
+                if tid:
+                    self.ids.add(tid)
+
+    def wait(self, transaction_id: str, timeout: float = 45.0) -> bool:
+        if not self.path:
+            return True
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if _budget._quit_sent:
+                return False
+            self._read()
+            with self._lock:
+                if transaction_id in self.ids:
+                    return True
+            gevent.sleep(0.2)
+        _log.warning("kafka publish not seen within %.0fs: %s", timeout, transaction_id)
+        return False
+
+
+_kafka_done = _KafkaDone()
+
+
+class _InFlight:
+    """Cap searches the pod has accepted but not finished.
+
+    Each worker's pool is 30 connections. The cap stays under that, scaled
+    by pods and workers, so a search is not left waiting until the pool
+    throws it away. The slot is released when Kafka sees the publish.
+    """
+
+    def __init__(self):
+        raw = os.environ.get("DCI_ASYNC_INFLIGHT", "").strip()
+        self.limit = int(raw) if raw.isdigit() else 0
+        self._sem = Semaphore(self.limit) if self.limit else None
+
+    def acquire(self) -> bool:
+        if self._sem is None:
+            return True
+        while not _budget._quit_sent:
+            if self._sem.acquire(timeout=0.5):
+                return True
+        return False
+
+    def release(self):
+        if self._sem is not None:
+            self._sem.release()
+
+    def release_when_published(self, transaction_id: str):
+        try:
+            _kafka_done.wait(transaction_id, timeout=40.0)
+        finally:
+            self.release()
+
+
+_inflight = _InFlight()
+
+
 @events.test_start.add_listener
 def _served_start(environment, **kwargs):
+    _budget.runner = environment.runner
+    _kafka_done.start()
     if RECORDS_LOG:
         _served.start()
+    if KAFKA_START:
+        # Wall-clock origin for the Kafka minute buckets. Minute 1 is the
+        # next 60 seconds from this instant.
+        Path(KAFKA_START).write_text(f"{time.time():.6f}\n")
 
 
 @events.test_stop.add_listener
 def _served_stop(environment, **kwargs):
     if RECORDS_LOG:
         _served.finish()
+    if KAFKA_STOP:
+        Path(KAFKA_STOP).write_text("stop\n")
 
 
 def _load_pool() -> list[dict]:
@@ -229,9 +377,15 @@ def _load_terms() -> list[str]:
     return terms
 
 
+_pace = os.environ.get("DCI_ASYNC_PACE_SECONDS", "").strip()
+
+
 class DciSearchUser(HttpUser):
     host = HOST
-    wait_time = constant(0)
+    # Async range runs set a gap so the next search starts only after the
+    # previous one has had time to finish its database work. The ACK itself
+    # returns in tens of milliseconds and must not be the pace.
+    wait_time = constant_pacing(float(_pace)) if _pace else constant(0)
 
     def on_start(self):
         if MODE not in PATHS:
@@ -332,6 +486,14 @@ class DciSearchUser(HttpUser):
             )
         return self.range_start, self.range_end, self.range_page, PAGE_SIZE
 
+    def _capped_range(self) -> tuple[str, str, int, int] | None:
+        size = _budget.take(PAGE_SIZE)
+        if size is None:
+            _budget.quit_if_spent()
+            return None
+        start, end, page, _full = self._range_page()
+        return start, end, page, size
+
     def _finish_range_page(self, payload: dict) -> None:
         _served.add(_page_record_count(payload))
         if self.range_pages is None:
@@ -362,6 +524,15 @@ class DciSearchUser(HttpUser):
 
     def _post(self, name: str, criteria: dict, track_pages: bool = True) -> dict | None:
         message_id = uuid.uuid4().hex
+        # Async results come back on a shared topic. The run id is echoed
+        # on message.transaction_id so the Kafka counter can ignore every
+        # other publish.
+        if RUN_ID:
+            transaction_id = f"{RUN_ID}-{message_id}"
+            if len(transaction_id) > 99:
+                transaction_id = transaction_id[:99]
+        else:
+            transaction_id = message_id
         header = {
             "version": "1.0.0",
             "message_id": message_id,
@@ -372,7 +543,7 @@ class DciSearchUser(HttpUser):
             "is_msg_encrypted": False,
         }
         message = {
-            "transaction_id": message_id,
+            "transaction_id": transaction_id,
             "search_request": [
                 {"reference_id": message_id[:32], "search_criteria": criteria}
             ],
@@ -382,15 +553,31 @@ class DciSearchUser(HttpUser):
             "header": header,
             "message": message,
         }
+        if not _inflight.acquire():
+            return None
         path = PATHS[MODE]
-        with self.client.post(
-            path,
-            json=body,
-            name=f"{MODE}:{name}",
-            catch_response=True,
-        ) as response:
-            _log.info("%s %s %s", f"{MODE}:{name}", response.status_code, response.text)
-            return self._check(response, track_pages=track_pages)
+        try:
+            # The ACK returns in tens of milliseconds and Locust would reuse
+            # that TCP connection. Gunicorn then keeps every follow-up search
+            # on the one worker that accepted it, and the other worker stays
+            # idle. Closing the connection lets both workers accept.
+            post_headers = {"Connection": "close"} if MODE == "async" else None
+            with self.client.post(
+                path,
+                json=body,
+                headers=post_headers,
+                name=f"{MODE}:{name}",
+                catch_response=True,
+            ) as response:
+                payload = self._check(response, track_pages=track_pages)
+        except Exception:
+            _inflight.release()
+            raise
+        if payload is not None and _inflight.limit:
+            gevent.spawn(_inflight.release_when_published, transaction_id)
+        else:
+            _inflight.release()
+        return payload
 
     def _check(self, response, track_pages: bool = True) -> dict | None:
         if response.status_code != 200:
@@ -512,7 +699,10 @@ class DciSearchUser(HttpUser):
     @tag("expression")
     @task
     def query_expression(self):
-        start, end, page, size = self._range_page()
+        capped = self._capped_range()
+        if capped is None:
+            return
+        start, end, page, size = capped
         payload = self._post(
             "expression",
             self._expression(
@@ -524,11 +714,15 @@ class DciSearchUser(HttpUser):
         )
         if payload is not None:
             self._finish_range_page(payload)
+        _budget.quit_if_spent()
 
     @tag("predicate")
     @task
     def query_predicate(self):
-        start, end, page, size = self._range_page()
+        capped = self._capped_range()
+        if capped is None:
+            return
+        start, end, page, size = capped
         payload = self._post(
             "predicate",
             self._criteria(
@@ -558,11 +752,15 @@ class DciSearchUser(HttpUser):
         )
         if payload is not None:
             self._finish_range_page(payload)
+        _budget.quit_if_spent()
 
     @tag("graphql")
     @task
     def query_graphql(self):
-        start, end, page, size = self._range_page()
+        capped = self._capped_range()
+        if capped is None:
+            return
+        start, end, page, size = capped
         document = (
             "query { farmer(birth_date: "
             f'{{ gte: "{start}", lte: "{end}" }}) '
@@ -580,6 +778,7 @@ class DciSearchUser(HttpUser):
         )
         if payload is not None:
             self._finish_range_page(payload)
+        _budget.quit_if_spent()
 
     @tag("idtype_value")
     @task
