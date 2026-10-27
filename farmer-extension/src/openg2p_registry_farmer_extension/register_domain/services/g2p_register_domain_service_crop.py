@@ -6,7 +6,13 @@ from openg2p_registry_core.services import G2PRegisterDomainService
 
 from .land_link_validation import validate_land_link
 
-from .domain_validation_utils import fallback_record_name, parse_date, validate_enum_values, validation_error
+from .domain_validation_utils import (
+    duplicate_key,
+    fallback_record_name,
+    parse_date,
+    validate_enum_values,
+    validation_error,
+)
 
 _logger = logging.getLogger("g2p-register-domain-service")
 
@@ -25,24 +31,26 @@ class G2PRegisterDomainServiceCrop(G2PRegisterDomainService):
         for record in records:
             self._validate_planted_date(record)
             validate_enum_values(record, _enum_fields())
-        self._validate_no_duplicate_commodity(records)
+        self._validate_no_duplicate_crop(records)
         await validate_land_link(records, "Crop")
+
+    def _validate_no_duplicate_crop(self, records: list[dict]) -> None:
+        seen: set[tuple] = set()
+        fields = ("link_internal_record_id", "commodity", "planted_date", "season", "end_use")
+        for record in records:
+            normalized = duplicate_key(record, fields)
+            if normalized is None:
+                continue
+            if normalized in seen:
+                validation_error(
+                    "Duplicate crop entries are not allowed for the same parent, commodity, planted date, season, and end use"
+                )
+            seen.add(normalized)
 
     def _validate_planted_date(self, record: dict) -> None:
         planted_date = parse_date(record.get("planted_date"))
         if planted_date is not None and planted_date > date.today():
             validation_error("planted_date must not be in the future")
-
-    def _validate_no_duplicate_commodity(self, records: list[dict]) -> None:
-        seen: set[str] = set()
-        for record in records:
-            value = record.get("commodity")
-            if value is None or str(value).strip() == "":
-                continue
-            normalized = str(value).strip()
-            if normalized in seen:
-                validation_error("Duplicate commodity entries are not allowed")
-            seen.add(normalized)
 
     def construct_search_text(self, payload: dict, extra: list[str] = None) -> str:
         _logger.info("Constructing search text for crop")
