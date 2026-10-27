@@ -1,0 +1,150 @@
+{# Household register -> the family object already used under family_details
+   in openg2p_farmer_to_dci.json.j2.
+   `expanded` is the Household row. Related rows arrive under the snake_case
+   register mnemonic: household_member, score, farmer.
+   Farm holdings are rendered by the farmer template, not here.
+   No local column for a place locality name (address_line_2, else
+   address_line_1). household_head is a name string, not a person id;
+   group_head_info uses the household_member row with is_head when one exists.
+#}
+{%- macro norm(value) -%}
+{{- (value or '') | string | trim | upper -}}
+{%- endmacro -%}
+{%- macro sex(value) -%}
+{%- set v = norm(value) -%}
+{%- if v in ['MALE', 'M'] -%}male
+{%- elif v in ['FEMALE', 'F'] -%}female
+{%- elif v in ['OTHERS', 'OTHER'] -%}others
+{%- elif v -%}{{ v | lower }}
+{%- else -%}unknown
+{%- endif -%}
+{%- endmacro -%}
+{%- set hh = expanded -%}
+{%- set members = hh.get('household_member') or [] -%}
+{%- set score_records = hh.get('score') or [] -%}
+{%- set selected_score = namespace(record={}) -%}
+{%- for score_record in score_records -%}
+{%- if not selected_score.record and score_record.get('score_type', '') | lower in ['poverty', 'poverty_score', 'pmt', 'pmt_score'] -%}
+{%- set selected_score.record = score_record -%}
+{%- endif -%}
+{%- endfor -%}
+{%- set first_score = selected_score.record or (score_records[0] if score_records else {}) -%}
+{%- set head_pick = namespace(record={}) -%}
+{%- for member in members -%}
+{%- if not head_pick.record and member.get('is_head') -%}
+{%- set head_pick.record = member -%}
+{%- endif -%}
+{%- endfor -%}
+{%- set head = head_pick.record -%}
+{
+  "family_details": {
+    "group_identifier": [
+      {
+        "@type": "Identifier",
+        "identifier_type": "UIN",
+        "identifier_value": {{ (hh.get('functional_record_id') or '') | tojson }}
+      }
+    ],
+    "group_type": "family",
+    "place": {
+      "name": {{ (hh.get('address_line_2') or hh.get('address_line_1') or '') | tojson }},
+      "geo": {
+        "@type": "spdci:GeoLocation",
+        "latitude": {{ hh.get('latitude') or 0 }},
+        "longitude": {{ hh.get('longitude') or 0 }}
+      }
+    },
+    "poverty_score": {{ first_score.get('computed_score') if first_score.get('computed_score') is not none else 'null' }},
+    "poverty_score_type": {{ (first_score.get('score_type') or '') | tojson }},
+    "group_head_info": {
+      "member_identifier": [
+        {
+          "@type": "Identifier",
+          "identifier_type": "UIN",
+          "identifier_value": {{ ((head.get('foundational_id') or head.get('functional_record_id')) if head else '') | tojson }}
+        }
+      ],
+      "demographic_info": {
+        "identifier": [
+          {
+            "@type": "Identifier",
+            "identifier_type": "UIN",
+            "identifier_value": {{ ((head.get('foundational_id') or head.get('functional_record_id')) if head else '') | tojson }}
+          }
+        ],
+        "name": {
+          "@type": "Name",
+          "given_name": {{ ((head.get('first_name') if head else none) or hh.get('household_head') or '') | tojson }},
+          "second_name": {{ ((head.get('middle_name') if head else '') or '') | tojson }},
+          "surname": {{ ((head.get('last_name') if head else '') or '') | tojson }},
+          "prefix": {{ ((head.get('prefix') if head else '') or '') | tojson }},
+          "suffix": {{ ((head.get('suffix') if head else '') or '') | tojson }}
+        },
+        "sex": {{ sex(head.get('gender') if head else none) | tojson }},
+        "birth_date": {{ ((head.get('birth_date') if head else '') or '') | tojson }},
+        "registration_date": {{ (((head.get('registration_date') or head.get('created_at')) if head else '') or '') | tojson }},
+        "last_updated": {{ ((head.get('last_approved_at') if head else '') or '') | tojson }}
+      },
+      "self_id_disability": {{ 'true' if head and head.get('is_disabled', false) else 'false' }},
+      "marital_status": {{ (((head.get('marital_status') if head else '') or '') | string | lower) | tojson }},
+      "relationship_to_the_head": {{ (((head.get('relationship_to_the_head') if head else '') or '') | string | lower) | tojson }},
+      "registration_date": {{ (((head.get('registration_date') or head.get('created_at')) if head else '') or '') | tojson }},
+      "last_updated": {{ ((head.get('last_approved_at') if head else '') or '') | tojson }}
+    },
+    "group_size": {{ hh.get('size_of_group') if hh.get('size_of_group') is not none else (members | length) }},
+    "member_list": [
+      {%- for member in members %}
+      {
+        "member_identifier": [
+          {
+            "@type": "Identifier",
+            "identifier_type": "UIN",
+            "identifier_value": {{ (member.get('foundational_id') or member.get('functional_record_id') or '') | tojson }}
+          }
+        ],
+        "demographic_info": {
+          "identifier": [
+            {
+              "@type": "Identifier",
+              "identifier_type": "UIN",
+              "identifier_value": {{ (member.get('foundational_id') or member.get('functional_record_id') or '') | tojson }}
+            }
+          ],
+          "name": {
+            "@type": "Name",
+            "given_name": {{ (member.get('first_name') or '') | tojson }},
+            "second_name": {{ (member.get('middle_name') or '') | tojson }},
+            "surname": {{ (member.get('last_name') or '') | tojson }},
+            "prefix": {{ (member.get('prefix') or '') | tojson }},
+            "suffix": {{ (member.get('suffix') or '') | tojson }}
+          },
+          "sex": {{ sex(member.get('gender')) | tojson }},
+          "birth_date": {{ (member.get('birth_date') or '') | tojson }},
+          "registration_date": {{ (member.get('registration_date') or member.get('created_at') or '') | tojson }},
+          "last_updated": {{ (member.get('last_approved_at') or '') | tojson }}
+        },
+        "self_id_disability": {{ 'true' if member.get('is_disabled', false) else 'false' }},
+        "marital_status": {{ (member.get('marital_status') or '') | string | lower | tojson }},
+        "is_head": {{ 'true' if member.get('is_head') else 'false' }},
+        "relationship_to_the_head": {{ (member.get('relationship_to_the_head') or '') | string | lower | tojson }},
+        "registration_date": {{ (member.get('registration_date') or member.get('created_at') or '') | tojson }},
+        "last_updated": {{ (member.get('last_approved_at') or '') | tojson }}
+      }{% if not loop.last %},{% endif %}
+      {%- endfor %}
+    ],
+    "registration_date": {{ (hh.get('created_at') or '') | tojson }},
+    "last_updated": {{ (hh.get('last_approved_at') or '') | tojson }}
+  },
+  "additional_attributes": [
+    {
+      "number_of_children": {% if hh.get('number_of_children') is none %}null{% else %}{{ hh.get('number_of_children') }}{% endif %},
+      "number_of_elderly_members": {% if hh.get('number_of_elderly_members') is none %}null{% else %}{{ hh.get('number_of_elderly_members') }}{% endif %},
+      "number_of_female_members": {% if hh.get('number_of_female_members') is none %}null{% else %}{{ hh.get('number_of_female_members') }}{% endif %},
+      "number_of_male_members": {% if hh.get('number_of_male_members') is none %}null{% else %}{{ hh.get('number_of_male_members') }}{% endif %},
+      "other_land_owner": {% if hh.get('other_land_owner') is none %}null{% elif hh.get('other_land_owner') %}true{% else %}false{% endif %},
+      "linked_farmer_count": {{ (hh.get('farmer') or []) | length }}
+    }
+  ],
+  "registration_date": {{ (hh.get('created_at') or '') | tojson }},
+  "last_updated": {{ (hh.get('last_approved_at') or '') | tojson }}
+}
