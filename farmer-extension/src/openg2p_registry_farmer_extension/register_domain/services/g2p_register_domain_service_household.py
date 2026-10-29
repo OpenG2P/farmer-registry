@@ -3,7 +3,7 @@ import logging
 from openg2p_fastapi_common.context import dbengine
 from openg2p_registry_core.services import G2PRegisterDomainService
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from .domain_validation_utils import as_bool, as_int, fallback_record_name, is_blank, validation_error
 
@@ -110,6 +110,52 @@ class G2PRegisterDomainServiceHousehold(G2PRegisterDomainService):
                 f"size_of_group is {size_of_group} but {member_count} household member(s) "
                 "are recorded; update the members or the size so they match"
             )
+
+    async def validate_intake_parent_link(self, record: dict, link_internal_record_id: str | None, session: AsyncSession) -> None:
+        submission_id = record.get("submission_id")
+        if not submission_id and record.get("internal_record_id"):
+            from ..models.household import G2PIntakeFormHousehold
+
+            submission_id = (
+                await session.execute(
+                    select(G2PIntakeFormHousehold.submission_id).where(
+                        G2PIntakeFormHousehold.internal_record_id == str(record["internal_record_id"])
+                    ).limit(1)
+                )
+            ).scalar_one_or_none()
+        if not submission_id:
+            return
+        from ..models.farmer import G2PIntakeFormFarmer
+
+        status = (
+            await session.execute(
+                select(G2PIntakeFormFarmer.household_registration_status).where(
+                    G2PIntakeFormFarmer.submission_id == str(submission_id),
+                    G2PIntakeFormFarmer.household_registration_status.is_not(None),
+                ).limit(1)
+            )
+        ).scalar_one_or_none()
+        if status is None:
+            return
+        if str(status) in {"ALREADY_REGISTERED", "NOT_REQUIRED"}:
+            validation_error("Household details are not collected for this farmer")
+
+    async def validate_intake_submission(self, submission, session: AsyncSession) -> None:
+        submission_id = getattr(submission, "submission_id", None)
+        if not submission_id:
+            return
+        from ..models.household import G2PIntakeFormHousehold
+        from .household_submission_validation import validate_household_submission
+
+        has_household = (
+            await session.execute(
+                select(G2PIntakeFormHousehold.internal_record_id).where(
+                    G2PIntakeFormHousehold.submission_id == str(submission_id)
+                ).limit(1)
+            )
+        ).scalar_one_or_none()
+        if has_household is not None:
+            await validate_household_submission(str(submission_id), session)
 
     def construct_search_text(self, payload: dict, extra: list[str] = None) -> str:
         _logger.info("Constructing search text for household")

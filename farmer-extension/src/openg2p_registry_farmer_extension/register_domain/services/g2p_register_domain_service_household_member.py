@@ -53,6 +53,7 @@ class G2PRegisterDomainServiceHouseholdMember(G2PRegisterDomainService):
         link_internal_record_id: str | None,
         session: AsyncSession,
     ) -> None:
+        await self._reject_household_details_when_not_collected(record, link_internal_record_id, session)
         batch = _pending_member_batch.get()
         if batch is None:
             return
@@ -75,6 +76,39 @@ class G2PRegisterDomainServiceHouseholdMember(G2PRegisterDomainService):
         if household is None:
             return
         self._validate_members_against_household(batch, household)
+
+    async def _reject_household_details_when_not_collected(
+        self, record: dict, link_internal_record_id: str | None, session: AsyncSession
+    ) -> None:
+        submission_id = record.get("submission_id")
+        if not submission_id and link_internal_record_id:
+            from ..models.household import G2PIntakeFormHousehold
+
+            submission_id = await session.scalar(
+                select(G2PIntakeFormHousehold.submission_id).where(
+                    G2PIntakeFormHousehold.internal_record_id == str(link_internal_record_id)
+                ).limit(1)
+            )
+        if not submission_id and record.get("internal_record_id"):
+            from ..models.household_member import G2PIntakeFormHouseholdMember
+
+            submission_id = await session.scalar(
+                select(G2PIntakeFormHouseholdMember.submission_id).where(
+                    G2PIntakeFormHouseholdMember.internal_record_id == str(record["internal_record_id"])
+                ).limit(1)
+            )
+        if not submission_id:
+            return
+        from ..models.farmer import G2PIntakeFormFarmer
+
+        status = await session.scalar(
+            select(G2PIntakeFormFarmer.household_registration_status).where(
+                G2PIntakeFormFarmer.submission_id == str(submission_id),
+                G2PIntakeFormFarmer.household_registration_status.is_not(None),
+            ).limit(1)
+        )
+        if str(status or "") in {"ALREADY_REGISTERED", "NOT_REQUIRED"}:
+            validation_error("Household details are not collected for this farmer")
 
     # ── per-record rules ─────────────────────────────────────────────────────
 

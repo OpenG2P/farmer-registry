@@ -6,7 +6,7 @@ from openg2p_registry_core.models import (
     G2PPersonHistory, G2PGeoHistory
 )
 from ..services import G2PRegisterDomainServiceFarmer
-from .enums import DisabilityTypeEnum, DisabilitySeverityEnum, SourceOfIncomeEnum, EducationalLevelEnum
+from .enums import DisabilityTypeEnum, DisabilitySeverityEnum, SourceOfIncomeEnum, EducationalLevelEnum, HouseholdRegistrationStatusEnum
 
 
 class G2PFarmer:
@@ -43,6 +43,11 @@ class G2PRegisterHistoryFarmer(G2PRegisterHistory, G2PPersonHistory, G2PGeoHisto
 # All Intake Form classes should have the prefix G2PIntakeForm
 class G2PIntakeFormFarmer(G2PIntakeForm, G2PRegister, G2PPerson, G2PGeo, G2PFarmer):
     __tablename__ = "g2p_intake_form_farmers"
+
+    # Intake-only. Not on G2PFarmer, so the live register and history do not store it.
+    household_registration_status: Mapped[HouseholdRegistrationStatusEnum | None] = mapped_column(
+        String, nullable=True
+    )
 
     async def get_link_internal_record_id(self, session):
         from .household import G2PIntakeFormHousehold
