@@ -5,7 +5,7 @@ from openg2p_registry_core.services import G2PRegisterDomainService
 
 from .land_link_validation import validate_land_link
 
-from .domain_validation_utils import fallback_record_name, validate_enum_values, validation_error
+from .domain_validation_utils import duplicate_key, fallback_record_name, validate_enum_values, validation_error
 
 _logger = logging.getLogger("g2p-register-domain-service")
 
@@ -23,18 +23,20 @@ class G2PRegisterDomainServiceLivestock(G2PRegisterDomainService):
     async def validate_domain_attributes(self, records: list[dict]):
         for record in records:
             validate_enum_values(record, _enum_fields())
-        self._validate_no_duplicate_livestock_type(records)
+        self._validate_no_duplicate_livestock(records)
         await validate_land_link(records, "Livestock")
 
-    def _validate_no_duplicate_livestock_type(self, records: list[dict]) -> None:
-        seen: set[str] = set()
+    def _validate_no_duplicate_livestock(self, records: list[dict]) -> None:
+        seen: set[tuple] = set()
+        fields = ("link_internal_record_id", "livestock_type", "breed", "head_count", "livestock_system")
         for record in records:
-            value = record.get("livestock_type")
-            if value is None or str(value).strip() == "":
+            normalized = duplicate_key(record, fields)
+            if normalized is None:
                 continue
-            normalized = str(value).strip()
             if normalized in seen:
-                validation_error("Duplicate livestock_type entries are not allowed")
+                validation_error(
+                    "Duplicate livestock entries are not allowed for the same parent, livestock type, breed, head count, and livestock system"
+                )
             seen.add(normalized)
 
     def construct_search_text(self, payload: dict, extra: list[str] = None) -> str:

@@ -21,6 +21,13 @@ global:
 
 # ── openg2p-registry subchart overrides ───────────────────────────────────────
 registry:
+  
+  # Built staff-ui image from ui/staff-ui (upstream + overrides/)
+  staffUi:
+    image:
+      repository: openg2p/openg2p-farmer-registry-staff-ui
+      tag: 0.0.0-develop
+
   # Farmer-built images (each FROM the matching openg2p-registry base image).
   # CI rewrites these tags to the freshly built farmer version (lockstep); the
   # base image they extend is pinned by the openg2p-registry dependency version.
@@ -100,7 +107,7 @@ registry:
           household:
             idLength: 10
 
-  # staffUi and beneApi are consumed as-is from the openg2p-registry base images
+  # beneApi is consumed as-is from the openg2p-registry base images
   # (subchart defaults already point at openg2p/openg2p-registry-*), so they are
   # intentionally not overridden.
 

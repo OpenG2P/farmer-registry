@@ -12,8 +12,7 @@
 #
 # Build context = repo root (so farmer-extension/ is reachable).
 ARG RP_IMAGE=openg2p/openg2p-registry-staff-api
-ARG RP_VERSION=1.2.2-rc.557
-ARG RP_IMAGE=openg2p/registry-platform-staff-api
+ARG RP_VERSION=1.2.2-rc.593
 FROM ${RP_IMAGE}:${RP_VERSION}
 
 # Option C: select farmer's domain model (coexists with the base image's

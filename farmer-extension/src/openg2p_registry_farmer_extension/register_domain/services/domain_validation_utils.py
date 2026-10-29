@@ -3,6 +3,20 @@ from datetime import date, datetime
 from openg2p_registry_core.errors import G2PRegistryErrorCodes, G2PRegistryException
 
 
+def duplicate_key(record: dict, fields: tuple[str, ...]) -> tuple | None:
+    """Identity of one row. Blank fields stay blank; a fully blank row is skipped."""
+    parts = []
+    for field in fields:
+        value = record.get(field)
+        if value is None or str(value).strip() == "":
+            parts.append("")
+        else:
+            parts.append(str(value).strip())
+    if not any(parts):
+        return None
+    return tuple(parts)
+
+
 def validation_error(message: str) -> None:
     raise G2PRegistryException(
         code=G2PRegistryErrorCodes.REQUEST_VALIDATION_ERROR.value[1],

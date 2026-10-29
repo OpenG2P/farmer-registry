@@ -4,7 +4,14 @@ from datetime import date
 from openg2p_registry_core.services import G2PRegisterDomainService
 
 
-from .domain_validation_utils import as_float, as_int, fallback_record_name, validate_enum_values, validation_error
+from .domain_validation_utils import (
+    as_float,
+    as_int,
+    duplicate_key,
+    fallback_record_name,
+    validate_enum_values,
+    validation_error,
+)
 
 _logger = logging.getLogger("g2p-register-domain-service")
 
@@ -24,6 +31,20 @@ class G2PRegisterDomainServiceLand(G2PRegisterDomainService):
             validate_enum_values(record, _enum_fields())
             self._validate_land_size(record)
             self._validate_year_of_acquisition(record)
+        self._validate_no_duplicate_land(records)
+
+    def _validate_no_duplicate_land(self, records: list[dict]) -> None:
+        seen: set[tuple] = set()
+        fields = ("land_ownership_type", "land_size", "unit", "current_land_use")
+        for record in records:
+            normalized = duplicate_key(record, fields)
+            if normalized is None:
+                continue
+            if normalized in seen:
+                validation_error(
+                    "Duplicate land entries are not allowed for the same ownership, size, unit, and current use"
+                )
+            seen.add(normalized)
 
     def _validate_land_size(self, record: dict) -> None:
         land_size = as_float(record.get("land_size"))
