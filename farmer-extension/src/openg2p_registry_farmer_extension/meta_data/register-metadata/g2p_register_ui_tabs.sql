@@ -8,13 +8,6 @@ INSERT INTO
     )
 VALUES
     (
-        'household_farmer_tab',
-        '9055ab43-c85d-4833-bd00-ca657bb72644',
-        'household_farmer_tab',
-        2,
-        'TRUE'
-    ),
-    (
         'household_household_tab',
         '9055ab43-c85d-4833-bd00-ca657bb72644',
         'household_household_tab',

@@ -7,13 +7,14 @@
 # intake-form API sample loader.
 #
 # WHY THE SAMPLE LOADERS LIVE HERE
-#   load_sample_data.py submits complete household then farmer intake forms
-#   (land before crop/livestock/inputs) and approves them as alex.carter /
-#   nina.patel. Those forms and registers are declared by farmer-extension.
+#   load_sample_data.py submits farmer intake forms. A NOT_REGISTERED farmer
+#   includes the household and its members on that same form (land before
+#   crop/livestock/inputs) and approves them as alex.carter / nina.patel.
+#   Those forms and registers are declared by farmer-extension.
 #
 # Build context = repo root (so farmer-extension/ and docker/db-seed/ are both
 # reachable).
-ARG RP_VERSION=1.2.2-rc.593
+ARG RP_VERSION=1.2.2-rc.625
 FROM openg2p/openg2p-registry-db-seed:${RP_VERSION}
 
 # The RP db-seed image ships the reference registry's seed; clear it so only

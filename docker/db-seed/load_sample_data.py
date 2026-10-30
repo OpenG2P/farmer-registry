@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""Seed Farmer Registry sample records through the intake-form API.
+"""Seed Farmer Registry sample records through the farmer intake-form API.
 
-Households are submitted and approved first. Farmers are then submitted with
-the live household id, land is saved before crop / livestock / farm-inputs
-(those rows parent to land), then each intake is finalized and approved by
+Each sample is one farmer submission. Household registration status
+NOT_REGISTERED enters the household and its members on that same form.
+After the first such household is ingested, the seed also submits one
+ALREADY_REGISTERED farmer linked to it and one NOT_REQUIRED farmer with
+no household. Land is saved before crop / livestock / farm-inputs (those
+rows parent to land), then each intake is finalized and approved by
 alex.carter (stage 1) and nina.patel (stage 2). Celery ingest writes the
 register rows — this script never INSERTs into g2p_register_*.
 """
@@ -29,7 +32,6 @@ import psycopg2.extras
 
 # ── Register / form / section ids (farmer-extension meta_data) ───────────────
 HOUSEHOLD_REGISTER_ID = "9055ab43-c85d-4833-bd00-ca657bb72644"
-HOUSEHOLD_FORM_ID = "9055ab43-c85d-4833-bd00-ca657bb72650"
 FARMER_REGISTER_ID = "a1a4d25a-1cd4-4356-abac-985a0b3c6bcd"
 FARMER_FORM_ID = "a1a4d25a-1cd4-4356-abac-8782382649"
 LAND_REGISTER_ID = "493153d5-07ef-4743-8efd-07f4099772b9"
@@ -39,19 +41,25 @@ FARM_INPUTS_REGISTER_ID = "18df8370-3e9a-493f-aa27-fc1b9e05629c"
 MEMBERSHIP_REGISTER_ID = "495f251c-83a5-4025-a307-1925712c9d0b"
 HH_MEMBER_REGISTER_ID = "52979fdd-220c-48dd-8de0-0a434e786427"
 
-HH_INFO_SECTION = "household_household_household_information_section_01"
-HH_LOCATION_SECTION = "household_household_location_section_03"
-HH_MEMBER_SECTION = "household_household_household_member_section_02"
+# Household sections are saved on the farmer form. Which of them is sent
+# depends on household_registration_status.
+HH_INFO_SECTION = "household_information_section"
+HH_MEMBER_SECTION = "household_household_household_member_section"
 
-FARMER_LOOKUP_SECTION = "farmer_household_lookup_section_01"
-FARMER_PERSONAL_SECTION = "farmer_farmer_personal_identification_section_01"
-FARMER_SOCIO_SECTION = "farmer_farmer_socio_economic_and_health_section_04"
-FARMER_LOCATION_SECTION = "farmer_farmer_location_section_03"
-FARMER_LAND_SECTION = "farmer_farm_farm_details_section_01"
-FARMER_CROP_SECTION = "farmer_crop_crop_details_intake_section_01"
-FARMER_INPUT_SECTION = "farmer_farm_input_farm_input_details_intake_section_01"
-FARMER_LIVESTOCK_SECTION = "farmer_livestock_livestock_details_intake_section_01"
-FARMER_MEMBERSHIP_SECTION = "farmer_membership_membership_details_01"
+FARMER_STATUS_SECTION = "farmer_household_registration_status_section"
+FARMER_LOOKUP_SECTION = "farmer_household_lookup_section"
+FARMER_PERSONAL_SECTION = "farmer_farmer_personal_identification_section"
+FARMER_SOCIO_SECTION = "farmer_farmer_socio_economic_and_health_section"
+FARMER_LOCATION_SECTION = "farmer_farmer_location_section"
+FARMER_LAND_SECTION = "farmer_farm_details_section"
+FARMER_CROP_SECTION = "farmer_crop_details_intake_section"
+FARMER_INPUT_SECTION = "farmer_farm_input_details_intake_section"
+FARMER_LIVESTOCK_SECTION = "farmer_livestock_details_intake_section"
+FARMER_MEMBERSHIP_SECTION = "farmer_membership_membership_details"
+
+STATUS_NOT_REGISTERED = "NOT_REGISTERED"
+STATUS_ALREADY_REGISTERED = "ALREADY_REGISTERED"
+STATUS_NOT_REQUIRED = "NOT_REQUIRED"
 
 ARTIFACT_INTAKE = "registry.intake_form"
 
@@ -438,12 +446,17 @@ def geo_fields(rec: dict) -> dict:
     }
 
 
-def person_fields(person: dict, *, extra: dict | None = None) -> dict:
+def _stored_gender(person: dict) -> str:
     gender = (person.get("gender") or "MALE").upper()
     if gender == "OTHERS":
         gender = "OTHER"
     if gender not in ("MALE", "FEMALE", "OTHER", "UNKNOWN"):
         gender = "MALE"
+    return gender
+
+
+def person_fields(person: dict, *, extra: dict | None = None) -> dict:
+    gender = _stored_gender(person)
     marital = (person.get("marital_status") or "MARRIED").upper()
     if marital not in ("SINGLE", "MARRIED", "DIVORCED", "WIDOWED", "SEPARATED", "UNKNOWN"):
         marital = "MARRIED"
@@ -973,32 +986,39 @@ def already_seeded() -> bool:
 
 def household_payload(hh: dict) -> dict:
     members = hh["members"]
-    males = sum(1 for m in members if (m.get("gender") or "").upper() == "MALE")
-    females = sum(1 for m in members if (m.get("gender") or "").upper() == "FEMALE")
+    males = sum(1 for m in members if _stored_gender(m) == "MALE")
+    females = sum(1 for m in members if _stored_gender(m) == "FEMALE")
     children = sum(1 for m in members if (m.get("estimated_age") or 0) < 18)
     elderly = sum(1 for m in members if (m.get("estimated_age") or 0) >= 60)
-    size = males + females
-    if size == 0:
-        size = len(members) or 1
-        males = size
-        females = 0
+    # Roster check: size_of_group must equal the member rows, and male + female
+    # must not exceed that size (OTHER / UNKNOWN count toward size only).
+    size = len(members)
     return {
-        "household_head": hh["head"]["full_name"],
         "size_of_group": size,
         "number_of_children": children,
         "number_of_elderly_members": elderly,
         "number_of_male_members": males,
         "number_of_female_members": females,
         "other_land_owner": False,
-        **geo_fields(hh),
     }
+
+
+def status_payload(status: str, household_id: str | None = None) -> dict:
+    payload: dict[str, Any] = {"household_registration_status": status}
+    if status == STATUS_ALREADY_REGISTERED:
+        if not household_id:
+            raise RuntimeError(
+                "ALREADY_REGISTERED requires a household id already ingested from an earlier farmer"
+            )
+        payload["link_internal_record_id"] = household_id
+    return payload
 
 
 def member_payload(member: dict, household_intake_id: str, *, is_head: bool = False) -> dict:
     age = member.get("estimated_age") or 0
-    # Codes come from the master-data RELATIONSHIP_TO_HEAD list; the head is SELF.
+    # The head stores no relationship. SELF is reserved and rejected on a non-head.
     if is_head:
-        relationship = "SELF"
+        relationship = None
     elif age < 18:
         relationship = "CHILD"
     elif (member.get("marital_status") or "").upper() == "MARRIED":
@@ -1104,110 +1124,161 @@ def membership_payload(farmer_id: str, name: str) -> dict:
     }
 
 
-def submit_household(client: StaffClient, hh: dict) -> tuple[str, str]:
-    info = household_payload(hh)
-    saved = save_section(
-        client,
-        submission_id=None,
-        section_id=HH_INFO_SECTION,
-        section_register_id=HOUSEHOLD_REGISTER_ID,
-        form_id=HOUSEHOLD_FORM_ID,
-        register_id=HOUSEHOLD_REGISTER_ID,
-        records=[info],
-    )
-    submission_id = saved["submission_id"]
-    hh_id = section_record_id(saved, HOUSEHOLD_REGISTER_ID)
-    loc = {**info, "internal_record_id": hh_id}
-    save_section(
+def _save_farmer_section(
+    client: StaffClient,
+    *,
+    submission_id: str | None,
+    section_id: str,
+    section_register_id: str,
+    records: list[dict],
+) -> dict:
+    return save_section(
         client,
         submission_id=submission_id,
-        section_id=HH_LOCATION_SECTION,
-        section_register_id=HOUSEHOLD_REGISTER_ID,
-        form_id=HOUSEHOLD_FORM_ID,
-        register_id=HOUSEHOLD_REGISTER_ID,
-        records=[loc],
+        section_id=section_id,
+        section_register_id=section_register_id,
+        form_id=FARMER_FORM_ID,
+        register_id=FARMER_REGISTER_ID,
+        records=records,
     )
+
+
+def _adult_other_than_head(hh: dict) -> dict | None:
     head_id = hh["head"].get("internal_record_id")
-    members = [
-        member_payload(
-            m,
-            hh_id,
-            is_head=m.get("internal_record_id") == head_id,
-        )
-        for m in hh["members"]
-    ]
-    save_section(
-        client,
-        submission_id=submission_id,
-        section_id=HH_MEMBER_SECTION,
-        section_register_id=HH_MEMBER_REGISTER_ID,
-        form_id=HOUSEHOLD_FORM_ID,
-        register_id=HOUSEHOLD_REGISTER_ID,
-        records=members,
-    )
-    finalize(client, submission_id, HOUSEHOLD_REGISTER_ID, HOUSEHOLD_FORM_ID)
-    return submission_id, hh_id
+    for member in hh["members"]:
+        if member.get("internal_record_id") == head_id:
+            continue
+        if (member.get("estimated_age") or 0) >= 18:
+            return member
+    return None
+
+
+def _farmer_person(template: dict, **overrides) -> dict:
+    person = dict(template)
+    person.update(overrides)
+    first = person.get("first_name") or "Farmer"
+    last = person.get("last_name") or "Seed"
+    person["full_name"] = f"{first} {last}"
+    person["given_name"] = first
+    age = person.get("estimated_age") or 30
+    person["birth_date"] = date.today().replace(year=date.today().year - int(age)).isoformat()
+    return person
 
 
 def submit_farmer(
-    client: StaffClient, hh: dict, household_id: str, index: int
-) -> tuple[str, str]:
-    farmer = hh["head"]
+    client: StaffClient,
+    hh: dict,
+    index: int,
+    *,
+    status: str = STATUS_NOT_REGISTERED,
+    household_id: str | None = None,
+    person: dict | None = None,
+) -> tuple[str, str, str | None]:
+    """Submit one farmer intake.
+
+    Returns (submission_id, farmer_id, household_id). household_id is the
+    household created in this submission for NOT_REGISTERED, the linked live
+    household for ALREADY_REGISTERED, and None for NOT_REQUIRED.
+    `person` is the farmer; it defaults to the household head.
+    """
+    if status not in (STATUS_NOT_REGISTERED, STATUS_ALREADY_REGISTERED, STATUS_NOT_REQUIRED):
+        raise RuntimeError(f"unknown household_registration_status: {status}")
+
+    farmer = person or hh["head"]
     extra = farmer_extra(index)
     extra["estimated_age"] = _age_from_birth(farmer.get("birth_date"), farmer.get("estimated_age") or 40)
     extra["national_id_masked"] = f"XXXX{(farmer.get('foundational_id') or '0000')[-4:]}"
-    personal = {
-        **person_fields(farmer, extra=extra),
-        "link_internal_record_id": household_id,
-    }
-    saved = save_section(
+    personal = person_fields(farmer, extra=extra)
+
+    # Status goes down first so household and member saves can see it.
+    saved = _save_farmer_section(
         client,
         submission_id=None,
-        section_id=FARMER_PERSONAL_SECTION,
+        section_id=FARMER_STATUS_SECTION,
         section_register_id=FARMER_REGISTER_ID,
-        form_id=FARMER_FORM_ID,
-        register_id=FARMER_REGISTER_ID,
-        records=[personal],
+        records=[status_payload(status, household_id)],
     )
     submission_id = saved["submission_id"]
     farmer_id = section_record_id(saved, FARMER_REGISTER_ID)
-    linked = {**personal, "internal_record_id": farmer_id, "link_internal_record_id": household_id}
-    save_section(
+
+    linked_household_id: str | None = None
+    if status == STATUS_NOT_REGISTERED:
+        hh_saved = _save_farmer_section(
+            client,
+            submission_id=submission_id,
+            section_id=HH_INFO_SECTION,
+            section_register_id=HOUSEHOLD_REGISTER_ID,
+            records=[household_payload(hh)],
+        )
+        linked_household_id = section_record_id(hh_saved, HOUSEHOLD_REGISTER_ID)
+        head_id = hh["head"].get("internal_record_id")
+        members = [
+            member_payload(
+                m,
+                linked_household_id,
+                is_head=m.get("internal_record_id") == head_id,
+            )
+            for m in hh["members"]
+        ]
+        _save_farmer_section(
+            client,
+            submission_id=submission_id,
+            section_id=HH_MEMBER_SECTION,
+            section_register_id=HH_MEMBER_REGISTER_ID,
+            records=members,
+        )
+    elif status == STATUS_ALREADY_REGISTERED:
+        linked_household_id = household_id
+        _save_farmer_section(
+            client,
+            submission_id=submission_id,
+            section_id=FARMER_LOOKUP_SECTION,
+            section_register_id=FARMER_REGISTER_ID,
+            records=[
+                {
+                    "internal_record_id": farmer_id,
+                    "household_registration_status": status,
+                    "link_internal_record_id": linked_household_id,
+                }
+            ],
+        )
+
+    farmer_row = {
+        **personal,
+        "internal_record_id": farmer_id,
+        "household_registration_status": status,
+    }
+    if linked_household_id:
+        farmer_row["link_internal_record_id"] = linked_household_id
+
+    _save_farmer_section(
         client,
         submission_id=submission_id,
-        section_id=FARMER_LOOKUP_SECTION,
+        section_id=FARMER_PERSONAL_SECTION,
         section_register_id=FARMER_REGISTER_ID,
-        form_id=FARMER_FORM_ID,
-        register_id=FARMER_REGISTER_ID,
-        records=[linked],
+        records=[farmer_row],
     )
-    save_section(
+    _save_farmer_section(
         client,
         submission_id=submission_id,
         section_id=FARMER_SOCIO_SECTION,
         section_register_id=FARMER_REGISTER_ID,
-        form_id=FARMER_FORM_ID,
-        register_id=FARMER_REGISTER_ID,
-        records=[linked],
+        records=[farmer_row],
     )
-    save_section(
+    _save_farmer_section(
         client,
         submission_id=submission_id,
         section_id=FARMER_LOCATION_SECTION,
         section_register_id=FARMER_REGISTER_ID,
-        form_id=FARMER_FORM_ID,
-        register_id=FARMER_REGISTER_ID,
-        records=[linked],
+        records=[farmer_row],
     )
 
     land_rows = [land_payload(hh, farmer_id, 0), land_payload(hh, farmer_id, 1)]
-    land_saved = save_section(
+    land_saved = _save_farmer_section(
         client,
         submission_id=submission_id,
         section_id=FARMER_LAND_SECTION,
         section_register_id=LAND_REGISTER_ID,
-        form_id=FARMER_FORM_ID,
-        register_id=FARMER_REGISTER_ID,
         records=land_rows,
     )
     land_ids = section_record_ids(land_saved, LAND_REGISTER_ID)
@@ -1215,44 +1286,127 @@ def submit_farmer(
         raise RuntimeError(f"expected 2 land ids, got {land_ids}")
     land_a, land_b = land_ids[0], land_ids[1]
 
-    save_section(
+    _save_farmer_section(
         client,
         submission_id=submission_id,
         section_id=FARMER_CROP_SECTION,
         section_register_id=CROP_REGISTER_ID,
-        form_id=FARMER_FORM_ID,
-        register_id=FARMER_REGISTER_ID,
         records=[crop_payload(land_a, 0), crop_payload(land_b, 1)],
     )
-    save_section(
+    _save_farmer_section(
         client,
         submission_id=submission_id,
         section_id=FARMER_LIVESTOCK_SECTION,
         section_register_id=LIVESTOCK_REGISTER_ID,
-        form_id=FARMER_FORM_ID,
-        register_id=FARMER_REGISTER_ID,
         records=[livestock_payload(land_a, 0), livestock_payload(land_a, 1)],
     )
-    save_section(
+    _save_farmer_section(
         client,
         submission_id=submission_id,
         section_id=FARMER_INPUT_SECTION,
         section_register_id=FARM_INPUTS_REGISTER_ID,
-        form_id=FARMER_FORM_ID,
-        register_id=FARMER_REGISTER_ID,
         records=[farm_inputs_payload(land_a), farm_inputs_payload(land_b)],
     )
-    save_section(
+    _save_farmer_section(
         client,
         submission_id=submission_id,
         section_id=FARMER_MEMBERSHIP_SECTION,
         section_register_id=MEMBERSHIP_REGISTER_ID,
-        form_id=FARMER_FORM_ID,
-        register_id=FARMER_REGISTER_ID,
         records=[membership_payload(farmer_id, farmer["full_name"])],
     )
     finalize(client, submission_id, FARMER_REGISTER_ID, FARMER_FORM_ID)
-    return submission_id, farmer_id
+    return submission_id, farmer_id, linked_household_id
+
+
+def _approve_and_wait_farmer(
+    clients: dict[str, StaffClient],
+    awe_conn,
+    submission_id: str,
+    farmer_id: str,
+    approve_timeout: int,
+    ingest_timeout: int,
+    *,
+    household_id: str | None = None,
+    member_count: int = 0,
+) -> None:
+    approve_intake(clients, awe_conn, submission_id, approve_timeout)
+    wait_register_row("g2p_register_farmers", farmer_id, ingest_timeout)
+    if household_id:
+        wait_register_row("g2p_register_households", household_id, ingest_timeout)
+        if member_count:
+            wait_linked_rows(
+                "g2p_register_household_members",
+                household_id,
+                member_count,
+                ingest_timeout,
+            )
+    wait_linked_rows("g2p_register_lands", farmer_id, 2, ingest_timeout)
+    wait_linked_rows("g2p_register_crops", None, 2, ingest_timeout, via_land_of=farmer_id)
+    wait_linked_rows("g2p_register_livestocks", None, 2, ingest_timeout, via_land_of=farmer_id)
+    wait_linked_rows("g2p_register_farm_inputs", None, 2, ingest_timeout, via_land_of=farmer_id)
+    wait_linked_rows("g2p_register_membership_details", farmer_id, 1, ingest_timeout)
+
+
+def _seed_status_variants(
+    client: StaffClient,
+    clients: dict[str, StaffClient],
+    awe_conn,
+    hh: dict,
+    live_household_id: str,
+    index: int,
+    approve_timeout: int,
+    ingest_timeout: int,
+) -> None:
+    """One farmer who selects the live household, and one with no household."""
+    linked_person = _adult_other_than_head(hh) or _farmer_person(
+        hh["head"],
+        internal_record_id=f"{hh['head'].get('internal_record_id')}-select",
+        first_name="Bekele",
+        last_name=hh["head"].get("last_name") or "Select",
+        gender="MALE",
+        estimated_age=38,
+        marital_status="MARRIED",
+        foundational_id=f"NID-SEL-{hh['head'].get('foundational_id') or '0'}",
+    )
+    log(
+        f"farmer (extra): {linked_person['full_name']} "
+        f"({STATUS_ALREADY_REGISTERED} -> {live_household_id})"
+    )
+    fr_sub, fr_id, hh_id = submit_farmer(
+        client,
+        hh,
+        index + 1000,
+        status=STATUS_ALREADY_REGISTERED,
+        household_id=live_household_id,
+        person=linked_person,
+    )
+    _approve_and_wait_farmer(
+        clients, awe_conn, fr_sub, fr_id, approve_timeout, ingest_timeout
+    )
+    log(f"  farmer ingested id={fr_id} household id={hh_id}")
+
+    solo = _farmer_person(
+        hh["head"],
+        internal_record_id=f"{hh['head'].get('internal_record_id')}-none",
+        first_name="Chaltu",
+        last_name=hh["head"].get("last_name") or "Solo",
+        gender="FEMALE",
+        estimated_age=33,
+        marital_status="SINGLE",
+        foundational_id=f"NID-NONE-{hh['head'].get('foundational_id') or '0'}",
+    )
+    log(f"farmer (extra): {solo['full_name']} ({STATUS_NOT_REQUIRED})")
+    fr_sub, fr_id, hh_id = submit_farmer(
+        client,
+        hh,
+        index + 2000,
+        status=STATUS_NOT_REQUIRED,
+        person=solo,
+    )
+    _approve_and_wait_farmer(
+        clients, awe_conn, fr_sub, fr_id, approve_timeout, ingest_timeout
+    )
+    log(f"  farmer ingested id={fr_id} household id={hh_id}")
 
 
 def main() -> None:
@@ -1282,7 +1436,10 @@ def main() -> None:
     max_hh = env_int("INTAKE_SEED_MAX_HOUSEHOLDS", 25)
 
     if already_seeded() and not env_bool("INTAKE_SEED_FORCE"):
-        log("register already has household + farmer rows — skip (INTAKE_SEED_FORCE=true to redo).")
+        log(
+            "register already has household and farmer rows from farmer intake "
+            "— skip (INTAKE_SEED_FORCE=true to redo)."
+        )
         return
 
     load_geo_indexes()
@@ -1330,24 +1487,36 @@ def main() -> None:
     )
 
     try:
+        seeded_variants = False
         for index, hh in enumerate(households):
-            log(f"household {index + 1}/{len(households)}: {hh['head']['full_name']}")
-            hh_sub, hh_id = submit_household(submitter, hh)
-            approve_intake(clients, awe_conn, hh_sub, approve_timeout)
-            wait_register_row("g2p_register_households", hh_id, ingest_timeout)
-            wait_linked_rows("g2p_register_household_members", hh_id, 1, ingest_timeout)
-            log(f"  household ingested id={hh_id}")
-
-            log(f"farmer {index + 1}/{len(households)}: {hh['head']['full_name']} -> household {hh_id}")
-            fr_sub, fr_id = submit_farmer(submitter, hh, hh_id, index)
-            approve_intake(clients, awe_conn, fr_sub, approve_timeout)
-            wait_register_row("g2p_register_farmers", fr_id, ingest_timeout)
-            wait_linked_rows("g2p_register_lands", fr_id, 2, ingest_timeout)
-            wait_linked_rows("g2p_register_crops", None, 2, ingest_timeout, via_land_of=fr_id)
-            wait_linked_rows("g2p_register_livestocks", None, 2, ingest_timeout, via_land_of=fr_id)
-            wait_linked_rows("g2p_register_farm_inputs", None, 2, ingest_timeout, via_land_of=fr_id)
-            wait_linked_rows("g2p_register_membership_details", fr_id, 1, ingest_timeout)
-            log(f"  farmer ingested id={fr_id}")
+            log(
+                f"farmer {index + 1}/{len(households)}: "
+                f"{hh['head']['full_name']} ({STATUS_NOT_REGISTERED})"
+            )
+            fr_sub, fr_id, hh_id = submit_farmer(submitter, hh, index)
+            _approve_and_wait_farmer(
+                clients,
+                awe_conn,
+                fr_sub,
+                fr_id,
+                approve_timeout,
+                ingest_timeout,
+                household_id=hh_id,
+                member_count=len(hh["members"]) or 1,
+            )
+            log(f"  farmer ingested id={fr_id} household id={hh_id}")
+            if hh_id and not seeded_variants:
+                _seed_status_variants(
+                    submitter,
+                    clients,
+                    awe_conn,
+                    hh,
+                    hh_id,
+                    index,
+                    approve_timeout,
+                    ingest_timeout,
+                )
+                seeded_variants = True
     finally:
         awe_conn.close()
     log("Done.")
