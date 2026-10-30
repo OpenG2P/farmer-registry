@@ -1,0 +1,10 @@
+ingress,register,volume_tier,pod_scale,elapsed_min,rps,p95_ms,error_pct,pod_cpu_pct,pod_mem_pct,db_connections,notes
+in-cluster,Farmer,primary,1,0,,,,,,,warm-up (discarded)
+in-cluster,Farmer,primary,1,60,,,,,,,
+in-cluster,Farmer,primary,1,120,,,,,,,
+in-cluster,Farmer,primary,1,180,,,,,,,
+in-cluster,Farmer,primary,1,240,,,,,,,
+in-cluster,Farmer,primary,1,300,,,,,,,
+in-cluster,Farmer,primary,1,360,,,,,,,
+in-cluster,Farmer,primary,1,420,,,,,,,
+in-cluster,Farmer,primary,1,480,,,,,,,memory-trend verdict: <PASS/FAIL>

@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: spread-birth-dates
+  labels:
+    app: farmer-registry-spread-birth-dates
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
+  activeDeadlineSeconds: 259200
+  template:
+    metadata:
+      labels:
+        app: farmer-registry-spread-birth-dates
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: spread-birth-dates
+          image: vin0dkhichar/farmer-registry-seeding:v3
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - /scripts/spread_birth_dates.py
+          env:
+            - name: PGHOST
+              value: 172.29.2.191
+            - name: PGPORT
+              value: "5432"
+            - name: PGDATABASE
+              value: farmer_registry
+            - name: PGUSER
+              value: farmer_registry_user
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: farmer-registry
+                  key: farmer-registry-db-user
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: SEED_BATCH_SIZE
+              value: "50000"
+            - name: BIRTH_MAX_PER_WEEK
+              value: "1000"
+            - name: BIRTH_WINDOW_DAYS
+              value: "71000"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: farmer-registry-spread-birth-dates
+            defaultMode: 0755

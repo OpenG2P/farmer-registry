@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app: farmer-registry-seeding
+    pod-index: '0'
+    tier: smoke
+  name: seeding-smoke-pod-0
+spec:
+  backoffLimit: 4
+  template:
+    metadata:
+      labels:
+        app: farmer-registry-seeding
+        pod-index: '0'
+        tier: smoke
+    spec:
+      containers:
+      - command:
+        - python
+        - run.py
+        - --tier
+        - smoke
+        - --pod-index
+        - '0'
+        - --total-pods
+        - '1'
+        env:
+        - name: PGHOST
+          value: 172.29.2.191
+        - name: PGPORT
+          value: '5432'
+        - name: PGDATABASE
+          value: farmer_registry
+        - name: PGUSER
+          value: farmer_registry_user
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: farmer-registry-db-user
+              name: farmer-registry
+        image: vin0dkhichar/farmer-registry-seeding:v3
+        name: seeding
+        resources:
+          limits:
+            cpu: '2'
+            memory: 4Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
+      restartPolicy: OnFailure
+  ttlSecondsAfterFinished: 86400

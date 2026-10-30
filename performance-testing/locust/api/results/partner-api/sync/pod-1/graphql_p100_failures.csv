@@ -1,0 +1,2 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,sync:graphql,CatchResponseError('HTTP 503'),4,2026-10-26T09:16:05Z,2026-10-26T09:23:30Z
