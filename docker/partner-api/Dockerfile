@@ -5,7 +5,7 @@
 # farmer domain model; ENV defaults and the migrate+gunicorn CMD are inherited.
 #
 # Build context = repo root (so farmer-extension/ is reachable).
-ARG RP_IMAGE=openg2p/registry-platform-partner-api
+ARG RP_IMAGE=openg2p/openg2p-registry-partner-api
 ARG RP_VERSION=1.2.2-rc.625
 FROM ${RP_IMAGE}:${RP_VERSION}
 

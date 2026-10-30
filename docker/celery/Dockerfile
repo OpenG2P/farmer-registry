@@ -7,7 +7,7 @@
 # runs as worker or beat, selected at runtime via CELERY_APP.
 #
 # Build context = repo root (so farmer-extension/ is reachable).
-ARG RP_IMAGE=openg2p/registry-platform-celery
+ARG RP_IMAGE=openg2p/openg2p-registry-celery
 ARG RP_VERSION=1.2.2-rc.625
 FROM ${RP_IMAGE}:${RP_VERSION}
 

@@ -84,13 +84,20 @@ VALUES
         'household_household_household_member_section',
         30
     ),
-    -- (
-    --     'beeb3463-cf42-48ec-ba4d-edf4bebf1933',
-    --     '9055ab43-c85d-4833-bd00-ca657bb72644',
-    --     'household_farmer_tab',
-    --     'household_farmer_personal_identification_section',
-    --     10
-    -- ),
+    (
+        'beeb3463-cf42-48ec-ba4d-edf4bebf1933',
+        '9055ab43-c85d-4833-bd00-ca657bb72644',
+        'household_farmer_tab',
+        'household_farmer_personal_identification_section',
+        10
+    ),
+    (
+        'a92a052c-d439-4809-9f30-df1465f667e4',
+        '9055ab43-c85d-4833-bd00-ca657bb72644',
+        'household_farmer_tab',
+        'household_farmer_socio_economic_and_health_section',
+        20
+    ),
     (
         '1870bfd6-b5f9-4193-a65f-2765c7ea672c',
         '9055ab43-c85d-4833-bd00-ca657bb72644',
@@ -98,13 +105,6 @@ VALUES
         'household_farmer_location_section',
         30
     ),
-    -- (
-    --     'a92a052c-d439-4809-9f30-df1465f667e4',
-    --     '9055ab43-c85d-4833-bd00-ca657bb72644',
-    --     'household_farmer_tab',
-    --     'household_farmer_socio_economic_and_health_section',
-    --     20
-    -- ),
     (
         '63ff4361-ad54-4d5a-b475-36d6267281e3',
         'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',

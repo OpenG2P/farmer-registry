@@ -15,6 +15,13 @@ VALUES
         'TRUE'
     ),
     (
+        'household_farmer_tab',
+        '9055ab43-c85d-4833-bd00-ca657bb72644',
+        'household_farmer_tab',
+        2,
+        'TRUE'
+    ),
+    (
         'farmer_farmer_tab',
         'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
         'farmer_farmer_tab',
