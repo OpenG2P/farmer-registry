@@ -1,0 +1,1 @@
+Endpoint,Method,Request Count,Failure Count,Median Response Time (ms),Average Response Time (ms),Min Response Time (ms),Max Response Time (ms),Average Content Size,Requests/s,Failures/s,p50,p66,p75,p80,p90,p95,p98,p99,p99.9,p99.99,p100

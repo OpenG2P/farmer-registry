@@ -1,0 +1,7 @@
+max_client_conn = 200          # Maximum client connections
+default_pool_size = 50         # Normal server connections per pool
+min_pool_size = 10             # Minimum connections kept ready
+reserve_pool_size = 10         # Extra connections for traffic spikes
+reserve_pool_timeout = 5       # Seconds before reserve pool is used
+pool_mode = transaction        # Release connection after each transaction
+listen_port = 6432             # PgBouncer port

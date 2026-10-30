@@ -1,0 +1,57 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: reassign-search-anchors
+  labels:
+    app: farmer-registry-reassign-search-anchors
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  activeDeadlineSeconds: 57600
+  template:
+    metadata:
+      labels:
+        app: farmer-registry-reassign-search-anchors
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: reassign-search-anchors
+          image: vin0dkhichar/farmer-registry-seeding:v3
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - /scripts/reassign_search_anchors.py
+          env:
+            - name: PGHOST
+              value: 172.29.2.191
+            - name: PGPORT
+              value: "5432"
+            - name: PGDATABASE
+              value: farmer_registry
+            - name: PGUSER
+              value: farmer_registry_user
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: farmer-registry
+                  key: farmer-registry-db-user
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: SEED_BATCH_SIZE
+              value: "50000"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: farmer-registry-reassign-search-anchors
+            defaultMode: 0755
