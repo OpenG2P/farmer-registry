@@ -1,0 +1,55 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rebuild-indexes
+  labels:
+    app: farmer-registry-rebuild-indexes
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 86400
+  activeDeadlineSeconds: 172800
+  template:
+    metadata:
+      labels:
+        app: farmer-registry-rebuild-indexes
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: rebuild-indexes
+          image: vin0dkhichar/farmer-registry-seeding:v50m-dedup
+          imagePullPolicy: Always
+          command:
+            - python
+            - /scripts/rebuild_indexes.py
+          env:
+            - name: PGHOST
+              value: 172.29.2.191
+            - name: PGPORT
+              value: "5432"
+            - name: PGDATABASE
+              value: farmer_registry
+            - name: PGUSER
+              value: farmer_registry_user
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: farmer-registry
+                  key: farmer-registry-db-user
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: farmer-registry-rebuild-indexes
+            defaultMode: 0755

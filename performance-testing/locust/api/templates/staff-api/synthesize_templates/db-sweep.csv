@@ -1,0 +1,9 @@
+scenario,volume_tier,db_vcpu,db_ram,pg_tuning,pgbouncer,gp3_iops,pod_scale,threshold_rps,read_p95_ms,write_p95_ms,error_pct,first_bottleneck,top_slow_query,notes
+tuning-baseline,primary,8,32Gi,default,no,3000,3,,,,,,,
+tuning-tuned,primary,8,32Gi,tuned,no,3000,3,,,,,,,
+tuning-tuned+pgbouncer,primary,8,32Gi,tuned,yes,3000,3,,,,,,,
+volume-smoke,smoke,8,32Gi,tuned,yes,3000,3,,,,,,,
+volume-stretch,stretch,8,32Gi,tuned,yes,3000,3,,,,,,,
+volume-stress,stress,8,32Gi,tuned,yes,3000,3,,,,,,,
+vm-resize,primary,16,64Gi,tuned,yes,3000,3,,,,,,,
+io-bump,stress,8,32Gi,tuned,yes,6000,3,,,,,,,

@@ -1,0 +1,70 @@
+# One collector pod. It does not scale beat or workers.
+# Edit CASE, SIZE, and WORKERS, apply, wait for COLLECTOR_ARMED, then scale.
+# Run one case at a time. Delete this Job before the next case.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: celery-collector
+  namespace: perftest
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: celery-collector
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: collector
+          image: vin0dkhichar/celery-backlog-collector:latest
+          imagePullPolicy: Always
+          env:
+            # functional_id_allocation | dedup_register | dedup_change_request |
+            # dedup_intake_vs_register | dedup_intake_vs_intake | intake_register_ingest
+            - name: CASE
+              value: dedup_register
+            - name: SIZE
+              value: "10000"
+            # Label only. Set this to the worker replica count you will scale to
+            # after COLLECTOR_ARMED. The pod does not scale the deployment.
+            - name: WORKERS
+              value: "1"
+            - name: MARKS
+              value: "5,10,15,20,25,30"
+            # Match the live beat deployment. Chart default is 4 per tick.
+            - name: TASKS_PER_TICK
+              value: "4"
+            - name: PGHOST
+              value: "172.29.2.191"
+            - name: PGPORT
+              value: "5432"
+            - name: PGDATABASE
+              value: farmer_registry
+            - name: PGUSER
+              value: farmer_registry_user
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: farmer-registry
+                  key: farmer-registry-db-user
+            # Queue depth. Edit the host if the redis Service name differs.
+            - name: REDIS_URL
+              value: redis://farmer-registry-redis-master:6379/0
+            - name: CELERY_QUEUE
+              value: registry_worker_queue
+            - name: KEEP_SECONDS
+              value: "3600"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - name: results
+              mountPath: /results
+      volumes:
+        - name: results
+          emptyDir: {}

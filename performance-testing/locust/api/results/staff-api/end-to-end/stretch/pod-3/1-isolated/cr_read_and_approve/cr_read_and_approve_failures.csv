@@ -1,0 +1,4 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,get_deduplication_register_results,CatchResponseError('503'),1,2026-09-24T10:06:50Z,2026-09-24T10:06:50Z
+POST,get_section_ui_schema,CatchResponseError('503'),2,2026-09-24T10:03:32Z,2026-09-24T10:05:43Z
+POST,list_tasks_for_request,CatchResponseError('503'),2,2026-09-24T09:59:25Z,2026-09-24T10:05:31Z
