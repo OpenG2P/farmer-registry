@@ -6,7 +6,7 @@ from openg2p_registry_core.models import (
     G2PPersonHistory, G2PGeoHistory
 )
 from ..services import G2PRegisterDomainServiceFarmer
-from .enums import DisabilityTypeEnum, DisabilitySeverityEnum, SourceOfIncomeEnum, EducationalLevelEnum, HouseholdRegistrationStatusEnum, RelationshipToTheHeadEnum
+from .enums import SourceOfIncomeEnum, EducationalLevelEnum, HouseholdRegistrationStatusEnum, RelationshipToTheHeadEnum
 
 
 class G2PFarmer:
@@ -14,8 +14,6 @@ class G2PFarmer:
     estimated_age: Mapped[int] = mapped_column(Integer, nullable=True)
     has_personal_phone: Mapped[bool] = mapped_column(Boolean, nullable=True)
     disabled: Mapped[bool] = mapped_column(Boolean, nullable=True)
-    disability_type: Mapped[DisabilityTypeEnum] = mapped_column(String, nullable=True)       # DisabilityTypeEnum
-    disability_severity: Mapped[DisabilitySeverityEnum] = mapped_column(String, nullable=True)   # DisabilitySeverityEnum
     source_of_income: Mapped[SourceOfIncomeEnum] = mapped_column(String, nullable=True)      # MDS SOURCE_OF_INCOME; use source_of_income_other when SOI_OTHERS
     source_of_income_other: Mapped[str] = mapped_column(String, nullable=True)
     language_spoken: Mapped[str] = mapped_column(String, nullable=True)       # Attribute lookup (Excel: ISO-639-2 searchable dropdown)

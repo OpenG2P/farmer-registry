@@ -19,10 +19,11 @@ from .register_domain.models import (
     G2PRegisterLand, G2PRegisterHistoryLand,
     G2PRegisterFarmInputs, G2PRegisterHistoryFarmInputs,
     G2PRegisterLivestock, G2PRegisterHistoryLivestock,
+    G2PRegisterFarmerDisability, G2PRegisterHistoryFarmerDisability,
     G2PRegisterMembershipDetails, G2PRegisterHistoryMembershipDetails,
     G2PIntakeFormHousehold, G2PIntakeFormFarmer, G2PIntakeFormHouseholdMember,
     G2PIntakeFormCrop, G2PIntakeFormLand, G2PIntakeFormFarmInputs, 
-    G2PIntakeFormLivestock, G2PIntakeFormMembershipDetails,
+    G2PIntakeFormLivestock, G2PIntakeFormFarmerDisability, G2PIntakeFormMembershipDetails,
 )
 from .register_domain.services import (
     G2PFarmerIntakeFormDataService,
@@ -94,5 +95,9 @@ class Initializer(BaseInitializer):
             await G2PRegisterLivestock.create_migrate()
             await G2PRegisterHistoryLivestock.create_migrate()
             await G2PIntakeFormLivestock.create_migrate()
+
+            await G2PRegisterFarmerDisability.create_migrate()
+            await G2PRegisterHistoryFarmerDisability.create_migrate()
+            await G2PIntakeFormFarmerDisability.create_migrate()
 
         asyncio.run(migrate())

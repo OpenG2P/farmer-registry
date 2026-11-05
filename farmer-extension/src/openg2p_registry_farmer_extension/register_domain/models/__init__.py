@@ -5,6 +5,11 @@ from .crop import G2PRegisterCrop, G2PRegisterHistoryCrop, G2PIntakeFormCrop
 from .land import G2PRegisterLand, G2PRegisterHistoryLand, G2PIntakeFormLand
 from .farm_inputs import G2PRegisterFarmInputs, G2PRegisterHistoryFarmInputs, G2PIntakeFormFarmInputs
 from .livestock import G2PRegisterLivestock, G2PRegisterHistoryLivestock, G2PIntakeFormLivestock
+from .farmer_disability import (
+    G2PRegisterFarmerDisability,
+    G2PRegisterHistoryFarmerDisability,
+    G2PIntakeFormFarmerDisability,
+)
 from .membership_details import G2PRegisterMembershipDetails, G2PRegisterHistoryMembershipDetails, G2PIntakeFormMembershipDetails
 from .enums import (
     DisabilityTypeEnum,

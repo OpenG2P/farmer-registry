@@ -39,6 +39,7 @@ CROP_REGISTER_ID = "5fa096f8-ffdc-4b0a-ab16-9ca386c23310"
 LIVESTOCK_REGISTER_ID = "4bcb88a3-fc5e-44d2-abc6-e2c68670c5bb"
 FARM_INPUTS_REGISTER_ID = "18df8370-3e9a-493f-aa27-fc1b9e05629c"
 MEMBERSHIP_REGISTER_ID = "495f251c-83a5-4025-a307-1925712c9d0b"
+DISABILITY_REGISTER_ID = "c4d8e1a7-2b59-4f63-8a10-6e7f9b0c3d21"
 HH_MEMBER_REGISTER_ID = "52979fdd-220c-48dd-8de0-0a434e786427"
 
 # NOT_REGISTERED saves non-farming members. ALREADY_REGISTERED selects a household.
@@ -49,6 +50,7 @@ FARMER_STATUS_SECTION = "farmer_household_registration_status_section"
 FARMER_LOOKUP_SECTION = "farmer_household_lookup_section"
 FARMER_PERSONAL_SECTION = "farmer_farmer_personal_identification_section"
 FARMER_SOCIO_SECTION = "farmer_farmer_socio_economic_and_health_section"
+FARMER_DISABILITY_SECTION = "farmer_disability_section"
 FARMER_LOCATION_SECTION = "farmer_farmer_location_section"
 FARMER_LAND_SECTION = "farmer_farm_details_section"
 FARMER_CROP_SECTION = "farmer_crop_details_intake_section"
@@ -1078,8 +1080,6 @@ def farmer_extra(index: int) -> dict:
         "estimated_age": None,  # filled from birth
         "has_personal_phone": True,
         "disabled": disabled,
-        "disability_type": "MOBILITY" if disabled else None,
-        "disability_severity": "SOME_DIFFICULTY" if disabled else None,
         "source_of_income": income,
         "source_of_income_other": "Seasonal work" if income == "SOI_OTHERS" else None,
         "language_spoken": ("ENGLISH", "HINDI", "FRENCH", "SPANISH")[index % 4],
@@ -1142,6 +1142,22 @@ def farm_inputs_payload(land_id: str) -> dict:
         "access_to_machinery": True,
         "access_to_finance": False,
     }
+
+
+def disability_payloads(farmer_id: str) -> list[dict]:
+    """Two domains for a disabled farmer, matching the multi-row disability table."""
+    return [
+        {
+            "link_internal_record_id": farmer_id,
+            "disability_domains": "MOBILITY",
+            "disability_severity": "SOME_DIFFICULTY",
+        },
+        {
+            "link_internal_record_id": farmer_id,
+            "disability_domains": "VISION",
+            "disability_severity": "NO_DIFFICULTY",
+        },
+    ]
 
 
 def membership_payload(farmer_id: str, name: str) -> dict:
@@ -1263,6 +1279,14 @@ def submit_farmer(
         section_register_id=FARMER_REGISTER_ID,
         records=[farmer_row],
     )
+    if extra.get("disabled"):
+        _save_farmer_section(
+            client,
+            submission_id=submission_id,
+            section_id=FARMER_DISABILITY_SECTION,
+            section_register_id=DISABILITY_REGISTER_ID,
+            records=disability_payloads(farmer_id),
+        )
     _save_farmer_section(
         client,
         submission_id=submission_id,
@@ -1326,6 +1350,7 @@ def _approve_and_wait_farmer(
     *,
     household_id: str | None = None,
     member_count: int = 0,
+    disability_count: int = 0,
 ) -> None:
     approve_intake(clients, awe_conn, submission_id, approve_timeout)
     wait_register_row("g2p_register_farmers", farmer_id, ingest_timeout)
@@ -1343,6 +1368,10 @@ def _approve_and_wait_farmer(
     wait_linked_rows("g2p_register_livestocks", None, 2, ingest_timeout, via_land_of=farmer_id)
     wait_linked_rows("g2p_register_farm_inputs", None, 2, ingest_timeout, via_land_of=farmer_id)
     wait_linked_rows("g2p_register_membership_details", farmer_id, 1, ingest_timeout)
+    if disability_count:
+        wait_linked_rows(
+            "g2p_register_farmer_disability", farmer_id, disability_count, ingest_timeout
+        )
 
 
 def _farmer_person(template: dict, **overrides) -> dict:
@@ -1388,7 +1417,13 @@ def _seed_registered_farmer(
         person=person,
     )
     _approve_and_wait_farmer(
-        clients, awe_conn, fr_sub, fr_id, approve_timeout, ingest_timeout
+        clients,
+        awe_conn,
+        fr_sub,
+        fr_id,
+        approve_timeout,
+        ingest_timeout,
+        disability_count=2 if (index + 1000) % 4 == 0 else 0,
     )
     log(f"  farmer ingested id={fr_id} household id={hh_id}")
 
@@ -1422,7 +1457,13 @@ def _seed_not_required_farmer(
         person=person,
     )
     _approve_and_wait_farmer(
-        clients, awe_conn, fr_sub, fr_id, approve_timeout, ingest_timeout
+        clients,
+        awe_conn,
+        fr_sub,
+        fr_id,
+        approve_timeout,
+        ingest_timeout,
+        disability_count=2 if (index + 2000) % 4 == 0 else 0,
     )
     log(f"  farmer ingested id={fr_id}")
 
@@ -1527,6 +1568,7 @@ def main() -> None:
                 fr_id,
                 approve_timeout,
                 ingest_timeout,
+                disability_count=2 if index % 4 == 0 else 0,
             )
             log(f"  farmer ingested id={fr_id}")
             seeded_statuses.add(status)

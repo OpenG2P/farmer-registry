@@ -7,8 +7,6 @@ from openg2p_registry_core.schemas import (
 )
 from .address import G2PAddressLinesSchema
 from ..models.enums import (
-    DisabilityTypeEnum,
-    DisabilitySeverityEnum,
     EducationalLevelEnum,
     HouseholdRegistrationStatusEnum,
     SourceOfIncomeEnum,
@@ -20,8 +18,6 @@ class G2PSchemaFarmer:
     estimated_age: Optional[int] = None
     has_personal_phone: Optional[bool] = None
     disabled: Optional[bool] = None
-    disability_type: Optional[DisabilityTypeEnum] = None
-    disability_severity: Optional[DisabilitySeverityEnum] = None
     source_of_income: Optional[SourceOfIncomeEnum] = None
     source_of_income_other: Optional[str] = None
     language_spoken: Optional[str] = None

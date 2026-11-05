@@ -43,6 +43,12 @@ VALUES
         60
     ),
     (
+        'tab_section_14',
+        'a1a4d25a-1cd4-4356-abac-72482721',
+        'farmer_disability_section',
+        65
+    ),
+    (
         'tab_section_6',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_farmer_location_section',

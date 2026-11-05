@@ -6,4 +6,9 @@ from .crop import G2PRegisterSchemaCrop, G2PRegisterHistorySchemaCrop, G2PIntake
 from .land import G2PRegisterSchemaLand, G2PRegisterHistorySchemaLand, G2PIntakeFormSchemaLand
 from .farm_inputs import G2PRegisterSchemaFarmInputs, G2PRegisterHistorySchemaFarmInputs, G2PIntakeFormSchemaFarmInputs
 from .livestock import G2PRegisterSchemaLivestock, G2PRegisterHistorySchemaLivestock, G2PIntakeFormSchemaLivestock
+from .farmer_disability import (
+    G2PRegisterSchemaFarmerDisability,
+    G2PRegisterHistorySchemaFarmerDisability,
+    G2PIntakeFormSchemaFarmerDisability,
+)
 from .membership_details import G2PRegisterSchemaMembershipDetails, G2PRegisterHistorySchemaMembershipDetails, G2PIntakeFormSchemaMembershipDetails

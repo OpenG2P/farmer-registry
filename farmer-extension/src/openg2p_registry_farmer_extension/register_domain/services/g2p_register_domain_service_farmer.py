@@ -2,14 +2,12 @@ import logging
 from datetime import date
 
 from openg2p_registry_core.models import G2PRegisterChangeRequest
-from openg2p_registry_core.models.enum import ChangeActionEnum
 from openg2p_registry_core.services import G2PRegisterDomainService
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm.attributes import flag_modified
 
 
-from .domain_validation_utils import as_bool, as_int, fallback_record_name, parse_date, validate_enum_values, validation_error
+from .domain_validation_utils import as_int, fallback_record_name, parse_date, validate_enum_values, validation_error
 from .utils.household_roster import (
     CHANGED_PERSON_KIND_FARMER,
     calculate_age,
@@ -25,16 +23,12 @@ def _enum_fields() -> dict:
     # Imported lazily: ..models imports these services at module level, so a
     # top-level import here would be circular whenever services load first.
     from ..models.enums import (
-        DisabilitySeverityEnum,
-        DisabilityTypeEnum,
         EducationalLevelEnum,
         HouseholdRegistrationStatusEnum,
         SourceOfIncomeEnum,
     )
 
     return {
-        "disability_type": DisabilityTypeEnum,
-        "disability_severity": DisabilitySeverityEnum,
         "source_of_income": SourceOfIncomeEnum,
         "education_level": EducationalLevelEnum,
         "household_registration_status": HouseholdRegistrationStatusEnum,
@@ -44,9 +38,6 @@ def _enum_fields() -> dict:
 class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
     async def validate_domain_attributes(self, records: list[dict]):
         for record in records:
-            # Drop details before the enum check so a hidden type/severity is
-            # removed rather than rejected when the person is not disabled.
-            self._clear_disability_details_when_not_disabled(record)
             validate_enum_values(record, _enum_fields())
             self._validate_birth_date(record)
             self._validate_estimated_age(record)
@@ -171,16 +162,6 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
         ).scalar_one_or_none()
         return found is not None
 
-    @staticmethod
-    def _clear_disability_details_when_not_disabled(record: dict) -> bool:
-        if "disabled" not in record:
-            return False
-        if as_bool(record.get("disabled")) is True:
-            return False
-        record["disability_type"] = None
-        record["disability_severity"] = None
-        return True
-
     def _validate_birth_date(self, record: dict) -> None:
         birth_date = parse_date(record.get("birth_date"))
         if birth_date is not None and birth_date > date.today():
@@ -215,7 +196,6 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
             "language_spoken",
             "source_of_income",
             "national_id_masked",
-            "disability_type",
             "latitude",
             "longitude",
             "altitude",
@@ -254,25 +234,7 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
         return " ".join(record_name).strip() or fallback_record_name(payload, "Farmer")
 
     async def pre_approve(self, change_request: G2PRegisterChangeRequest, session: AsyncSession):
-        from openg2p_registry_core.models import G2PRegisterChangeRequestPayload
-
         from ..models.farmer import G2PRegisterFarmer
-
-        payload_obj = await session.get(
-            G2PRegisterChangeRequestPayload, change_request.change_request_id
-        )
-        if payload_obj and payload_obj.change_payload:
-            cleared = False
-            for record in payload_obj.change_payload:
-                if record.get("edit_action") in {
-                    ChangeActionEnum.DELETE.value,
-                    ChangeActionEnum.NO_CHANGE.value,
-                }:
-                    continue
-                if self._clear_disability_details_when_not_disabled(record):
-                    cleared = True
-            if cleared:
-                flag_modified(payload_obj, "change_payload")
 
         await recompute_households_for_change_request(
             session,
