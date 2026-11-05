@@ -5,7 +5,7 @@ from openg2p_registry_core.models import (
     G2PRegister, G2PRegisterHistory, G2PGeo, G2PGeoShape,
     G2PGeoHistory, G2PGeoShapeHistory
 )
-from .enums import LandOwnershipTypeEnum, LandSizeUnitEnum, CurrentLandUseEnum, FarmingTypeEnum
+from .enums import LandOwnershipTypeEnum, LandSizeUnitEnum, SoilFertilityEnum, CurrentLandUseEnum, FarmingTypeEnum
 from ..services import G2PRegisterDomainServiceLand
 
 class G2PLand:
@@ -14,7 +14,7 @@ class G2PLand:
     certificate_storage_id: Mapped[str] = mapped_column(Text, nullable=True)
     land_size: Mapped[float] = mapped_column(Numeric, nullable=True)
     unit: Mapped[LandSizeUnitEnum] = mapped_column(String, nullable=True)        # LandSizeUnitEnum
-    soil_fertility: Mapped[str] = mapped_column(String, nullable=True)
+    soil_fertility: Mapped[SoilFertilityEnum] = mapped_column(String, nullable=True)  # SoilFertilityEnum
     current_land_use: Mapped[CurrentLandUseEnum] = mapped_column(String, nullable=True)      # CurrentLandUseEnum
     farming_type: Mapped[FarmingTypeEnum] = mapped_column(String, nullable=True)          # FarmingTypeEnum
     year_of_acquisition: Mapped[int] = mapped_column(Integer, nullable=True)

@@ -1043,7 +1043,7 @@ def land_payload(hh: dict, farmer_id: str, index: int) -> dict:
         "certificate_storage_id": None,
         "land_size": 2.5 + index,
         "unit": "HECTARE",
-        "soil_fertility": ("High", "Medium", "Low")[index % 3],
+        "soil_fertility": ("HIGH", "MEDIUM", "LOW")[index % 3],
         "current_land_use": "AGRICULTURAL",
         "farming_type": "MIXED",
         "year_of_acquisition": 2018,

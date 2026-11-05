@@ -20,9 +20,9 @@ _logger = logging.getLogger("g2p-register-domain-service")
 def _enum_fields() -> dict:
     # Imported lazily: ..models imports these services at module level, so a
     # top-level import here would be circular whenever services load first.
-    from ..models.enums import CurrentLandUseEnum, FarmingTypeEnum, LandOwnershipTypeEnum, LandSizeUnitEnum
+    from ..models.enums import CurrentLandUseEnum, FarmingTypeEnum, LandOwnershipTypeEnum, LandSizeUnitEnum, SoilFertilityEnum
 
-    return {"land_ownership_type": LandOwnershipTypeEnum, "unit": LandSizeUnitEnum, "current_land_use": CurrentLandUseEnum, "farming_type": FarmingTypeEnum}
+    return {"land_ownership_type": LandOwnershipTypeEnum, "unit": LandSizeUnitEnum, "soil_fertility": SoilFertilityEnum, "current_land_use": CurrentLandUseEnum, "farming_type": FarmingTypeEnum}
 
 
 class G2PRegisterDomainServiceLand(G2PRegisterDomainService):

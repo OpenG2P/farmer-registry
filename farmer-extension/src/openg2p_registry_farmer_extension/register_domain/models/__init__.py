@@ -12,6 +12,7 @@ from .enums import (
     LanguageSpokenEnum,
     LandOwnershipTypeEnum,
     LandSizeUnitEnum,
+    SoilFertilityEnum,
     CurrentLandUseEnum,
     FarmingTypeEnum,
     CropEndUseEnum,

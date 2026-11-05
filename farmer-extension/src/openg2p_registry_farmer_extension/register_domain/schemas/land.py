@@ -6,7 +6,7 @@ from openg2p_registry_core.schemas import (
     G2PIntakeFormSchemaBase
 )
 from .address import G2PAddressLinesSchema
-from ..models.enums import LandOwnershipTypeEnum, LandSizeUnitEnum, CurrentLandUseEnum, FarmingTypeEnum
+from ..models.enums import LandOwnershipTypeEnum, LandSizeUnitEnum, SoilFertilityEnum, CurrentLandUseEnum, FarmingTypeEnum
 
 
 class G2PSchemaLand:
@@ -15,7 +15,7 @@ class G2PSchemaLand:
     certificate_storage_id: Optional[str] = None
     land_size: Optional[float] = None
     unit: Optional[LandSizeUnitEnum] = None
-    soil_fertility: Optional[str] = None
+    soil_fertility: Optional[SoilFertilityEnum] = None
     current_land_use: Optional[CurrentLandUseEnum] = None
     farming_type: Optional[FarmingTypeEnum] = None
     year_of_acquisition: Optional[int] = None

@@ -45,6 +45,12 @@ class LandSizeUnitEnum(StrEnum):
     SQUARE_YARD = "SQUARE_YARD"
 
 
+class SoilFertilityEnum(StrEnum):
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+
+
 class CurrentLandUseEnum(StrEnum):
     AGRICULTURAL = "AGRICULTURAL"
     RESIDENTIAL = "RESIDENTIAL"
