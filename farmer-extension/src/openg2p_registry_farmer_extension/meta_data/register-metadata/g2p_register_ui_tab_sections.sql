@@ -68,7 +68,7 @@ VALUES
         '9055ab43-c85d-4833-bd00-ca657bb72644',
         'household_household_tab',
         'household_header_section',
-        5
+        1
     ),
     (
         '6a759aa9-b1cb-47c6-a1ed-db0b3d022f1d',
@@ -78,11 +78,18 @@ VALUES
         10
     ),
     (
+        'e342mm8-f342-48ec-ba4d-868625t333er',
+        '9055ab43-c85d-4833-bd00-ca657bb72644',
+        'household_household_tab',
+        'household_household_farming_members_section',
+        30
+    ),
+    (
         'a8cdc033-0228-425c-bae6-b8063086252c',
         '9055ab43-c85d-4833-bd00-ca657bb72644',
         'household_household_tab',
-        'household_household_household_member_section',
-        30
+        'household_household_non_farming_member_section',
+        40
     ),
     (
         'beeb3463-cf42-48ec-ba4d-edf4bebf1933',
@@ -112,13 +119,7 @@ VALUES
         'farmer_header_details_section',
         5
     ),
-    (
-        'f6ee19da-f32c-4a7b-8f5d-01f7af3edd92',
-        '9055ab43-c85d-4833-bd00-ca657bb72644',
-        'household_household_tab',
-        'household_computation_score',
-        15
-    ),
+
     (
         'd8753df5-d511-4c63-b045-ff9720a31808',
         'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',

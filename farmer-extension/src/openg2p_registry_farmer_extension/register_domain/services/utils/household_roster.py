@@ -348,3 +348,45 @@ async def recompute_households_for_change_request(
                 changed_person_deleted=deleted,
                 changed_person_kind=changed_person_kind,
             )
+
+
+async def recompute_intake_household_roster(session: AsyncSession, submission_id: str) -> None:
+    from ...models.farmer import G2PIntakeFormFarmer
+    from ...models.household import G2PIntakeFormHousehold
+    from ...models.household_member import G2PIntakeFormHouseholdMember
+
+    household = (
+        await session.execute(
+            select(G2PIntakeFormHousehold).where(
+                G2PIntakeFormHousehold.submission_id == str(submission_id)
+            )
+        )
+    ).scalars().first()
+    if household is None:
+        return
+
+    farmers = (
+        await session.execute(
+            select(G2PIntakeFormFarmer).where(
+                G2PIntakeFormFarmer.submission_id == str(submission_id)
+            )
+        )
+    ).scalars().all()
+    members = (
+        await session.execute(
+            select(G2PIntakeFormHouseholdMember).where(
+                G2PIntakeFormHouseholdMember.submission_id == str(submission_id)
+            )
+        )
+    ).scalars().all()
+
+    household_id = household.internal_record_id
+    farming = [
+        farmer.to_dict()
+        for farmer in farmers
+        if str(farmer.household_registration_status or "") == "NOT_REGISTERED"
+        or normalize_link(farmer.link_internal_record_id) == household_id
+    ]
+    non_farming = [member.to_dict() for member in members]
+    people = union_roster_people(non_farming, farming)
+    apply_household_roster_counts(household, compute_household_roster_counts(people))

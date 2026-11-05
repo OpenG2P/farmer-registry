@@ -12,6 +12,7 @@ from ..models.enums import (
     EducationalLevelEnum,
     HouseholdRegistrationStatusEnum,
     SourceOfIncomeEnum,
+    RelationshipToTheHeadEnum,
 )
 
 class G2PSchemaFarmer:
@@ -26,6 +27,8 @@ class G2PSchemaFarmer:
     language_spoken: Optional[str] = None
     education_level: Optional[EducationalLevelEnum] = None
     national_id_masked: Optional[str] = None
+    is_head: Optional[bool] = None
+    relationship_to_the_head: Optional[RelationshipToTheHeadEnum] = None
 
 class G2PRegisterSchemaFarmer(G2PRegisterBaseSchema, G2PPersonSchema, G2PGeoSchema, G2PAddressLinesSchema, G2PSchemaFarmer):
     """

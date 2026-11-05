@@ -24,9 +24,7 @@ FROM (VALUES
     ('8da27858-c065-43f9-95d7-310eb326743b', 'registry.change_request.household', 1, 'Stage 1 Officers', 'all'),
     ('bbfc19f4-feb2-46cf-a101-2933b065b456', 'registry.change_request.household', 2, 'Stage 2 Officers', 'all'),
     ('255f31be-f14c-40a5-a3fb-fd155ea79e54', 'registry.intake_form.farmer', 1, 'Stage 1 Officers', 'all'),
-    ('da640587-ffc0-432a-a6a9-82adeb8c5f42', 'registry.intake_form.farmer', 2, 'Stage 2 Officers', 'all'),
-    ('4b608b44-fe22-4b9c-acff-673a50db55bd', 'registry.intake_form.household', 1, 'Stage 1 Officers', 'all'),
-    ('32c48f1c-20b9-4a28-883b-bc5949ddda5b', 'registry.intake_form.household', 2, 'Stage 2 Officers', 'all')
+    ('da640587-ffc0-432a-a6a9-82adeb8c5f42', 'registry.intake_form.farmer', 2, 'Stage 2 Officers', 'all')
 ) AS v(id, policy_key, stage_order, name, mode)
 INNER JOIN approval_policy p
     ON p.policy_key = v.policy_key

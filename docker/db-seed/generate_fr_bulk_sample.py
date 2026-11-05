@@ -493,7 +493,7 @@ def main():
             mid = rid(rng)
             in_cluster = rng.random() < 0.55
             member.add([mid, fid, _fid("MB"), "ACTIVE", created.isoformat(sep=" "), SEEDER, created.isoformat(sep=" "), SEEDER,
-                        rng.random() < 0.62, "Woreda Farmers Cooperative",
+                        rng.random() < 0.62, "Ward Farmers Cooperative",
                         rng.random() < 0.21, "Regional Cooperative Union",
                         in_cluster, weighted(rng, CLUSTER_ROLE) if in_cluster else None])
         if register_id and rng.random() < 0.28:

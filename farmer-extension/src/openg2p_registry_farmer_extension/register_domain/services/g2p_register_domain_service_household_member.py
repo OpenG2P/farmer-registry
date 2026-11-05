@@ -40,8 +40,8 @@ class G2PRegisterDomainServiceHouseholdMember(G2PRegisterDomainService):
     async def validate_domain_attributes(self, records: list[dict]):
         for record in records:
             self._validate_birth_date(record)
-            self._validate_head_and_relationship(record)
-        self._validate_single_head(records)
+            # self._validate_head_and_relationship(record)
+        # self._validate_single_head(records)
         # Set-level checks against the household (size / gender tallies) need
         # the household row; they run in validate_intake_parent_link, which the
         # intake save calls right after this with the resolved household link.
@@ -60,8 +60,8 @@ class G2PRegisterDomainServiceHouseholdMember(G2PRegisterDomainService):
         # One pass per save: the batch is the whole members table.
         _pending_member_batch.set(None)
 
-        if batch and not any(self._is_head(member) for member in batch):
-            validation_error("One household member must be marked as the head (is_head)")
+        # if batch and not any(self._is_head(member) for member in batch):
+        #     validation_error("One household member must be marked as the head (is_head)")
 
         if is_blank(link_internal_record_id):
             return
@@ -75,7 +75,7 @@ class G2PRegisterDomainServiceHouseholdMember(G2PRegisterDomainService):
         )
         if household is None:
             return
-        self._validate_members_against_household(batch, household)
+        # self._validate_members_against_household(batch, household)
 
     async def _reject_household_details_when_not_collected(
         self, record: dict, link_internal_record_id: str | None, session: AsyncSession
@@ -117,70 +117,70 @@ class G2PRegisterDomainServiceHouseholdMember(G2PRegisterDomainService):
         if birth_date is not None and birth_date > date.today():
             validation_error("birth_date must not be in the future")
 
-    def _validate_head_and_relationship(self, record: dict) -> None:
-        if "is_head" not in record and "relationship_to_the_head" not in record:
-            # Partial payload that does not touch headship (e.g. an API change
-            # request editing another field) — nothing to check here.
-            return
-        # The form hides relationship once is_head is ticked, but a value chosen
-        # first is still submitted. Drop it so the head is stored without one.
-        self._clear_relationship_when_head(record)
-        if self._is_head(record):
-            return
-        relationship = record.get("relationship_to_the_head")
-        if not is_blank(relationship) and str(relationship) not in _allowed_relationships():
-            validation_error(
-                "relationship_to_the_head must be one of "
-                + ", ".join(sorted(_allowed_relationships()))
-            )
-        if is_blank(relationship):
-            validation_error(
-                "relationship_to_the_head is required for every member who is not the head"
-            )
-        if str(relationship) == _HEAD_RELATIONSHIP:
-            validation_error(
-                "relationship_to_the_head SELF is reserved for the head; tick is_head instead"
-            )
+    # def _validate_head_and_relationship(self, record: dict) -> None:
+        # if "is_head" not in record and "relationship_to_the_head" not in record:
+        #     # Partial payload that does not touch headship (e.g. an API change
+        #     # request editing another field) — nothing to check here.
+        #     return
+        # # The form hides relationship once is_head is ticked, but a value chosen
+        # # first is still submitted. Drop it so the head is stored without one.
+        # self._clear_relationship_when_head(record)
+        # if self._is_head(record):
+        #     return
+        # relationship = record.get("relationship_to_the_head")
+        # if not is_blank(relationship) and str(relationship) not in _allowed_relationships():
+        #     validation_error(
+        #         "relationship_to_the_head must be one of "
+        #         + ", ".join(sorted(_allowed_relationships()))
+        #     )
+        # if is_blank(relationship):
+        #     validation_error(
+        #         "relationship_to_the_head is required for every member who is not the head"
+        #     )
+        # if str(relationship) == _HEAD_RELATIONSHIP:
+        #     validation_error(
+        #         "relationship_to_the_head SELF is reserved for the head; tick is_head instead"
+        #     )
 
-    @staticmethod
-    def _clear_relationship_when_head(record: dict) -> bool:
-        if "is_head" not in record:
-            return False
-        if as_bool(record.get("is_head")) is not True:
-            return False
-        record["relationship_to_the_head"] = None
-        return True
+    # @staticmethod
+    # def _clear_relationship_when_head(record: dict) -> bool:
+    #     if "is_head" not in record:
+    #         return False
+    #     if as_bool(record.get("is_head")) is not True:
+    #         return False
+    #     record["relationship_to_the_head"] = None
+    #     return True
 
     # ── set-level rules ──────────────────────────────────────────────────────
 
-    def _validate_single_head(self, records: list[dict]) -> None:
-        heads = [record for record in records if self._is_head(record)]
-        if len(heads) > 1:
-            validation_error("Only one household member can be marked as the head (is_head)")
+    # def _validate_single_head(self, records: list[dict]) -> None:
+    #     heads = [record for record in records if self._is_head(record)]
+    #     if len(heads) > 1:
+    #         validation_error("Only one household member can be marked as the head (is_head)")
 
-    def _validate_members_against_household(self, members: list[dict], household) -> None:
-        size_of_group = as_int(getattr(household, "size_of_group", None))
-        if size_of_group is not None and len(members) != size_of_group:
-            validation_error(
-                f"Household size_of_group is {size_of_group} but {len(members)} member(s) "
-                "were entered; the members must match the size of the group"
-            )
+    # def _validate_members_against_household(self, members: list[dict], household) -> None:
+    #     size_of_group = as_int(getattr(household, "size_of_group", None))
+    #     if size_of_group is not None and len(members) != size_of_group:
+    #         validation_error(
+    #             f"Household size_of_group is {size_of_group} but {len(members)} member(s) "
+    #             "were entered; the members must match the size of the group"
+    #         )
 
-        expected_male = as_int(getattr(household, "number_of_male_members", None))
-        expected_female = as_int(getattr(household, "number_of_female_members", None))
-        if expected_male is None or expected_female is None:
-            return
-        male = sum(1 for member in members if str(member.get("gender") or "").upper() == "MALE")
-        female = sum(1 for member in members if str(member.get("gender") or "").upper() == "FEMALE")
-        if male != expected_male or female != expected_female:
-            validation_error(
-                f"Members entered: {male} male / {female} female, but the household says "
-                f"{expected_male} male / {expected_female} female"
-            )
+    #     expected_male = as_int(getattr(household, "number_of_male_members", None))
+    #     expected_female = as_int(getattr(household, "number_of_female_members", None))
+    #     if expected_male is None or expected_female is None:
+    #         return
+    #     male = sum(1 for member in members if str(member.get("gender") or "").upper() == "MALE")
+    #     female = sum(1 for member in members if str(member.get("gender") or "").upper() == "FEMALE")
+    #     if male != expected_male or female != expected_female:
+    #         validation_error(
+    #             f"Members entered: {male} male / {female} female, but the household says "
+    #             f"{expected_male} male / {expected_female} female"
+    #         )
 
-    @staticmethod
-    def _is_head(record: dict) -> bool:
-        return bool(as_bool(record.get("is_head")))
+    # @staticmethod
+    # def _is_head(record: dict) -> bool:
+    #     return bool(as_bool(record.get("is_head")))
 
     # ── naming ───────────────────────────────────────────────────────────────
 
@@ -252,8 +252,8 @@ class G2PRegisterDomainServiceHouseholdMember(G2PRegisterDomainService):
                     ChangeActionEnum.NO_CHANGE.value,
                 }:
                     continue
-                if self._clear_relationship_when_head(record):
-                    cleared = True
+                # if self._clear_relationship_when_head(record):
+                    # cleared = True
             if cleared:
                 flag_modified(payload_obj, "change_payload")
 

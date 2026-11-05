@@ -6,7 +6,7 @@ from openg2p_registry_core.models import (
     G2PPersonHistory, G2PGeoHistory
 )
 from ..services import G2PRegisterDomainServiceFarmer
-from .enums import DisabilityTypeEnum, DisabilitySeverityEnum, SourceOfIncomeEnum, EducationalLevelEnum, HouseholdRegistrationStatusEnum
+from .enums import DisabilityTypeEnum, DisabilitySeverityEnum, SourceOfIncomeEnum, EducationalLevelEnum, HouseholdRegistrationStatusEnum, RelationshipToTheHeadEnum
 
 
 class G2PFarmer:
@@ -21,6 +21,8 @@ class G2PFarmer:
     language_spoken: Mapped[str] = mapped_column(String, nullable=True)       # Attribute lookup (Excel: ISO-639-2 searchable dropdown)
     education_level: Mapped[EducationalLevelEnum] = mapped_column(String, nullable=True)       # EducationalLevelEnum
     national_id_masked: Mapped[str] = mapped_column(String, nullable=True)
+    is_head: Mapped[bool] = mapped_column(Boolean, nullable=True)
+    relationship_to_the_head: Mapped[RelationshipToTheHeadEnum] = mapped_column(String, nullable=True)
 
 
 # All Register classes should have the prefix G2PRegister

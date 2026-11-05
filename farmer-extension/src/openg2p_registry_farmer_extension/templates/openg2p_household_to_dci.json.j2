@@ -141,7 +141,6 @@
       "number_of_elderly_members": {% if hh.get('number_of_elderly_members') is none %}null{% else %}{{ hh.get('number_of_elderly_members') }}{% endif %},
       "number_of_female_members": {% if hh.get('number_of_female_members') is none %}null{% else %}{{ hh.get('number_of_female_members') }}{% endif %},
       "number_of_male_members": {% if hh.get('number_of_male_members') is none %}null{% else %}{{ hh.get('number_of_male_members') }}{% endif %},
-      "other_land_owner": {% if hh.get('other_land_owner') is none %}null{% elif hh.get('other_land_owner') %}true{% else %}false{% endif %},
       "linked_farmer_count": {{ (hh.get('farmer') or []) | length }}
     }
   ],
