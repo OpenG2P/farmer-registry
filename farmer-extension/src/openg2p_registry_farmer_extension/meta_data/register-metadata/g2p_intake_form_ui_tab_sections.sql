@@ -19,64 +19,70 @@ VALUES
         20
     ),
     (
+        'tab_section_2',
+        'a1a4d25a-1cd4-4356-abac-72482721',
+        'farmer_household_auto_section',
+        30
+    ),
+    (
         'tab_section_3',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'household_household_non_farming_member_section',
-        30
+        40
     ),
     (
         'tab_section_4',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_farmer_personal_identification_section',
-        40
+        50
     ),
     (
         'tab_section_5',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_farmer_socio_economic_and_health_section',
-        50
+        60
     ),
     (
         'tab_section_6',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_farmer_location_section',
-        60
+        70
     ),
     (
         'tab_section_7',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_farm_details_section',
-        70
+        80
     ),
     (
         'tab_section_8',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_crop_details_intake_section',
-        80
+        90
     ),
     (
         'tab_section_9',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_farm_input_details_intake_section',
-        90
+        100
     ),
     (
         'tab_section_12',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_livestock_details_intake_section',
-        100
+        110
     ),
     (
         'tab_section_11',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_membership_membership_details',
-        110
+        120
     ),
     (
         'tab_section_13',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_documents_section',
-        120
+        130
     ) ON CONFLICT ("tab_section_id") DO
 UPDATE
 SET

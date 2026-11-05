@@ -28,7 +28,6 @@ class G2PSchemaFarmer:
     education_level: Optional[EducationalLevelEnum] = None
     national_id_masked: Optional[str] = None
     is_head: Optional[bool] = None
-    relationship_to_the_head: Optional[RelationshipToTheHeadEnum] = None
 
 class G2PRegisterSchemaFarmer(G2PRegisterBaseSchema, G2PPersonSchema, G2PGeoSchema, G2PAddressLinesSchema, G2PSchemaFarmer):
     """

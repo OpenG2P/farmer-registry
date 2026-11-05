@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Seed Farmer Registry sample records through the farmer intake-form API.
 
-Each sample is one farmer submission. NOT_REGISTERED saves non-farming
-household members. ALREADY_REGISTERED selects an existing household.
-Household totals are not sent; the platform calculates them. Land is
-saved before crop / livestock / farm-inputs (those rows parent to land),
-then each intake is finalized and approved. Celery ingest writes the
-register rows — this script never INSERTs into g2p_register_*.
+Each sample is one farmer submission. The run covers every household
+registration status: NOT_REGISTERED creates a household and saves
+non-farming members, ALREADY_REGISTERED selects a household ingested
+from an earlier NOT_REGISTERED farmer, and NOT_REQUIRED saves the farmer
+with no household. Household totals are not sent; the platform calculates
+them. Land is saved before crop / livestock / farm-inputs (those rows
+parent to land), then each intake is finalized and approved. Celery
+ingest writes the register rows — this script never INSERTs into
+g2p_register_*.
 """
 
 from __future__ import annotations
@@ -39,6 +42,7 @@ MEMBERSHIP_REGISTER_ID = "495f251c-83a5-4025-a307-1925712c9d0b"
 HH_MEMBER_REGISTER_ID = "52979fdd-220c-48dd-8de0-0a434e786427"
 
 # NOT_REGISTERED saves non-farming members. ALREADY_REGISTERED selects a household.
+# NOT_REQUIRED saves the farmer with no household section.
 HH_MEMBER_SECTION = "household_household_non_farming_member_section"
 
 FARMER_STATUS_SECTION = "farmer_household_registration_status_section"
@@ -55,6 +59,12 @@ FARMER_MEMBERSHIP_SECTION = "farmer_membership_membership_details"
 STATUS_NOT_REGISTERED = "NOT_REGISTERED"
 STATUS_ALREADY_REGISTERED = "ALREADY_REGISTERED"
 STATUS_NOT_REQUIRED = "NOT_REQUIRED"
+# First slot creates a household the later Already-registered samples can select.
+STATUS_CYCLE = (
+    STATUS_NOT_REGISTERED,
+    STATUS_NOT_REQUIRED,
+    STATUS_ALREADY_REGISTERED,
+)
 
 ARTIFACT_INTAKE = "registry.intake_form"
 
@@ -976,6 +986,50 @@ def already_seeded() -> bool:
         conn.close()
 
 
+def status_for_sample(index: int, live_household_id: str | None) -> str:
+    """Rotate the three household registration statuses across the sample.
+
+    Already registered needs a household ingested from an earlier Not
+    registered farmer. Until that row exists, the slot stays Not registered.
+    """
+    status = STATUS_CYCLE[index % len(STATUS_CYCLE)]
+    if status == STATUS_ALREADY_REGISTERED and not live_household_id:
+        return STATUS_NOT_REGISTERED
+    return status
+
+
+def wait_ingested_household(farmer_id: str, timeout: int) -> str:
+    """Household id written for a Not registered farmer after ingest."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        conn = registry_connect()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "select link_internal_record_id"
+                    " from g2p_register_farmers"
+                    " where internal_record_id = %s",
+                    (farmer_id,),
+                )
+                row = cur.fetchone()
+                household_id = row[0] if row else None
+                if household_id:
+                    cur.execute(
+                        "select 1 from g2p_register_households"
+                        " where internal_record_id = %s",
+                        (household_id,),
+                    )
+                    if cur.fetchone():
+                        return household_id
+        finally:
+            conn.close()
+        time.sleep(2)
+    raise RuntimeError(
+        f"household for farmer {farmer_id} was not ingested within {timeout}s. "
+        f"{_ingest_diagnosis()}"
+    )
+
+
 def status_payload(status: str, household_id: str | None = None) -> dict:
     payload: dict[str, Any] = {"household_registration_status": status}
     if status == STATUS_ALREADY_REGISTERED:
@@ -1135,7 +1189,8 @@ def submit_farmer(
     Returns (submission_id, farmer_id, household_id). household_id is the
     selected live household for ALREADY_REGISTERED, and None otherwise.
     NOT_REGISTERED saves non-farming members and does not send household
-    totals. `person` is the farmer; it defaults to the household head.
+    totals. NOT_REQUIRED saves no household and no members. `person` is
+    the farmer; it defaults to the household head.
     """
     if status not in (STATUS_NOT_REGISTERED, STATUS_ALREADY_REGISTERED, STATUS_NOT_REQUIRED):
         raise RuntimeError(f"unknown household_registration_status: {status}")
@@ -1338,6 +1393,40 @@ def _seed_registered_farmer(
     log(f"  farmer ingested id={fr_id} household id={hh_id}")
 
 
+def _seed_not_required_farmer(
+    client: StaffClient,
+    clients: dict[str, StaffClient],
+    awe_conn,
+    hh: dict,
+    index: int,
+    approve_timeout: int,
+    ingest_timeout: int,
+) -> None:
+    """One farmer with no household registration."""
+    person = _farmer_person(
+        hh["head"],
+        internal_record_id=f"{hh['head'].get('internal_record_id')}-none",
+        first_name="Sara",
+        last_name=hh["head"].get("last_name") or "None",
+        gender="FEMALE",
+        estimated_age=29,
+        marital_status="SINGLE",
+        foundational_id=f"NID-NRQ-{hh['head'].get('foundational_id') or '0'}",
+    )
+    log(f"farmer (extra): {person['full_name']} ({STATUS_NOT_REQUIRED})")
+    fr_sub, fr_id, _hh_id = submit_farmer(
+        client,
+        hh,
+        index + 2000,
+        status=STATUS_NOT_REQUIRED,
+        person=person,
+    )
+    _approve_and_wait_farmer(
+        clients, awe_conn, fr_sub, fr_id, approve_timeout, ingest_timeout
+    )
+    log(f"  farmer ingested id={fr_id}")
+
+
 def main() -> None:
     log("Starting intake-form sample seed…")
     staff_api = env("STAFF_API_URL", "http://127.0.0.1:8001")
@@ -1416,13 +1505,21 @@ def main() -> None:
     )
 
     try:
-        selected_household = False
+        live_household_id: str | None = None
+        seeded_statuses: set[str] = set()
         for index, hh in enumerate(households):
+            status = status_for_sample(index, live_household_id)
             log(
                 f"farmer {index + 1}/{len(households)}: "
-                f"{hh['head']['full_name']} ({STATUS_NOT_REGISTERED})"
+                f"{hh['head']['full_name']} ({status})"
             )
-            fr_sub, fr_id, hh_id = submit_farmer(submitter, hh, index)
+            fr_sub, fr_id, _hh_id = submit_farmer(
+                submitter,
+                hh,
+                index,
+                status=status,
+                household_id=live_household_id if status == STATUS_ALREADY_REGISTERED else None,
+            )
             _approve_and_wait_farmer(
                 clients,
                 awe_conn,
@@ -1432,18 +1529,52 @@ def main() -> None:
                 ingest_timeout,
             )
             log(f"  farmer ingested id={fr_id}")
-            if hh_id and not selected_household:
-                _seed_registered_farmer(
-                    submitter,
-                    clients,
-                    awe_conn,
-                    hh,
-                    hh_id,
-                    index,
-                    approve_timeout,
-                    ingest_timeout,
+            seeded_statuses.add(status)
+            if status == STATUS_NOT_REGISTERED:
+                household_id = wait_ingested_household(fr_id, ingest_timeout)
+                member_count = len(_non_farming_members(hh, hh["head"]))
+                if member_count:
+                    wait_linked_rows(
+                        "g2p_register_household_members",
+                        household_id,
+                        member_count,
+                        ingest_timeout,
+                    )
+                if live_household_id is None:
+                    live_household_id = household_id
+                    log(f"  household ingested id={household_id}")
+
+        if STATUS_ALREADY_REGISTERED not in seeded_statuses:
+            if not live_household_id:
+                raise RuntimeError(
+                    "cannot seed ALREADY_REGISTERED without a live household"
                 )
-                selected_household = True
+            _seed_registered_farmer(
+                submitter,
+                clients,
+                awe_conn,
+                households[0],
+                live_household_id,
+                0,
+                approve_timeout,
+                ingest_timeout,
+            )
+            seeded_statuses.add(STATUS_ALREADY_REGISTERED)
+        if STATUS_NOT_REQUIRED not in seeded_statuses:
+            _seed_not_required_farmer(
+                submitter,
+                clients,
+                awe_conn,
+                households[0],
+                0,
+                approve_timeout,
+                ingest_timeout,
+            )
+            seeded_statuses.add(STATUS_NOT_REQUIRED)
+        log(
+            "household registration statuses seeded: "
+            + ", ".join(sorted(seeded_statuses))
+        )
     finally:
         awe_conn.close()
     log("Done.")

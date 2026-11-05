@@ -22,7 +22,6 @@ class G2PFarmer:
     education_level: Mapped[EducationalLevelEnum] = mapped_column(String, nullable=True)       # EducationalLevelEnum
     national_id_masked: Mapped[str] = mapped_column(String, nullable=True)
     is_head: Mapped[bool] = mapped_column(Boolean, nullable=True)
-    relationship_to_the_head: Mapped[RelationshipToTheHeadEnum] = mapped_column(String, nullable=True)
 
 
 # All Register classes should have the prefix G2PRegister
