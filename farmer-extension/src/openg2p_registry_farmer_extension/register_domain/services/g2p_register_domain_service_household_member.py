@@ -38,13 +38,7 @@ _pending_member_batch: ContextVar[list[dict] | None] = ContextVar(
 
 class G2PRegisterDomainServiceHouseholdMember(G2PRegisterDomainService):
     async def validate_domain_attributes(self, records: list[dict]):
-        for record in records:
-            self._validate_birth_date(record)
-            # self._validate_head_and_relationship(record)
-        # self._validate_single_head(records)
-        # Set-level checks against the household (size / gender tallies) need
-        # the household row; they run in validate_intake_parent_link, which the
-        # intake save calls right after this with the resolved household link.
+        # for record in records:
         _pending_member_batch.set(list(records))
 
     async def validate_intake_parent_link(
@@ -109,10 +103,6 @@ class G2PRegisterDomainServiceHouseholdMember(G2PRegisterDomainService):
 
     # ── per-record rules ─────────────────────────────────────────────────────
 
-    def _validate_birth_date(self, record: dict) -> None:
-        birth_date = parse_date(record.get("birth_date"))
-        if birth_date is not None and birth_date > date.today():
-            validation_error("birth_date must not be in the future")
 
 
     # ── naming ───────────────────────────────────────────────────────────────

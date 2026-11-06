@@ -18,6 +18,7 @@ from .utils.household_roster import (
 _logger = logging.getLogger("g2p-register-domain-service")
 
 
+_AGE_FIELDS = ("birth_date", "estimated_age")
 
 def _enum_fields() -> dict:
     # Imported lazily: ..models imports these services at module level, so a
@@ -39,8 +40,7 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
     async def validate_domain_attributes(self, records: list[dict]):
         for record in records:
             validate_enum_values(record, _enum_fields())
-            self._validate_birth_date(record)
-            self._validate_estimated_age(record)
+            self._validate_birth_date_or_estimated_age(record)
 
     async def validate_intake_parent_link(self, record: dict, link_internal_record_id: str | None, session: AsyncSession) -> None:
         submission_id = await self._submission_id_for_record(record, session)
@@ -78,6 +78,7 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
             return
 
         for farmer in farmers:
+            self._require_birth_date_or_estimated_age(farmer.birth_date, farmer.estimated_age)
             status = str(farmer.household_registration_status or "").strip() or None
             link_id = str(farmer.link_internal_record_id or "").strip() or None
             if status is None:
@@ -162,21 +163,21 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
         ).scalar_one_or_none()
         return found is not None
 
-    def _validate_birth_date(self, record: dict) -> None:
-        birth_date = parse_date(record.get("birth_date"))
-        if birth_date is not None and birth_date > date.today():
-            validation_error("birth_date must not be in the future")
 
-    def _validate_estimated_age(self, record: dict) -> None:
-        birth_date = parse_date(record.get("birth_date"))
-        estimated_age = as_int(record.get("estimated_age"))
-        if birth_date is None or estimated_age is None:
+    def _validate_birth_date_or_estimated_age(self, record: dict) -> None:
+        # Farmer sections that do not collect DOB/age send neither key, and an
+        # UPDATE change request only carries the keys it changes.
+        present = [field for field in _AGE_FIELDS if field in record]
+        if not present:
             return
-        computed_age = calculate_age(birth_date)
-        if computed_age is not None and abs(estimated_age - computed_age) > 1:
-            validation_error(
-                "estimated_age must be consistent with birth_date within one year"
-            )
+        if record.get("edit_action") == "UPDATE" and len(present) < len(_AGE_FIELDS):
+            return
+        self._require_birth_date_or_estimated_age(record.get("birth_date"), record.get("estimated_age"))
+
+    @staticmethod
+    def _require_birth_date_or_estimated_age(birth_date, estimated_age) -> None:
+        if parse_date(birth_date) is None and as_int(estimated_age) is None:
+            validation_error("Either birth_date or estimated_age must be entered")
 
     def construct_search_text(self, payload: dict, extra: list[str] = None) -> str:
         _logger.info("Constructing search text for farmer")
