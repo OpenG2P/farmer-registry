@@ -39,6 +39,7 @@ class G2PFarmerIntakeFormDataService(G2PIntakeFormDataService):
         await self._clear_auto_household_link(session, args, kwargs)
         submission = await super().save_intake_form_submission_with_session(*args, **kwargs)
         await self._sync_auto_household(submission, session)
+        await self._clear_disabilities_when_not_disabled(submission, session)
         return submission
 
     async def _clear_auto_household_link(self, session, args, kwargs) -> None:
@@ -183,6 +184,38 @@ class G2PFarmerIntakeFormDataService(G2PIntakeFormDataService):
             farmer.link_internal_record_id = household.internal_record_id
         await session.flush()
 
+    async def _clear_disabilities_when_not_disabled(self, submission, session) -> None:
+        """Drop the disability rows of a farmer whose disabled answer is not YES."""
+        if submission is None or session is None:
+            return
+        from ..models.farmer import G2PIntakeFormFarmer
+        from ..models.farmer_disability import G2PIntakeFormFarmerDisability
+
+        submission_id = str(submission.submission_id)
+        farmer_ids = (
+            await session.execute(
+                select(G2PIntakeFormFarmer.internal_record_id).where(
+                    G2PIntakeFormFarmer.submission_id == submission_id,
+                    G2PIntakeFormFarmer.disabled.is_not(True),
+                )
+            )
+        ).scalars().all()
+        if not farmer_ids:
+            return
+
+        rows = (
+            await session.execute(
+                select(G2PIntakeFormFarmerDisability).where(
+                    G2PIntakeFormFarmerDisability.submission_id == submission_id,
+                    G2PIntakeFormFarmerDisability.link_internal_record_id.in_(farmer_ids),
+                )
+            )
+        ).scalars().all()
+        for row in rows:
+            await session.delete(row)
+        await session.flush()
+
+    
     async def finalize_submission_with_session(self, submission_id: str, session, *args, **kwargs):
         submission = await self._get_submission_or_error(submission_id, session)
         register_definition = await self._get_register_definition(submission.register_id, session)

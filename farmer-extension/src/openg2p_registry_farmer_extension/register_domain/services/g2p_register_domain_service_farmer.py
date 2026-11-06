@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-from .domain_validation_utils import as_int, fallback_record_name, parse_date, validate_enum_values, validation_error
+from .domain_validation_utils import as_bool, as_int, fallback_record_name, parse_date, validate_enum_values, validation_error
 from .utils.household_roster import (
     CHANGED_PERSON_KIND_FARMER,
     calculate_age,
@@ -243,6 +243,47 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
             model=G2PRegisterFarmer,
             changed_person_kind=CHANGED_PERSON_KIND_FARMER,
         )
+
+    async def post_approve(self, change_request: G2PRegisterChangeRequest, session: AsyncSession):
+        await self._remove_disabilities_when_not_disabled(change_request, session)
+
+    async def _remove_disabilities_when_not_disabled(
+        self, change_request: G2PRegisterChangeRequest, session: AsyncSession
+    ) -> None:
+        from openg2p_registry_core.models import G2PRegisterChangeRequestPayload
+
+        from ..models.farmer_disability import G2PRegisterFarmerDisability
+
+        payload = await session.get(G2PRegisterChangeRequestPayload, change_request.change_request_id)
+        farmer_ids: set[str] = set()
+        for record in (payload.change_payload if payload else None) or []:
+            if record.get("edit_action") in {"DELETE", "NO_CHANGE"}:
+                continue
+            # A payload without the key comes from a section that does not
+            # collect it, so the stored answer is unknown here.
+            if "disabled" not in record or as_bool(record.get("disabled")) is True:
+                continue
+            # A farmer-register section targets the subject itself; a
+            # household-register section carries the farmer's id on the row.
+            if change_request.section_register_id == change_request.register_id:
+                farmer_id = change_request.internal_record_id
+            else:
+                farmer_id = record.get("internal_record_id")
+            if farmer_id:
+                farmer_ids.add(str(farmer_id))
+        if not farmer_ids:
+            return
+
+        rows = (
+            await session.execute(
+                select(G2PRegisterFarmerDisability).where(
+                    G2PRegisterFarmerDisability.link_internal_record_id.in_(farmer_ids)
+                )
+            )
+        ).scalars().all()
+        for row in rows:
+            await session.delete(row)
+        await session.flush()
 
     async def post_ingest(self, register_id: str, register_row, session: AsyncSession):
         await recompute_household_for_ingested_row(session, register_row)
