@@ -58,19 +58,6 @@ def validate_household_roster(household, members: list) -> None:
             "were entered; the members must match the size of the group"
         )
 
-    # heads = [member for member in members if as_bool(_get(member, "is_head"))]
-    # if not heads:
-    #     validation_error("One household member must be marked as the head (is_head)")
-    # if len(heads) > 1:
-    #     validation_error("Only one household member can be marked as the head (is_head)")
-
-    # for member in members:
-    #     if as_bool(_get(member, "is_head")):
-    #         # A relationship chosen before is_head is not part of the head row.
-    #         _set(member, "relationship_to_the_head", None)
-    #     elif is_blank(_get(member, "relationship_to_the_head")):
-    #         validation_error("relationship_to_the_head is required for every member who is not the head")
-
     expected_male = as_int(_get(household, "number_of_male_members"))
     expected_female = as_int(_get(household, "number_of_female_members"))
     if expected_male is None or expected_female is None:

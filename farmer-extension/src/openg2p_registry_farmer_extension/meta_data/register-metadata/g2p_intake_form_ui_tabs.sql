@@ -5,7 +5,7 @@ VALUES
         'a1a4d25a-1cd4-4356-abac-72482721',
         'a1a4d25a-1cd4-4356-abac-8782382649',
         'farmer_intake_tab',
-        10
+        1
     ) ON CONFLICT ("tab_id") DO
 UPDATE
 SET

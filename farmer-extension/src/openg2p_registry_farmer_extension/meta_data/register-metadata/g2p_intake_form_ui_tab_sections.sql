@@ -46,49 +46,49 @@ VALUES
         'tab_section_14',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_disability_section',
-        65
+        70
     ),
     (
         'tab_section_6',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_farmer_location_section',
-        70
+        80
     ),
     (
         'tab_section_7',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_farm_details_section',
-        80
+        90
     ),
     (
         'tab_section_8',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_crop_details_intake_section',
-        90
+        100
     ),
     (
         'tab_section_9',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_farm_input_details_intake_section',
-        100
+        110
     ),
     (
         'tab_section_12',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_livestock_details_intake_section',
-        110
+        120
     ),
     (
         'tab_section_11',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_membership_membership_details',
-        120
+        130
     ),
     (
         'tab_section_13',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_documents_section',
-        130
+        140
     ) ON CONFLICT ("tab_section_id") DO
 UPDATE
 SET

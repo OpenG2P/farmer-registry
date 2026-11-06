@@ -58,7 +58,7 @@ class G2PRegisterDomainServiceFarmerDisability(G2PRegisterDomainService):
     def construct_record_name(self, payload: dict, extra: list[str] = None) -> str:
         _logger.info("Constructing record name for farmer disability")
 
-        keys = ["disability_domains", "functional_record_id"]
+        keys = ["disability_domains", "disability_severity"]
         record_name = []
         if extra:
             record_name.extend(str(item).strip() for item in extra if str(item).strip())
