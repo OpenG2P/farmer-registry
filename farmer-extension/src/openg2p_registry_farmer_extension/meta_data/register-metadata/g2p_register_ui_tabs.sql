@@ -36,38 +36,45 @@ VALUES
         'TRUE'
     ),
     (
+        'farmer_socio_economic_and_health_tab',
+        'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
+        'farmer_socio_economic_and_health_tab',
+        20,
+        'TRUE'
+    ),
+    (
         'farmer_membership_tab',
         'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
         'farmer_memberships_tab',
-        20,
+        30,
         'TRUE'
     ),
     (
         'farmer_land_tab',
         'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
         'farmer_lands_tab',
-        30,
+        40,
         'TRUE'
     ),
     (
         'farmer_crop_tab',
         'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
         'farmer_crops_tab',
-        40,
+        50,
         'TRUE'
     ),
     (
         'farmer_livestock_tab',
         'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
         'farmer_livestocks_tab',
-        50,
+        60,
         'TRUE'
     ),
     (
         'farmer_farm_input_tab',
         'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
         'farmer_farm_inputs_tab',
-        60,
+        70,
         'TRUE'
     ) ON CONFLICT ("tab_id") DO
 UPDATE

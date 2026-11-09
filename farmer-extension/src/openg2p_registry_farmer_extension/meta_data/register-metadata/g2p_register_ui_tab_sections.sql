@@ -22,39 +22,39 @@ VALUES
         10
     ),
     (
-        'd8753df5-d511-4c63-b045-ff9720a31808',
-        'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
-        'farmer_farmer_tab',
-        'farmer_farmer_location_section',
-        20
-    ),
-    (
-        '9a1573a0-6507-47b6-a717-a007435d2c76',
-        'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
-        'farmer_farmer_tab',
-        'farmer_farmer_socio_economic_and_health_section',
-        30
-    ),
-    (
-        'b7e4c2a1-9d30-4f58-a6c1-0e8d5f3a71b2',
-        'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
-        'farmer_farmer_tab',
-        'farmer_disability_section',
-        40
-    ),
-    (
         'f81b17d9-35af-4d72-8ca7-3f9be1ca7c5b',
         'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
         'farmer_farmer_tab',
         'farmer_id_authentication',
-        50
+        20
+    ),
+    (
+        'd8753df5-d511-4c63-b045-ff9720a31808',
+        'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
+        'farmer_farmer_tab',
+        'farmer_farmer_location_section',
+        30
     ),
     (
         '858fead4-9d8b-4f76-9915-7d591b1f4559',
         'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
         'farmer_farmer_tab',
         'farmer_documents_section',
-        60
+        40
+    ),
+    (
+        '2ah56w89-3323-45ae-r301-234567890123',
+        'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
+        'farmer_socio_economic_and_health_tab',
+        'farmer_farmer_socio_economic_and_health_section',
+        1
+    ),
+    (
+        'b7e4c2a1-9d30-4f58-a6c1-0e8d5f3a71b2',
+        'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
+        'farmer_socio_economic_and_health_tab',
+        'farmer_disability_section',
+        10
     ),
     (
         'a163b218-32d6-49a7-99b6-05d4aeb31f0d',
