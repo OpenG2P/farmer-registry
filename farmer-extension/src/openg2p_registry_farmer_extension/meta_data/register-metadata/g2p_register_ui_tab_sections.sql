@@ -67,7 +67,7 @@ VALUES
         '41a866b7-d301-46e3-8375-17ebb9f0059d',
         'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
         'farmer_land_tab',
-        'farmer_farm_details_section',
+        'farmer_land_details_section',
         1
     ),
     (
@@ -141,26 +141,27 @@ VALUES
         10
     ),
     (
-        'a92a052c-d439-4809-9f30-df1465f667e4',
-        '9055ab43-c85d-4833-bd00-ca657bb72644',
-        'household_farmer_tab',
-        'household_farmer_socio_economic_and_health_section',
-        20
-    ),
-    (
-        'e2a91c64-5b07-4d8e-9f33-6c1d0a8e4b57',
-        '9055ab43-c85d-4833-bd00-ca657bb72644',
-        'household_farmer_tab',
-        'household_farmer_disability_section',
-        30
-    ),
-    (
         '1870bfd6-b5f9-4193-a65f-2765c7ea672c',
         '9055ab43-c85d-4833-bd00-ca657bb72644',
         'household_farmer_tab',
         'household_farmer_location_section',
+        20
+    ),
+    (
+        'a92a052c-d439-4809-9f30-df1465f667e4',
+        '9055ab43-c85d-4833-bd00-ca657bb72644',
+        'household_farmer_tab',
+        'household_farmer_socio_economic_and_health_section',
+        30
+    ),
+    (
+        '495f251c-83a5-4025-a307-1925712c9d0b',
+        '9055ab43-c85d-4833-bd00-ca657bb72644',
+        'household_farmer_tab',
+        'household_farmer_membership_membership_details',
         40
-    ) ON CONFLICT ("tab_section_id") DO
+    )
+ ON CONFLICT ("tab_section_id") DO
 UPDATE
 SET
     "register_id" = EXCLUDED."register_id",

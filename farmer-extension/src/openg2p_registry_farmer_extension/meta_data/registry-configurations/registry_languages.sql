@@ -1456,7 +1456,7 @@ VALUES
           "HIGH": "High",
           "MEDIUM": "Medium",
           "LOW": "Low",
-          "Search parent...": "Search parent...",
+          "search_parent": "Search parent...",
           "Select Parent": "Select Parent",
           "Parent": "Parent",
           "Wheat": "Wheat",
@@ -2488,7 +2488,20 @@ VALUES
           "Zogi": "Zogi",
           "Zoma": "Zoma",
           "Zonya": "Zonya",
-          "Zore": "Zore"
+          "Zore": "Zore",
+          "POVERTY": "POVERTY",
+          "household_non_farming_members_records": "Household Non-Farming Members Records",
+          "Household Farming Member Records": "Household Farming Member Records",
+          "Location Hierarchy": "Location Hierarchy",
+          "Birthdate": "Birthdate",
+          "Number of Male Members": "Number of Male Members",
+          "Number of Female Members": "Number of Female Members",
+          "Number Of Elderly Members": "Number Of Elderly Members",
+          "hh_household_farmer_membership": "Household Farmer Membership",
+          "household_farmer_membership_membership_details": "Household Farmer Membership Details",
+          "household_farmer_memberships": "Farmer Memberships",
+          "fr_farmer_disability": "Farmer Disability",
+          "farmer_land_details_section": "Farmer Land Details"
         }'
     ) ON CONFLICT ("language_id") DO
 UPDATE

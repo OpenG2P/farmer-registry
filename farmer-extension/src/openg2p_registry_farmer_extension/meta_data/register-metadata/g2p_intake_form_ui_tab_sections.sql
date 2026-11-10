@@ -21,7 +21,7 @@ VALUES
     (
         'tab_section_2',
         'a1a4d25a-1cd4-4356-abac-72482721',
-        'farmer_household_auto_section',
+        'household_information_section',
         30
     ),
     (
@@ -57,7 +57,7 @@ VALUES
     (
         'tab_section_7',
         'a1a4d25a-1cd4-4356-abac-72482721',
-        'farmer_farm_details_section',
+        'farmer_land_details_section',
         90
     ),
     (

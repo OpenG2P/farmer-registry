@@ -52,7 +52,7 @@ FARMER_PERSONAL_SECTION = "farmer_farmer_personal_identification_section"
 FARMER_SOCIO_SECTION = "farmer_farmer_socio_economic_and_health_section"
 FARMER_DISABILITY_SECTION = "farmer_disability_section"
 FARMER_LOCATION_SECTION = "farmer_farmer_location_section"
-FARMER_LAND_SECTION = "farmer_farm_details_section"
+FARMER_LAND_SECTION = "farmer_land_details_section"
 FARMER_CROP_SECTION = "farmer_crop_details_intake_section"
 FARMER_INPUT_SECTION = "farmer_farm_input_details_intake_section"
 FARMER_LIVESTOCK_SECTION = "farmer_livestock_details_intake_section"
@@ -263,6 +263,27 @@ def _age_from_birth(birth: str | None, fallback: int | None) -> int | None:
     return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
 
 
+def _one_age_field(birth, estimated_age) -> tuple[str | None, int | None]:
+    """A seeded record stores birth_date or estimated_age, never both.
+
+    A known birth date wins. Estimated age is used only when there is no birth
+    date. When neither is known, a default birth date keeps domain validation
+    satisfied.
+    """
+    birth_str = str(birth)[:10] if birth else None
+    if birth_str:
+        try:
+            date.fromisoformat(birth_str)
+        except ValueError:
+            birth_str = None
+    if birth_str:
+        return birth_str, None
+    age = estimated_age if isinstance(estimated_age, int) else _as_int(estimated_age)
+    if age is not None:
+        return None, age
+    return "1985-01-01", None
+
+
 def _map_edu(value: str | None) -> str:
     key = (value or "BASIC").upper()
     return EDU_MAP.get(key, "BASIC")
@@ -307,7 +328,7 @@ def load_people_from_csv() -> tuple[list, list]:
         phone = None
         if isinstance(phones, list) and phones:
             phone = phones[0].get("number") if isinstance(phones[0], dict) else str(phones[0])
-        birth = i.get("birth_date") or "1985-01-01"
+        birth, age = _one_age_field(i.get("birth_date"), i.get("estimated_age"))
         individuals.append(
             {
                 "internal_record_id": i.get("internal_record_id"),
@@ -318,8 +339,8 @@ def load_people_from_csv() -> tuple[list, list]:
                 "last_name": i.get("last_name") or "Seed",
                 "given_name": i.get("given_name") or i.get("first_name") or "Farmer",
                 "gender": (i.get("gender") or "MALE").upper(),
-                "birth_date": str(birth)[:10],
-                "estimated_age": _as_int(i.get("estimated_age")) or _age_from_birth(str(birth)[:10], 40),
+                "birth_date": birth,
+                "estimated_age": age,
                 "marital_status": (i.get("marital_status") or "MARRIED").upper(),
                 "education_level": _map_edu(i.get("education_level")),
                 "foundational_id": i.get("foundational_id") or f"NID-{str(i.get('internal_record_id'))[-6:]}",
@@ -382,7 +403,7 @@ def synthetic_households(count: int) -> list:
                     "given_name": first,
                     "gender": gender,
                     "birth_date": birth.isoformat(),
-                    "estimated_age": age,
+                    "estimated_age": None,
                     "marital_status": "MARRIED" if age >= 18 else "SINGLE",
                     "education_level": "BASIC",
                     "foundational_id": f"NID-SYN{n}{mi}",
@@ -500,12 +521,7 @@ def person_fields(person: dict, *, extra: dict | None = None) -> dict:
     marital = (person.get("marital_status") or "MARRIED").upper()
     if marital not in ("SINGLE", "MARRIED", "DIVORCED", "WIDOWED", "SEPARATED", "UNKNOWN"):
         marital = "MARRIED"
-    birth = str(person.get("birth_date") or "1985-01-01")[:10]
-    age = person.get("estimated_age") or _age_from_birth(birth, 40)
-    # Domain rule: estimated_age must match birth_date within one year.
-    computed = _age_from_birth(birth, age)
-    if computed is not None:
-        age = computed
+    birth, age = _one_age_field(person.get("birth_date"), person.get("estimated_age"))
     nid = person.get("foundational_id") or "NID-000000"
     payload = {
         "first_name": person.get("first_name") or "Farmer",
@@ -515,7 +531,6 @@ def person_fields(person: dict, *, extra: dict | None = None) -> dict:
         "prefix": "Ms" if gender == "FEMALE" else "Mr",
         "suffix": None,
         "gender": gender,
-        "birth_date": birth,
         "foundational_id": nid,
         "phone_numbers": person_phones(person) or [
             {"type": "personal", "number": "+254700000001", "is_primary": True}
@@ -529,7 +544,12 @@ def person_fields(person: dict, *, extra: dict | None = None) -> dict:
         "registration_date": date.today().isoformat(),
         **geo_fields(person),
     }
+    if birth:
+        payload["birth_date"] = birth
+    else:
+        payload["estimated_age"] = age
     if extra:
+        extra = {key: value for key, value in extra.items() if key not in ("birth_date", "estimated_age")}
         payload.update(extra)
     return payload
 
@@ -1078,7 +1098,10 @@ def status_payload(status: str, household_id: str | None = None) -> dict:
 
 def member_payload(member: dict) -> dict:
     """One non-farming member. Household totals are calculated by the platform."""
-    age = member.get("estimated_age") or 0
+    age = member.get("estimated_age")
+    if age is None:
+        age = _age_from_birth(member.get("birth_date"), 0)
+    age = age or 0
     if age < 18:
         relationship = "CHILD"
     elif (member.get("marital_status") or "").upper() == "MARRIED":
@@ -1110,7 +1133,6 @@ def farmer_extra(index: int) -> dict:
         "SOI_OTHERS",
     )[index % 4]
     return {
-        "estimated_age": None,  # filled from birth
         "has_personal_phone": True,
         "disabled": disabled,
         "source_of_income": income,
@@ -1246,7 +1268,6 @@ def submit_farmer(
 
     farmer = person or hh["head"]
     extra = farmer_extra(index)
-    extra["estimated_age"] = _age_from_birth(farmer.get("birth_date"), farmer.get("estimated_age") or 40)
     extra["national_id_masked"] = f"XXXX{(farmer.get('foundational_id') or '0000')[-4:]}"
     personal = person_fields(farmer, extra=extra)
 
@@ -1414,8 +1435,9 @@ def _farmer_person(template: dict, **overrides) -> dict:
     last = person.get("last_name") or "Seed"
     person["full_name"] = f"{first} {last}"
     person["given_name"] = first
-    age = person.get("estimated_age") or 30
-    person["birth_date"] = date.today().replace(year=date.today().year - int(age)).isoformat()
+    # Callers pass estimated_age, so these records are seeded with age alone.
+    if person.get("estimated_age") is not None:
+        person["birth_date"] = None
     return person
 
 

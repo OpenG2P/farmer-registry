@@ -206,6 +206,7 @@
   "region": "Region",
   "relationship_to_the_head": "Relationship To The Head",
   "search_by_name_or_id": "Search By Name Or Id",
+  "search_parent": "Search parent...",
   "season": "Season",
   "select_household": "Select Household",
   "size_of_group": "Total Household Members",
