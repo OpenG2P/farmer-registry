@@ -462,6 +462,39 @@ def _stored_gender(person: dict) -> str:
     return gender
 
 
+# Fallback middle names when demography leaves middle_name empty. Each is
+# longer than two letters; selection is stable per person so re-seeds match.
+_MIDDLE_NAME_FALLBACKS = (
+    "Marie", "James", "Grace", "Peter", "Helen", "David", "Rose", "Paul",
+    "Claire", "Joseph", "Anne", "Michael", "Ruth", "Daniel", "Lucy", "Samuel",
+    "Irene", "Thomas", "Nora", "Andrew", "Ellen", "Philip", "Sarah", "Brian",
+    "Joyce", "Kevin", "Alice", "Oscar", "Diana", "Francis", "Laura", "Henry",
+)
+
+
+def _fallback_middle_name(person: dict) -> str:
+    key = "|".join(
+        str(person.get(k) or "")
+        for k in (
+            "foundational_id",
+            "internal_record_id",
+            "functional_record_id",
+            "first_name",
+            "last_name",
+            "birth_date",
+        )
+    )
+    idx = sum((i + 1) * ord(c) for i, c in enumerate(key)) % len(_MIDDLE_NAME_FALLBACKS)
+    return _MIDDLE_NAME_FALLBACKS[idx]
+
+
+def _resolve_middle_name(person: dict) -> str:
+    existing = (person.get("middle_name") or "").strip()
+    if len(existing) > 2:
+        return existing
+    return _fallback_middle_name(person)
+
+
 def person_fields(person: dict, *, extra: dict | None = None) -> dict:
     gender = _stored_gender(person)
     marital = (person.get("marital_status") or "MARRIED").upper()
@@ -476,7 +509,7 @@ def person_fields(person: dict, *, extra: dict | None = None) -> dict:
     nid = person.get("foundational_id") or "NID-000000"
     payload = {
         "first_name": person.get("first_name") or "Farmer",
-        "middle_name": person.get("middle_name") or "K",
+        "middle_name": _resolve_middle_name(person),
         "last_name": person.get("last_name") or "Seed",
         "given_name": person.get("given_name") or person.get("first_name") or "Farmer",
         "prefix": "Ms" if gender == "FEMALE" else "Mr",
