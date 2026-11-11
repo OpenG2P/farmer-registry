@@ -107,6 +107,14 @@ class EducationalLevelEnum(StrEnum):
     HIGHER_EDUCATION = "HIGHER_EDUCATION"
 
 
+class RidStatusEnum(StrEnum):
+    PENDING = "PENDING"
+    SUCCESS_PROCESSED = "SUCCESS_PROCESSED"
+    FAIL_FAILED = "FAIL_FAILED"
+    FAIL_REJECTED = "FAIL_REJECTED"
+    FAIL_PROCESSED_NO_DATA = "FAIL_PROCESSED_NO_DATA"
+
+
 class RelationshipToTheHeadEnum(StrEnum):
     """Relationship of a household member to the household head.
 

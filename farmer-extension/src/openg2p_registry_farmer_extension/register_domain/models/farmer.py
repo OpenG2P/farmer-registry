@@ -6,7 +6,7 @@ from openg2p_registry_core.models import (
     G2PPersonHistory, G2PGeoHistory
 )
 from ..services import G2PRegisterDomainServiceFarmer
-from .enums import SourceOfIncomeEnum, EducationalLevelEnum, HouseholdRegistrationStatusEnum, RelationshipToTheHeadEnum
+from .enums import SourceOfIncomeEnum, EducationalLevelEnum, HouseholdRegistrationStatusEnum, RidStatusEnum
 
 
 class G2PFarmer:
@@ -19,6 +19,11 @@ class G2PFarmer:
     language_spoken: Mapped[str] = mapped_column(String, nullable=True)       # Attribute lookup (Excel: ISO-639-2 searchable dropdown)
     education_level: Mapped[EducationalLevelEnum] = mapped_column(String, nullable=True)       # EducationalLevelEnum
     national_id_masked: Mapped[str] = mapped_column(String, nullable=True)
+    # National ID number is foundational_id (G2PPerson). These fields are the
+    # yes/no, the RID used when there is no National ID, and that RID's status.
+    has_national_id: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    rid: Mapped[str | None] = mapped_column(String, nullable=True)
+    rid_status: Mapped[RidStatusEnum | None] = mapped_column(String, nullable=True)
     is_head: Mapped[bool] = mapped_column(Boolean, nullable=True)
 
 

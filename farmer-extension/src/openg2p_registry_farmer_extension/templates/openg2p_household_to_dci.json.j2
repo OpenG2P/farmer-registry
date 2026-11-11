@@ -61,7 +61,7 @@
         {
           "@type": "Identifier",
           "identifier_type": "UIN",
-          "identifier_value": {{ ((head.get('foundational_id') or head.get('functional_record_id')) if head else '') | tojson }}
+          "identifier_value": {{ ((head.get('foundational_id') or head.get('rid') or head.get('functional_record_id')) if head else '') | tojson }}
         }
       ],
       "demographic_info": {
@@ -69,7 +69,7 @@
           {
             "@type": "Identifier",
             "identifier_type": "UIN",
-            "identifier_value": {{ ((head.get('foundational_id') or head.get('functional_record_id')) if head else '') | tojson }}
+            "identifier_value": {{ ((head.get('foundational_id') or head.get('rid') or head.get('functional_record_id')) if head else '') | tojson }}
           }
         ],
         "name": {

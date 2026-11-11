@@ -2501,7 +2501,25 @@ VALUES
           "household_farmer_membership_membership_details": "Household Farmer Membership Details",
           "household_farmer_memberships": "Farmer Memberships",
           "fr_farmer_disability": "Farmer Disability",
-          "farmer_land_details_section": "Farmer Land Details"
+          "farmer_land_details_section": "Farmer Land Details",
+          "national_id": "National ID",
+          "has_national_id": "Do you have National ID?",
+          "rid": "RID",
+          "rid_status": "RID Status",
+          "fr_farmer_national_id": "National ID",
+          "hh_farmer_national_id": "National ID",
+          "PENDING": "Pending",
+          "SUCCESS_PROCESSED": "Processed",
+          "FAIL_FAILED": "Failed",
+          "FAIL_REJECTED": "Rejected",
+          "FAIL_PROCESSED_NO_DATA": "Processed With No Data",
+          "foundational_id": "Foundational ID",
+          "Not set": "Not set",
+          "Do you have National ID?": "Do you have National ID?",
+          "National ID": "National ID",
+          "Number of Child Members": "Number of Child Members",
+          "RID": "RID",
+          "hh_non_farming_members": "Household Non-Farming Members"
         }'
     ) ON CONFLICT ("language_id") DO
 UPDATE

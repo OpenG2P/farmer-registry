@@ -151,7 +151,7 @@
       {
         "@type": "Identifier",
         "identifier_type": "UIN",
-        "identifier_value": {{ (farmer.get('foundational_id') or farmer.get('functional_record_id') or '') | tojson }}
+        "identifier_value": {{ (farmer.get('foundational_id') or farmer.get('rid') or farmer.get('functional_record_id') or '') | tojson }}
       }
     ],
     "demographic_info": {
@@ -159,7 +159,7 @@
         {
           "@type": "Identifier",
           "identifier_type": "UIN",
-          "identifier_value": {{ (farmer.get('foundational_id') or farmer.get('functional_record_id') or '') | tojson }}
+          "identifier_value": {{ (farmer.get('foundational_id') or farmer.get('rid') or farmer.get('functional_record_id') or '') | tojson }}
         }
       ],
       "name": {
@@ -215,7 +215,7 @@
         {
           "@type": "Identifier",
           "identifier_type": "UIN",
-          "identifier_value": {{ (farmer.get('foundational_id') or farmer.get('functional_record_id') or '') | tojson }}
+          "identifier_value": {{ (farmer.get('foundational_id') or farmer.get('rid') or farmer.get('functional_record_id') or '') | tojson }}
         }
       ],
       "demographic_info": {
@@ -223,7 +223,7 @@
           {
             "@type": "Identifier",
             "identifier_type": "UIN",
-            "identifier_value": {{ (farmer.get('foundational_id') or farmer.get('functional_record_id') or '') | tojson }}
+            "identifier_value": {{ (farmer.get('foundational_id') or farmer.get('rid') or farmer.get('functional_record_id') or '') | tojson }}
           }
         ],
         "name": {

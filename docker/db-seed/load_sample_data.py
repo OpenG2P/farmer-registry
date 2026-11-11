@@ -15,6 +15,7 @@ g2p_register_*.
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import os
 import ssl
@@ -49,6 +50,7 @@ HH_MEMBER_SECTION = "household_household_non_farming_member_section"
 FARMER_STATUS_SECTION = "farmer_household_registration_status_section"
 FARMER_LOOKUP_SECTION = "farmer_household_lookup_section"
 FARMER_PERSONAL_SECTION = "farmer_farmer_personal_identification_section"
+FARMER_NATIONAL_ID_SECTION = "farmer_national_id_section"
 FARMER_SOCIO_SECTION = "farmer_farmer_socio_economic_and_health_section"
 FARMER_DISABILITY_SECTION = "farmer_disability_section"
 FARMER_LOCATION_SECTION = "farmer_farmer_location_section"
@@ -1108,11 +1110,17 @@ def member_payload(member: dict) -> dict:
         relationship = "SPOUSE"
     else:
         relationship = "OTHER_RELATIVE"
-    return {
+    payload = {
         **person_fields(member),
         "is_disabled": False,
         "relationship_to_the_head": relationship,
     }
+    # National ID and RID belong on the farmer only.
+    payload.pop("foundational_id", None)
+    payload.pop("rid", None)
+    payload.pop("rid_status", None)
+    payload.pop("has_national_id", None)
+    return payload
 
 
 def _non_farming_members(hh: dict, farmer: dict) -> list[dict]:
@@ -1122,6 +1130,44 @@ def _non_farming_members(hh: dict, farmer: dict) -> list[dict]:
         (hh.get("head") or {}).get("internal_record_id"),
     }
     return [member for member in hh["members"] if member.get("internal_record_id") not in skip]
+
+
+def _twelve_digit_national_id(source: str | None, index: int) -> str:
+    """12-digit national id. A 10-digit source keeps its digits behind a 2-digit prefix."""
+    digits = "".join(ch for ch in str(source or "") if ch.isdigit())
+    if len(digits) == 10:
+        return f"{(index % 90) + 10:02d}{digits}"
+    if len(digits) == 12:
+        return digits
+    digest = hashlib.sha256(f"farmer-sample-nid-{index}:{digits}".encode()).digest()
+    number = int.from_bytes(digest[:8], "big")
+    return f"{(number % 900_000_000_000) + 100_000_000_000:012d}"
+
+
+def _sample_rid(index: int) -> str:
+    """29-digit RID. Filled across the width so it is not a zero-padded counter."""
+    digest = hashlib.sha256(f"farmer-sample-rid-{index}".encode()).digest()
+    number = int.from_bytes(digest, "big")
+    lead = (number % 9) + 1
+    body = number % (10**28)
+    return f"{lead}{body:028d}"
+
+
+def national_id_payload(index: int, source_id: str | None = None) -> dict:
+    """National ID or RID, never both. Even indexes get a 12-digit national id."""
+    if index % 2 == 0:
+        return {
+            "has_national_id": True,
+            "foundational_id": _twelve_digit_national_id(source_id, index),
+            "rid": None,
+            "rid_status": None,
+        }
+    return {
+        "has_national_id": False,
+        "foundational_id": None,
+        "rid": _sample_rid(index),
+        "rid_status": "PENDING",
+    }
 
 
 def farmer_extra(index: int) -> dict:
@@ -1138,7 +1184,6 @@ def farmer_extra(index: int) -> dict:
         "source_of_income": income,
         "source_of_income_other": "Seasonal work" if income == "SOI_OTHERS" else None,
         "language_spoken": ("ENGLISH", "HINDI", "FRENCH", "SPANISH")[index % 4],
-        "national_id_masked": "XXXXXX1234",
     }
 
 
@@ -1267,9 +1312,16 @@ def submit_farmer(
         raise RuntimeError(f"unknown household_registration_status: {status}")
 
     farmer = person or hh["head"]
+    # Identity lives only on the national-id section. Other sections must not
+    # write the 10-digit demography id back onto a farmer who already has an RID.
+    identity = national_id_payload(index, farmer.get("foundational_id"))
     extra = farmer_extra(index)
-    extra["national_id_masked"] = f"XXXX{(farmer.get('foundational_id') or '0000')[-4:]}"
+    if identity["has_national_id"]:
+        extra["national_id_masked"] = f"XXXXXXXX{identity['foundational_id'][-4:]}"
+    else:
+        extra["national_id_masked"] = None
     personal = person_fields(farmer, extra=extra)
+    personal.pop("foundational_id", None)
 
     # Status goes down first so later section saves can see it.
     saved = _save_farmer_section(
@@ -1325,6 +1377,13 @@ def submit_farmer(
         section_id=FARMER_PERSONAL_SECTION,
         section_register_id=FARMER_REGISTER_ID,
         records=[farmer_row],
+    )
+    _save_farmer_section(
+        client,
+        submission_id=submission_id,
+        section_id=FARMER_NATIONAL_ID_SECTION,
+        section_register_id=FARMER_REGISTER_ID,
+        records=[{**identity, "internal_record_id": farmer_id}],
     )
     _save_farmer_section(
         client,

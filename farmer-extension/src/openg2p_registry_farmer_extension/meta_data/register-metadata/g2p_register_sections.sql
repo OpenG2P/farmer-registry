@@ -458,6 +458,40 @@ VALUES
         'FALSE',
         'FALSE',
         'FALSE'
+    ),
+    (
+        'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
+        'farmer_national_id_section',
+        'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
+        'FALSE',
+        'fr_farmer_national_id',
+        'National ID and RID',
+        'FALSE',
+        0,
+        'FALSE',
+        10,
+        '{"panels": [{"panels": [{"widgets": [{"widget": "boolean", "widget-id": "has_national_id", "widget-type": "input", "widget-label": "has_national_id", "widget-required": true, "widget-data-path": "a1a4d25a-1cd4-4356-abac-985a0b3c6bcd.has_national_id", "widget-data-format": {"allowUnset": false, "booleanControlType": "radio", "booleanRepresentation": "yes-no"}, "widget-orientation": "horizontal"}], "panel-id": "panel_national_id_1", "panel-orientation": "vertical"}, {"widgets": [{"widget": "text", "widget-id": "national_id", "widget-type": "input", "widget-label": "national_id", "widget-readonly": false, "widget-required": true, "widget-data-path": "a1a4d25a-1cd4-4356-abac-985a0b3c6bcd.foundational_id", "widget-data-options": {"action": "show", "condition": {"field": "a1a4d25a-1cd4-4356-abac-985a0b3c6bcd.has_national_id", "value": true, "operator": "equals"}}, "widget-data-validation": {"pattern": "^[0-9]*$", "maxLength": 16, "minLength": 12, "patternMessage": "Only digits are allowed"}}], "panel-id": "panel_national_id_2", "panel-orientation": "vertical"}, {"widgets": [{"widget": "text", "widget-id": "rid", "widget-type": "input", "widget-label": "rid", "widget-readonly": false, "widget-required": true, "widget-data-path": "a1a4d25a-1cd4-4356-abac-985a0b3c6bcd.rid", "widget-data-options": {"action": "show", "condition": {"field": "a1a4d25a-1cd4-4356-abac-985a0b3c6bcd.has_national_id", "value": false, "operator": "equals"}}, "widget-data-validation": {"pattern": "^[0-9]*$", "maxLength": 29, "minLength": 29, "patternMessage": "Only digits are allowed"}}], "panel-id": "panel_national_id_3", "panel-orientation": "vertical"}], "panel-id": "panel_national_id_main", "panel-orientation": "horizontal"}], "section-id": "farmer_national_id", "section-title": "national_id", "section-editable": true}',
+        'FALSE',
+        'FALSE',
+        'FALSE',
+        'FALSE'
+    ),
+    (
+        '9055ab43-c85d-4833-bd00-ca657bb72644',
+        'household_farmer_national_id_section',
+        'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
+        'FALSE',
+        'hh_farmer_national_id',
+        'National ID and RID',
+        'FALSE',
+        0,
+        'FALSE',
+        10,
+        '{"panels": [{"panels": [{"widgets": [{"widget": "boolean", "widget-id": "has_national_id", "widget-type": "input", "widget-label": "has_national_id", "widget-required": true, "widget-data-path": "a1a4d25a-1cd4-4356-abac-985a0b3c6bcd.has_national_id", "widget-data-format": {"allowUnset": false, "booleanControlType": "radio", "booleanRepresentation": "yes-no"}, "widget-orientation": "horizontal"}], "panel-id": "panel_national_id_1", "panel-orientation": "vertical"}, {"widgets": [{"widget": "text", "widget-id": "national_id", "widget-type": "input", "widget-label": "national_id", "widget-readonly": false, "widget-required": true, "widget-data-path": "a1a4d25a-1cd4-4356-abac-985a0b3c6bcd.foundational_id", "widget-data-options": {"action": "show", "condition": {"field": "a1a4d25a-1cd4-4356-abac-985a0b3c6bcd.has_national_id", "value": true, "operator": "equals"}}, "widget-data-validation": {"pattern": "^[0-9]*$", "maxLength": 16, "minLength": 12, "patternMessage": "Only digits are allowed"}}], "panel-id": "panel_national_id_2", "panel-orientation": "vertical"}, {"widgets": [{"widget": "text", "widget-id": "rid", "widget-type": "input", "widget-label": "rid", "widget-readonly": false, "widget-required": true, "widget-data-path": "a1a4d25a-1cd4-4356-abac-985a0b3c6bcd.rid", "widget-data-options": {"action": "show", "condition": {"field": "a1a4d25a-1cd4-4356-abac-985a0b3c6bcd.has_national_id", "value": false, "operator": "equals"}}, "widget-data-validation": {"pattern": "^[0-9]*$", "maxLength": 29, "minLength": 29, "patternMessage": "Only digits are allowed"}}], "panel-id": "panel_national_id_3", "panel-orientation": "vertical"}], "panel-id": "panel_national_id_main", "panel-orientation": "horizontal"}], "section-id": "household_farmer_national_id", "section-title": "national_id", "section-editable": true}',
+        'FALSE',
+        'FALSE',
+        'FALSE',
+        'FALSE'
     ) ON CONFLICT ("section_id") DO
 UPDATE
 SET

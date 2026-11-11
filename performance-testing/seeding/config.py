@@ -48,7 +48,7 @@ SEARCH_ANCHOR_LENGTH = int(os.environ.get("SEED_ANCHOR_LENGTH", "4"))
 # production field list (see generators/*.py).
 FARMER_SEARCH_TEXT_FIELDS = [
     "functional_record_id", "first_name", "last_name", "middle_name",
-    "foundational_id", "birth_date", "address_line_1", "address_line_2",
+    "foundational_id", "rid", "birth_date", "address_line_1", "address_line_2",
 ]
 
 # id scheme prefixes, mirrored from

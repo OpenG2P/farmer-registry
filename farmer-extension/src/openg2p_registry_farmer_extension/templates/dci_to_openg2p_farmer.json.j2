@@ -3,6 +3,10 @@
 {% set farmer_demo = farmer.get("demographic_info", {}) %}
 {% set farmer_name = farmer_demo.get("name", {}) %}
 {% set farmer_identifier = farmer_demo.get("identifier", farmer.get("member_identifier", {})) %}
+{% set farmer_national_id = farmer_identifier.get('identifier_value', '') or '' %}
+{% set farmer_rid = farmer_demo.get('rid', '') or farmer.get('rid', '') or '' %}
+{% set farmer_has_national_id = farmer_national_id.isdigit() and 12 <= (farmer_national_id|length) <= 16 %}
+{% set farmer_has_rid = (not farmer_has_national_id) and farmer_rid.isdigit() and (farmer_rid|length) == 29 %}
 {% set family = d.get("family_details", {}) %}
 {% set family_head = family.get("group_head_info", {}) %}
 {% set family_head_demo = family_head.get("demographic_info", {}) %}
@@ -44,7 +48,10 @@
   "farmer_personal_info": [
     {
       "record_name": "{{ (farmer_name.get('first_name', '') ~ ' ' ~ farmer_name.get('last_name', '')).strip() }}",
-      "foundational_id": "{{ farmer_identifier.get('identifier_value', '') }}",
+      "foundational_id": "{{ farmer_national_id if not farmer_has_rid else '' }}",
+      {% if farmer_has_national_id %}"has_national_id": true,{% elif farmer_has_rid %}"has_national_id": false,
+      "rid": "{{ farmer_rid }}",
+      "rid_status": "PENDING",{% endif %}
       "first_name": "{{ farmer_name.get('first_name', '') }}",
       "middle_name": "{{ farmer_name.get('middle_name', '') }}",
       "last_name": "{{ farmer_name.get('last_name', '') }}",

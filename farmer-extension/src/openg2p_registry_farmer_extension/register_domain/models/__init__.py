@@ -24,4 +24,5 @@ from .enums import (
     LivestockSystemEnum,
     FarmerClusterRoleEnum,
     RelationshipToTheHeadEnum,
+    RidStatusEnum,
 )

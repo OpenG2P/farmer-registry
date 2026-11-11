@@ -37,6 +37,12 @@ VALUES
         50
     ),
     (
+        'tab_section_15',
+        'a1a4d25a-1cd4-4356-abac-72482721',
+        'farmer_national_id_section',
+        55
+    ),
+    (
         'tab_section_6',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_farmer_location_section',

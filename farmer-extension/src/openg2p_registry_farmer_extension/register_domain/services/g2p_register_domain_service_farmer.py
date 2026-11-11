@@ -1,13 +1,21 @@
 import logging
-from datetime import date
 
 from openg2p_registry_core.models import G2PRegisterChangeRequest
 from openg2p_registry_core.services import G2PRegisterDomainService
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 
 
-from .domain_validation_utils import as_bool, as_int, fallback_record_name, parse_date, validate_enum_values, validation_error
+from .domain_validation_utils import (
+    as_bool,
+    as_int,
+    fallback_record_name,
+    is_blank,
+    parse_date,
+    validate_enum_values,
+    validation_error,
+)
 from .utils.household_roster import (
     CHANGED_PERSON_KIND_FARMER,
     calculate_age,
@@ -26,6 +34,7 @@ def _enum_fields() -> dict:
     from ..models.enums import (
         EducationalLevelEnum,
         HouseholdRegistrationStatusEnum,
+        RidStatusEnum,
         SourceOfIncomeEnum,
     )
 
@@ -33,6 +42,7 @@ def _enum_fields() -> dict:
         "source_of_income": SourceOfIncomeEnum,
         "education_level": EducationalLevelEnum,
         "household_registration_status": HouseholdRegistrationStatusEnum,
+        "rid_status": RidStatusEnum,
     }
 
 
@@ -41,6 +51,8 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
         for record in records:
             validate_enum_values(record, _enum_fields())
             self._validate_birth_date_or_estimated_age(record)
+            if record.get("edit_action") != "DELETE":
+                self._apply_national_id_choice(record)
 
     async def validate_intake_parent_link(self, record: dict, link_internal_record_id: str | None, session: AsyncSession) -> None:
         submission_id = await self._submission_id_for_record(record, session)
@@ -197,6 +209,7 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
             "language_spoken",
             "source_of_income",
             "national_id_masked",
+            "rid",
             "latitude",
             "longitude",
             "altitude",
@@ -234,9 +247,53 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
 
         return " ".join(record_name).strip() or fallback_record_name(payload, "Farmer")
 
+    @staticmethod
+    def _apply_national_id_choice(record: dict) -> bool:
+        """Drop the identifier the yes/no answer hides. Returns True when the row changed."""
+        if "has_national_id" not in record:
+            return False
+        from ..models.enums import RidStatusEnum
+
+        changed = False
+        if as_bool(record.get("has_national_id")) is True:
+            if record.get("rid") is not None:
+                record["rid"] = None
+                changed = True
+            if record.get("rid_status") is not None:
+                record["rid_status"] = None
+                changed = True
+            return changed
+        if record.get("foundational_id") is not None:
+            record["foundational_id"] = None
+            changed = True
+        if not is_blank(record.get("rid")) and is_blank(record.get("rid_status")):
+            record["rid_status"] = RidStatusEnum.PENDING.value
+            changed = True
+        return changed
+
+    async def _clear_national_id_fields_before_approve(
+        self, change_request: G2PRegisterChangeRequest, session: AsyncSession
+    ) -> None:
+        from openg2p_registry_core.models import G2PRegisterChangeRequestPayload
+
+        payload_obj = await session.get(
+            G2PRegisterChangeRequestPayload, change_request.change_request_id
+        )
+        if not payload_obj or not payload_obj.change_payload:
+            return
+        cleared = False
+        for record in payload_obj.change_payload:
+            if record.get("edit_action") in {"DELETE", "NO_CHANGE"}:
+                continue
+            if self._apply_national_id_choice(record):
+                cleared = True
+        if cleared:
+            flag_modified(payload_obj, "change_payload")
+
     async def pre_approve(self, change_request: G2PRegisterChangeRequest, session: AsyncSession):
         from ..models.farmer import G2PRegisterFarmer
 
+        await self._clear_national_id_fields_before_approve(change_request, session)
         await recompute_households_for_change_request(
             session,
             change_request,

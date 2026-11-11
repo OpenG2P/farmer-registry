@@ -22,6 +22,13 @@ VALUES
         10
     ),
     (
+        '7c2e9a14-5b68-4f03-8d21-6a4e1b9c0f73',
+        'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
+        'farmer_farmer_tab',
+        'farmer_national_id_section',
+        15
+    ),
+    (
         'f81b17d9-35af-4d72-8ca7-3f9be1ca7c5b',
         'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
         'farmer_farmer_tab',
@@ -139,6 +146,13 @@ VALUES
         'household_farmer_tab',
         'household_farmer_personal_identification_section',
         10
+    ),
+    (
+        '9d4f1c28-7a30-4e56-b812-3c5d8e0a1b64',
+        '9055ab43-c85d-4833-bd00-ca657bb72644',
+        'household_farmer_tab',
+        'household_farmer_national_id_section',
+        15
     ),
     (
         '1870bfd6-b5f9-4193-a65f-2765c7ea672c',
