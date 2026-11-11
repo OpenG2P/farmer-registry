@@ -2,21 +2,16 @@ import logging
 
 from openg2p_fastapi_common.context import dbengine
 from openg2p_registry_core.services import G2PRegisterDomainService
+from openg2p_registry_core.models import G2PRegisterChangeRequest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from .domain_validation_utils import as_bool, as_int, fallback_record_name, is_blank, validation_error
 
+from .utils.household_roster import recompute_household_roster_for_household
+
 _logger = logging.getLogger("g2p-register-domain-service")
 
-# Fields the household intake / change request cannot be saved without. The UI
-# marks the same widgets required; this is the server-side guarantee.
-_REQUIRED_FIELDS = {
-    "size_of_group": "Size of Group",
-    "number_of_male_members": "Number of Male Members",
-    "number_of_female_members": "Number of Female Members",
-    "other_land_owner": "Other Land Owner",
-}
 
 
 _INFO_FIELDS = (
@@ -25,7 +20,7 @@ _INFO_FIELDS = (
     "number_of_female_members",
     "number_of_children",
     "number_of_elderly_members",
-    "other_land_owner",
+    # "other_land_owner",
 )
 
 
@@ -35,23 +30,10 @@ class G2PRegisterDomainServiceHousehold(G2PRegisterDomainService):
             # The household register has several sections (information,
             # location). Only a payload that carries information fields is
             # held to the information rules; a location-only change request
-            # must not be asked for Size of Group.
+            # must not be asked for Total Household Members.
             if not any(field in record for field in _INFO_FIELDS):
                 continue
-            self._validate_required(record)
-            self._validate_household_size(record)
-            await self._validate_members_against_size(record)
-
-    def _validate_required(self, record: dict) -> None:
-        missing = [
-            label
-            for field, label in _REQUIRED_FIELDS.items()
-            if is_blank(record.get(field))
-        ]
-        if missing:
-            validation_error(f"Required household fields missing: {', '.join(missing)}")
-        if as_bool(record.get("other_land_owner")) is None:
-            validation_error("other_land_owner must be Yes or No")
+           
 
     def _validate_household_size(self, record: dict) -> None:
         size_of_group = as_int(record.get("size_of_group"))
@@ -83,33 +65,6 @@ class G2PRegisterDomainServiceHousehold(G2PRegisterDomainService):
         if elderly is not None and (elderly < 0 or elderly > size_of_group):
             validation_error("number_of_elderly_members must be between 0 and size_of_group")
 
-    async def _validate_members_against_size(self, record: dict) -> None:
-        """Re-saving the household section after members were entered must not
-        leave size_of_group out of step with the members table. A brand-new
-        household has no internal_record_id and no members yet, so this only
-        bites on edits; the members section enforces the same rule from its side
-        (see G2PRegisterDomainServiceHouseholdMember)."""
-        household_id = record.get("internal_record_id")
-        if is_blank(household_id):
-            return
-        size_of_group = as_int(record.get("size_of_group"))
-        if size_of_group is None:
-            return
-
-        from ..models.household_member import G2PIntakeFormHouseholdMember
-
-        session_maker = async_sessionmaker(dbengine.get(), expire_on_commit=False)
-        async with session_maker() as session:
-            member_count = await session.scalar(
-                select(func.count()).select_from(G2PIntakeFormHouseholdMember).where(
-                    G2PIntakeFormHouseholdMember.link_internal_record_id == str(household_id)
-                )
-            )
-        if member_count and member_count != size_of_group:
-            validation_error(
-                f"size_of_group is {size_of_group} but {member_count} household member(s) "
-                "are recorded; update the members or the size so they match"
-            )
 
     async def validate_intake_parent_link(self, record: dict, link_internal_record_id: str | None, session: AsyncSession) -> None:
         submission_id = record.get("submission_id")
@@ -156,6 +111,19 @@ class G2PRegisterDomainServiceHousehold(G2PRegisterDomainService):
         ).scalar_one_or_none()
         if has_household is not None:
             await validate_household_submission(str(submission_id), session)
+
+    # Recompute after approval or ingestion
+    async def post_approve(self, change_request: G2PRegisterChangeRequest, session: AsyncSession):
+        if change_request.internal_record_id:
+            await recompute_household_roster_for_household(
+                session, change_request.internal_record_id
+            )
+
+    # Recompute after ingestion
+    async def post_ingest(self, register_id: str, register_row, session: AsyncSession):
+        await recompute_household_roster_for_household(
+            session, register_row.internal_record_id
+        )
 
     def construct_search_text(self, payload: dict, extra: list[str] = None) -> str:
         _logger.info("Constructing search text for household")

@@ -36,7 +36,7 @@ def generate() -> dict:
         "number_of_children": children,
         "number_of_female_members": female,
         "number_of_male_members": male,
-        "other_land_owner": random.random() < 0.15,
+        # "other_land_owner": random.random() < 0.15,
     })
 
     row["record_name"] = " ".join(

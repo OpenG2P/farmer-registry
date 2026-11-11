@@ -27,7 +27,7 @@ VALUES
     (
         'tab_section_3',
         'a1a4d25a-1cd4-4356-abac-72482721',
-        'household_household_household_member_section',
+        'household_household_non_farming_member_section',
         40
     ),
     (
@@ -37,34 +37,46 @@ VALUES
         50
     ),
     (
-        'tab_section_5',
+        'tab_section_15',
         'a1a4d25a-1cd4-4356-abac-72482721',
-        'farmer_farmer_socio_economic_and_health_section',
-        60
+        'farmer_national_id_section',
+        55
     ),
     (
         'tab_section_6',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_farmer_location_section',
+        60
+    ),
+    (
+        'tab_section_5',
+        'a1a4d25a-1cd4-4356-abac-72482721',
+        'farmer_farmer_socio_economic_and_health_section',
         70
+    ),
+    (
+        'tab_section_14',
+        'a1a4d25a-1cd4-4356-abac-72482721',
+        'farmer_disability_section',
+        80
     ),
     (
         'tab_section_7',
         'a1a4d25a-1cd4-4356-abac-72482721',
-        'farmer_farm_details_section',
-        80
+        'farmer_land_details_section',
+        90
     ),
     (
         'tab_section_8',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_crop_details_intake_section',
-        90
+        100
     ),
     (
         'tab_section_9',
         'a1a4d25a-1cd4-4356-abac-72482721',
         'farmer_farm_input_details_intake_section',
-        100
+        110
     ),
     (
         'tab_section_12',

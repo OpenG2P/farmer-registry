@@ -16,7 +16,7 @@ class G2PSchemaHousehold:
     number_of_elderly_members: Optional[int] = None
     number_of_female_members: Optional[int] = None
     number_of_male_members: Optional[int] = None
-    other_land_owner: Optional[bool] = None
+    # other_land_owner: Optional[bool] = None
 
 
 class G2PRegisterSchemaHousehold(G2PRegisterBaseSchema, G2PGeoSchema, G2PAddressLinesSchema, G2PSchemaHousehold):

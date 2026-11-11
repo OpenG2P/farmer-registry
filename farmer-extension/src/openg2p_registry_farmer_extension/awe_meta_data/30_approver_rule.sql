@@ -15,9 +15,7 @@ FROM (VALUES
     ('566c79dd-db66-40e0-8ea2-f58a7bca88f8', 'registry.change_request.household', 1, 'user', '{"user_id": "alex.carter"}', 'approver', FALSE),
     ('df2f2bb3-1eea-4ad9-a60d-afe065a1aeac', 'registry.change_request.household', 2, 'user', '{"user_id": "nina.patel"}', 'approver', FALSE),
     ('65861cd4-0833-4f0c-939f-49a32f176a50', 'registry.intake_form.farmer', 1, 'user', '{"user_id": "alex.carter"}', 'approver', FALSE),
-    ('eb97d0c0-f11e-4dbf-893c-1a0e14219e94', 'registry.intake_form.farmer', 2, 'user', '{"user_id": "nina.patel"}', 'approver', FALSE),
-    ('c75ad1c2-8a76-44aa-bd25-afdf7cc9be26', 'registry.intake_form.household', 1, 'user', '{"user_id": "alex.carter"}', 'approver', FALSE),
-    ('f05ee25b-b8aa-4fc7-9e2f-f58e767ae96f', 'registry.intake_form.household', 2, 'user', '{"user_id": "nina.patel"}', 'approver', FALSE)
+    ('eb97d0c0-f11e-4dbf-893c-1a0e14219e94', 'registry.intake_form.farmer', 2, 'user', '{"user_id": "nina.patel"}', 'approver', FALSE)
 ) AS v(id, policy_key, stage_order, rule_type, rule_value, kind, required)
 INNER JOIN approval_policy p
     ON p.policy_key = v.policy_key

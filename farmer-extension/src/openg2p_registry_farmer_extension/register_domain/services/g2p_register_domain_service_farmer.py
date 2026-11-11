@@ -1,15 +1,21 @@
 import logging
-from datetime import date
 
 from openg2p_registry_core.models import G2PRegisterChangeRequest
-from openg2p_registry_core.models.enum import ChangeActionEnum
 from openg2p_registry_core.services import G2PRegisterDomainService
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
 
-from .domain_validation_utils import as_bool, as_int, fallback_record_name, parse_date, validate_enum_values, validation_error
+from .domain_validation_utils import (
+    as_bool,
+    as_int,
+    fallback_record_name,
+    is_blank,
+    parse_date,
+    validate_enum_values,
+    validation_error,
+)
 from .utils.household_roster import (
     CHANGED_PERSON_KIND_FARMER,
     calculate_age,
@@ -20,36 +26,33 @@ from .utils.household_roster import (
 _logger = logging.getLogger("g2p-register-domain-service")
 
 
+_AGE_FIELDS = ("birth_date", "estimated_age")
 
 def _enum_fields() -> dict:
     # Imported lazily: ..models imports these services at module level, so a
     # top-level import here would be circular whenever services load first.
     from ..models.enums import (
-        DisabilitySeverityEnum,
-        DisabilityTypeEnum,
         EducationalLevelEnum,
         HouseholdRegistrationStatusEnum,
+        RidStatusEnum,
         SourceOfIncomeEnum,
     )
 
     return {
-        "disability_type": DisabilityTypeEnum,
-        "disability_severity": DisabilitySeverityEnum,
         "source_of_income": SourceOfIncomeEnum,
         "education_level": EducationalLevelEnum,
         "household_registration_status": HouseholdRegistrationStatusEnum,
+        "rid_status": RidStatusEnum,
     }
 
 
 class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
     async def validate_domain_attributes(self, records: list[dict]):
         for record in records:
-            # Drop details before the enum check so a hidden type/severity is
-            # removed rather than rejected when the person is not disabled.
-            self._clear_disability_details_when_not_disabled(record)
             validate_enum_values(record, _enum_fields())
-            self._validate_birth_date(record)
-            self._validate_estimated_age(record)
+            self._validate_birth_date_or_estimated_age(record)
+            if record.get("edit_action") != "DELETE":
+                self._apply_national_id_choice(record)
 
     async def validate_intake_parent_link(self, record: dict, link_internal_record_id: str | None, session: AsyncSession) -> None:
         submission_id = await self._submission_id_for_record(record, session)
@@ -87,6 +90,7 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
             return
 
         for farmer in farmers:
+            self._require_birth_date_or_estimated_age(farmer.birth_date, farmer.estimated_age)
             status = str(farmer.household_registration_status or "").strip() or None
             link_id = str(farmer.link_internal_record_id or "").strip() or None
             if status is None:
@@ -171,31 +175,21 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
         ).scalar_one_or_none()
         return found is not None
 
-    @staticmethod
-    def _clear_disability_details_when_not_disabled(record: dict) -> bool:
-        if "disabled" not in record:
-            return False
-        if as_bool(record.get("disabled")) is True:
-            return False
-        record["disability_type"] = None
-        record["disability_severity"] = None
-        return True
 
-    def _validate_birth_date(self, record: dict) -> None:
-        birth_date = parse_date(record.get("birth_date"))
-        if birth_date is not None and birth_date > date.today():
-            validation_error("birth_date must not be in the future")
-
-    def _validate_estimated_age(self, record: dict) -> None:
-        birth_date = parse_date(record.get("birth_date"))
-        estimated_age = as_int(record.get("estimated_age"))
-        if birth_date is None or estimated_age is None:
+    def _validate_birth_date_or_estimated_age(self, record: dict) -> None:
+        # Farmer sections that do not collect DOB/age send neither key, and an
+        # UPDATE change request only carries the keys it changes.
+        present = [field for field in _AGE_FIELDS if field in record]
+        if not present:
             return
-        computed_age = calculate_age(birth_date)
-        if computed_age is not None and abs(estimated_age - computed_age) > 1:
-            validation_error(
-                "estimated_age must be consistent with birth_date within one year"
-            )
+        if record.get("edit_action") == "UPDATE" and len(present) < len(_AGE_FIELDS):
+            return
+        self._require_birth_date_or_estimated_age(record.get("birth_date"), record.get("estimated_age"))
+
+    @staticmethod
+    def _require_birth_date_or_estimated_age(birth_date, estimated_age) -> None:
+        if parse_date(birth_date) is None and as_int(estimated_age) is None:
+            validation_error("Either birth_date or estimated_age must be entered")
 
     def construct_search_text(self, payload: dict, extra: list[str] = None) -> str:
         _logger.info("Constructing search text for farmer")
@@ -215,7 +209,7 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
             "language_spoken",
             "source_of_income",
             "national_id_masked",
-            "disability_type",
+            "rid",
             "latitude",
             "longitude",
             "altitude",
@@ -253,33 +247,100 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
 
         return " ".join(record_name).strip() or fallback_record_name(payload, "Farmer")
 
-    async def pre_approve(self, change_request: G2PRegisterChangeRequest, session: AsyncSession):
-        from openg2p_registry_core.models import G2PRegisterChangeRequestPayload
+    @staticmethod
+    def _apply_national_id_choice(record: dict) -> bool:
+        """Drop the identifier the yes/no answer hides. Returns True when the row changed."""
+        if "has_national_id" not in record:
+            return False
+        from ..models.enums import RidStatusEnum
 
-        from ..models.farmer import G2PRegisterFarmer
+        changed = False
+        if as_bool(record.get("has_national_id")) is True:
+            if record.get("rid") is not None:
+                record["rid"] = None
+                changed = True
+            if record.get("rid_status") is not None:
+                record["rid_status"] = None
+                changed = True
+            return changed
+        if record.get("foundational_id") is not None:
+            record["foundational_id"] = None
+            changed = True
+        if not is_blank(record.get("rid")) and is_blank(record.get("rid_status")):
+            record["rid_status"] = RidStatusEnum.PENDING.value
+            changed = True
+        return changed
+
+    async def _clear_national_id_fields_before_approve(
+        self, change_request: G2PRegisterChangeRequest, session: AsyncSession
+    ) -> None:
+        from openg2p_registry_core.models import G2PRegisterChangeRequestPayload
 
         payload_obj = await session.get(
             G2PRegisterChangeRequestPayload, change_request.change_request_id
         )
-        if payload_obj and payload_obj.change_payload:
-            cleared = False
-            for record in payload_obj.change_payload:
-                if record.get("edit_action") in {
-                    ChangeActionEnum.DELETE.value,
-                    ChangeActionEnum.NO_CHANGE.value,
-                }:
-                    continue
-                if self._clear_disability_details_when_not_disabled(record):
-                    cleared = True
-            if cleared:
-                flag_modified(payload_obj, "change_payload")
+        if not payload_obj or not payload_obj.change_payload:
+            return
+        cleared = False
+        for record in payload_obj.change_payload:
+            if record.get("edit_action") in {"DELETE", "NO_CHANGE"}:
+                continue
+            if self._apply_national_id_choice(record):
+                cleared = True
+        if cleared:
+            flag_modified(payload_obj, "change_payload")
 
+    async def pre_approve(self, change_request: G2PRegisterChangeRequest, session: AsyncSession):
+        from ..models.farmer import G2PRegisterFarmer
+
+        await self._clear_national_id_fields_before_approve(change_request, session)
         await recompute_households_for_change_request(
             session,
             change_request,
             model=G2PRegisterFarmer,
             changed_person_kind=CHANGED_PERSON_KIND_FARMER,
         )
+
+    async def post_approve(self, change_request: G2PRegisterChangeRequest, session: AsyncSession):
+        await self._remove_disabilities_when_not_disabled(change_request, session)
+
+    async def _remove_disabilities_when_not_disabled(
+        self, change_request: G2PRegisterChangeRequest, session: AsyncSession
+    ) -> None:
+        from openg2p_registry_core.models import G2PRegisterChangeRequestPayload
+
+        from ..models.farmer_disability import G2PRegisterFarmerDisability
+
+        payload = await session.get(G2PRegisterChangeRequestPayload, change_request.change_request_id)
+        farmer_ids: set[str] = set()
+        for record in (payload.change_payload if payload else None) or []:
+            if record.get("edit_action") in {"DELETE", "NO_CHANGE"}:
+                continue
+            # A payload without the key comes from a section that does not
+            # collect it, so the stored answer is unknown here.
+            if "disabled" not in record or as_bool(record.get("disabled")) is True:
+                continue
+            # A farmer-register section targets the subject itself; a
+            # household-register section carries the farmer's id on the row.
+            if change_request.section_register_id == change_request.register_id:
+                farmer_id = change_request.internal_record_id
+            else:
+                farmer_id = record.get("internal_record_id")
+            if farmer_id:
+                farmer_ids.add(str(farmer_id))
+        if not farmer_ids:
+            return
+
+        rows = (
+            await session.execute(
+                select(G2PRegisterFarmerDisability).where(
+                    G2PRegisterFarmerDisability.link_internal_record_id.in_(farmer_ids)
+                )
+            )
+        ).scalars().all()
+        for row in rows:
+            await session.delete(row)
+        await session.flush()
 
     async def post_ingest(self, register_id: str, register_row, session: AsyncSession):
         await recompute_household_for_ingested_row(session, register_row)

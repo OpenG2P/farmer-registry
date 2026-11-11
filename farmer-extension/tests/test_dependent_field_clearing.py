@@ -1,8 +1,8 @@
 import unittest
 
 from openg2p_registry_core.errors import G2PRegistryException
-from openg2p_registry_farmer_extension.register_domain.services.g2p_register_domain_service_farmer import (
-    G2PRegisterDomainServiceFarmer,
+from openg2p_registry_farmer_extension.register_domain.services.g2p_register_domain_service_farmer_disability import (
+    G2PRegisterDomainServiceFarmerDisability,
 )
 from openg2p_registry_farmer_extension.register_domain.services.g2p_register_domain_service_household_member import (
     G2PRegisterDomainServiceHouseholdMember,
@@ -13,35 +13,30 @@ from openg2p_registry_farmer_extension.register_domain.services.g2p_register_dom
 
 
 class DependentFieldClearingTests(unittest.IsolatedAsyncioTestCase):
-    async def test_disability_details_removed_when_not_yes(self):
-        service = G2PRegisterDomainServiceFarmer()
-        for disabled in (False, "no", "NO", None):
-            record = {
-                "disabled": disabled,
-                "disability_type": "MOBILITY",
-                "disability_severity": "SOME_DIFFICULTY",
-            }
-            await service.validate_domain_attributes([record])
-            self.assertIsNone(record["disability_type"])
-            self.assertIsNone(record["disability_severity"])
+    async def test_duplicate_disability_domain_rejected(self):
+        service = G2PRegisterDomainServiceFarmerDisability()
+        records = [
+            {"disability_domains": "MOBILITY", "disability_severity": "SOME_DIFFICULTY"},
+            {"disability_domains": "MOBILITY", "disability_severity": "A_LOT_OF_DIFFICULTY"},
+        ]
+        with self.assertRaises(G2PRegistryException):
+            await service.validate_domain_attributes(records)
 
-    async def test_disability_details_kept_when_yes(self):
-        service = G2PRegisterDomainServiceFarmer()
-        record = {
-            "disabled": True,
-            "disability_type": "MOBILITY",
-            "disability_severity": "SOME_DIFFICULTY",
-        }
-        await service.validate_domain_attributes([record])
-        self.assertEqual(record["disability_type"], "MOBILITY")
-        self.assertEqual(record["disability_severity"], "SOME_DIFFICULTY")
+    async def test_different_disability_domains_allowed(self):
+        service = G2PRegisterDomainServiceFarmerDisability()
+        records = [
+            {"disability_domains": "MOBILITY", "disability_severity": "SOME_DIFFICULTY"},
+            {"disability_domains": "VISION", "disability_severity": "NO_DIFFICULTY"},
+            {"edit_action": "DELETE", "disability_domains": "VISION", "disability_severity": "SOME_DIFFICULTY"},
+        ]
+        await service.validate_domain_attributes(records)
 
-    async def test_disability_details_untouched_when_flag_absent(self):
-        service = G2PRegisterDomainServiceFarmer()
-        record = {"disability_type": "MOBILITY", "disability_severity": "SOME_DIFFICULTY", "first_name": "Ada"}
-        await service.validate_domain_attributes([record])
-        self.assertEqual(record["disability_type"], "MOBILITY")
-        self.assertEqual(record["disability_severity"], "SOME_DIFFICULTY")
+    async def test_invalid_disability_domain_rejected(self):
+        service = G2PRegisterDomainServiceFarmerDisability()
+        with self.assertRaises(G2PRegistryException):
+            await service.validate_domain_attributes(
+                [{"disability_domains": "NOT_A_DOMAIN", "disability_severity": "SOME_DIFFICULTY"}]
+            )
 
     async def test_cooperative_names_removed_independently(self):
         service = G2PRegisterDomainServiceMembershipDetails()

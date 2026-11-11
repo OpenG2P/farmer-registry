@@ -12,7 +12,6 @@ from .enums import RelationshipToTheHeadEnum
 class G2PHouseholdMember:
 
     is_disabled: Mapped[bool] = mapped_column(Boolean, nullable=True)
-    is_head: Mapped[bool] = mapped_column(Boolean, nullable=True)
     relationship_to_the_head: Mapped[RelationshipToTheHeadEnum] = mapped_column(String, nullable=True)
 
 

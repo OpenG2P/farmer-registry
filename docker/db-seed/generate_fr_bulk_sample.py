@@ -4,9 +4,9 @@
 Why this lives in farmer-registry
 ---------------------------------
 It writes farmer's own extension tables and draws every enum-backed value from
-farmer's LandOwnershipTypeEnum, CurrentLandUseEnum, FarmingTypeEnum,
-LandSizeUnitEnum, CropEndUseEnum, LivestockSystemEnum, SourceOfIncomeEnum and
-FarmerClusterRoleEnum. It cannot seed any other registry, and it has to move in
+farmer's LandOwnershipTypeEnum, SoilFertilityEnum, CurrentLandUseEnum,
+FarmingTypeEnum, LandSizeUnitEnum, CropEndUseEnum, LivestockSystemEnum,
+SourceOfIncomeEnum and FarmerClusterRoleEnum. It cannot seed any other registry, and it has to move in
 lockstep with those enums. NSR's equivalent is a different script for the same
 reason.
 
@@ -90,7 +90,7 @@ LIVESTOCK_TYPE = [("Cattle", 0.34), ("Goat", 0.24), ("Sheep", 0.20),
 WATER_SOURCE = [("Rainfed", 0.66), ("River", 0.14), ("Borehole", 0.10),
                 ("Irrigation Canal", 0.07), ("Pond", 0.03)]
 SEASON = [("Meher", 0.62), ("Belg", 0.30), ("Irrigated", 0.08)]
-SOIL = [("high", 0.24), ("medium", 0.51), ("low", 0.25)]
+SOIL = [("HIGH", 0.24), ("MEDIUM", 0.51), ("LOW", 0.25)]
 
 FIRST_M = ["Abebe", "Bekele", "Chala", "Dawit", "Eyob", "Fikru", "Getachew", "Hailu",
            "Kebede", "Lemma", "Mulugeta", "Negash", "Tadesse", "Worku", "Yohannes"]
@@ -493,7 +493,7 @@ def main():
             mid = rid(rng)
             in_cluster = rng.random() < 0.55
             member.add([mid, fid, _fid("MB"), "ACTIVE", created.isoformat(sep=" "), SEEDER, created.isoformat(sep=" "), SEEDER,
-                        rng.random() < 0.62, "Woreda Farmers Cooperative",
+                        rng.random() < 0.62, "Ward Farmers Cooperative",
                         rng.random() < 0.21, "Regional Cooperative Union",
                         in_cluster, weighted(rng, CLUSTER_ROLE) if in_cluster else None])
         if register_id and rng.random() < 0.28:

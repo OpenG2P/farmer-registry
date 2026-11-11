@@ -7,11 +7,11 @@ from openg2p_registry_core.schemas import (
 )
 from .address import G2PAddressLinesSchema
 from ..models.enums import (
-    DisabilityTypeEnum,
-    DisabilitySeverityEnum,
     EducationalLevelEnum,
     HouseholdRegistrationStatusEnum,
+    RidStatusEnum,
     SourceOfIncomeEnum,
+    RelationshipToTheHeadEnum,
 )
 
 class G2PSchemaFarmer:
@@ -19,13 +19,15 @@ class G2PSchemaFarmer:
     estimated_age: Optional[int] = None
     has_personal_phone: Optional[bool] = None
     disabled: Optional[bool] = None
-    disability_type: Optional[DisabilityTypeEnum] = None
-    disability_severity: Optional[DisabilitySeverityEnum] = None
     source_of_income: Optional[SourceOfIncomeEnum] = None
     source_of_income_other: Optional[str] = None
     language_spoken: Optional[str] = None
     education_level: Optional[EducationalLevelEnum] = None
     national_id_masked: Optional[str] = None
+    has_national_id: Optional[bool] = None
+    rid: Optional[str] = None
+    rid_status: Optional[RidStatusEnum] = None
+    is_head: Optional[bool] = None
 
 class G2PRegisterSchemaFarmer(G2PRegisterBaseSchema, G2PPersonSchema, G2PGeoSchema, G2PAddressLinesSchema, G2PSchemaFarmer):
     """
@@ -41,6 +43,10 @@ class G2PRegisterHistorySchemaFarmer(G2PRegisterHistorySchema, G2PPersonHistoryS
     Inherits fields from G2PRegisterHistorySchema, G2PPersonHistorySchema, and G2PGeoHistorySchema.
     Attributes specific to the Farmer domain are not included in the history schema as they are not expected to change over time.
     """
+
+    has_national_id: Optional[bool] = None
+    rid: Optional[str] = None
+    rid_status: Optional[RidStatusEnum] = None
 
 class G2PIntakeFormSchemaFarmer(G2PIntakeFormSchemaBase, G2PRegisterBaseSchema, G2PPersonSchema, G2PGeoSchema, G2PAddressLinesSchema, G2PSchemaFarmer):
     """

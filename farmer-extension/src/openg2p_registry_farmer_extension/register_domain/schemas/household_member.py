@@ -12,7 +12,6 @@ from ..models.enums import RelationshipToTheHeadEnum
 class G2PSchemaHouseholdMember:
 
     is_disabled: Optional[bool] = None
-    is_head: Optional[bool] = None
     relationship_to_the_head: Optional[RelationshipToTheHeadEnum] = None
 
 
