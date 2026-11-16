@@ -77,7 +77,6 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
             return
         from ..models.farmer import G2PIntakeFormFarmer
         from ..models.household import G2PRegisterHousehold
-        from .household_submission_validation import validate_household_submission
 
         farmers = (
             await session.execute(
@@ -118,7 +117,6 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
                     validation_error(
                         "Household details must be entered in this form when household_registration_status is NOT_REGISTERED"
                     )
-                await validate_household_submission(str(submission_id), session)
             elif status == "NOT_REQUIRED":
                 if link_id:
                     validation_error(

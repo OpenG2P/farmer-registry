@@ -18,11 +18,6 @@ from openg2p_registry_core.services.g2p_intake_form_link_service import (
 from openg2p_registry_core.services.intake_form_data_service import G2PIntakeFormDataService
 from sqlalchemy import select
 
-from .household_submission_validation import (
-    HOUSEHOLD_REGISTER_MNEMONIC,
-    validate_household_submission,
-)
-
 from .utils.household_roster import recompute_intake_household_roster
 
 _logger = logging.getLogger("g2p-register-domain-service")
@@ -217,10 +212,6 @@ class G2PFarmerIntakeFormDataService(G2PIntakeFormDataService):
 
     
     async def finalize_submission_with_session(self, submission_id: str, session, *args, **kwargs):
-        submission = await self._get_submission_or_error(submission_id, session)
-        register_definition = await self._get_register_definition(submission.register_id, session)
-        if getattr(register_definition, "register_mnemonic", None) == HOUSEHOLD_REGISTER_MNEMONIC:
-            await validate_household_submission(submission.submission_id, session)
         await self._assign_household_head_for_new_household(submission_id, session)
         await recompute_intake_household_roster(session, submission_id)
         return await super().finalize_submission_with_session(submission_id, session, *args, **kwargs)
