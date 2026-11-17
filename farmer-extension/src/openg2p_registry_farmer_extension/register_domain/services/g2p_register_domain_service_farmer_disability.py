@@ -1,7 +1,12 @@
 import logging
 
 from openg2p_registry_core.services import G2PRegisterDomainService
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from .disability_status_sync import (
+    parent_ids_for_disability_change,
+    sync_register_disabled_from_live_rows,
+)
 from .domain_validation_utils import fallback_record_name, validate_enum_values, validation_error
 
 _logger = logging.getLogger("g2p-register-farmerdisability-service")
@@ -17,6 +22,25 @@ def _enum_fields() -> dict:
 
 
 class G2PRegisterDomainServiceFarmerDisability(G2PRegisterDomainService):
+    async def post_ingest(self, register_id: str, register_row, session: AsyncSession):
+        link_internal_record_id = getattr(register_row, "link_internal_record_id", None)
+        if not link_internal_record_id:
+            return
+        await sync_register_disabled_from_live_rows(session, str(link_internal_record_id))
+
+    async def post_approve(self, change_request, session: AsyncSession):
+        from openg2p_registry_core.models import G2PRegisterChangeRequestPayload
+
+        payload_obj = await session.get(
+            G2PRegisterChangeRequestPayload, change_request.change_request_id
+        )
+        records = payload_obj.change_payload if payload_obj else []
+        parent_ids = parent_ids_for_disability_change(
+            change_request.internal_record_id, records
+        )
+        for parent_id in parent_ids:
+            await sync_register_disabled_from_live_rows(session, parent_id)
+
     async def validate_domain_attributes(self, records: list[dict]):
         for record in records:
             if record.get("edit_action") == "DELETE":

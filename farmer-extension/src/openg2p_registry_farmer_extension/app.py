@@ -28,6 +28,7 @@ from .register_domain.models import (
 from .register_domain.services import (
     G2PFarmerIntakeFormDataService,
     G2PRegisterDomainServiceFarmer,
+    G2PRegisterDomainServiceFarmerDisability,
     G2PRegisterDomainServiceHousehold,
     G2PRegisterDomainServiceHouseholdMember,
 )
@@ -56,6 +57,7 @@ class Initializer(BaseInitializer):
         _install_component_override(G2PFarmerIntakeFormDataService(), G2PIntakeFormDataService)
 
         G2PRegisterDomainServiceFarmer()
+        G2PRegisterDomainServiceFarmerDisability()
         G2PRegisterDomainServiceHousehold()
         G2PRegisterDomainServiceHouseholdMember()
 

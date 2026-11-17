@@ -386,7 +386,7 @@ VALUES
             "authenticate": "Authenticate",
             "authenticationToken": "Authentication token (PSUT):",
             "expiryDate": "Expiry date:",
-            "foundationalId": "Foundational ID:",
+            "foundationalId": "National ID:",
             "iframeTitle": "Authentication",
             "lastAuthenticatedOn": "Last authenticated on:",
             "lastAuthenticationStatus": "Last authentication status:",
@@ -1008,7 +1008,20 @@ VALUES
         "websub_topic": "Websub Topic",
         "width": "Width",
         "you": "You",
-        "lookup_search_label":"Search name or email"
+        "lookup_search_label":"Search name or email",
+        "theme_attr_primary_color_1_label": "Primary Color 1",
+        "theme_attr_primary_color_2_label": "Primary Color 2",
+        "theme_attr_secondary_color_1_label": "Secondary Color 1",
+        "theme_attr_secondary_color_2_label": "Secondary Color 2",
+        "theme_attr_secondary_color_3_label": "Secondary Color 3",
+        "theme_attr_neutral_color_1_label": "Neutral Color 1",
+        "theme_attr_neutral_color_2_label": "Neutral Color 2",
+        "theme_attr_dashboard_image_label": "Dashboard Image",
+        "ingest_semantic_patterns": "Semantic Patterns",
+        "ingest_manage_subscription": "Manage Subscription",
+        "awe_policy_scope_register": "Register",
+        "awe_policy_scope_intake_form": "Intake Form",
+        "awe_policy_scope_section": "Section"
         }',
 
 -- Domain Translation
@@ -1113,7 +1126,7 @@ VALUES
           "dd_mm_yyyy": "DD/MM/YYYY",
           "disability_severity": "Disability Severity",
           "disability_type": "Disability Type",
-          "disabled": "Disabled",
+          "disabled": "Disability Status",
           "district": "District",
           "education_level": "Education Level",
           "end_use": "End Use",
@@ -2513,13 +2526,14 @@ VALUES
           "FAIL_FAILED": "Failed",
           "FAIL_REJECTED": "Rejected",
           "FAIL_PROCESSED_NO_DATA": "Processed With No Data",
-          "foundational_id": "Foundational ID",
+          "foundational_id": "National ID",
           "Not set": "Not set",
           "Do you have National ID?": "Do you have National ID?",
           "National ID": "National ID",
           "Number of Child Members": "Number of Child Members",
           "RID": "RID",
-          "hh_non_farming_members": "Household Non-Farming Members"
+          "hh_non_farming_members": "Household Non-Farming Members",
+          "farmer_health_tab": "Health Details"
         }'
     ) ON CONFLICT ("language_id") DO
 UPDATE
