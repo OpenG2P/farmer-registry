@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Optional
 
 from openg2p_registry_core.schemas import (
@@ -13,7 +14,7 @@ class G2PSchemaLand:
 
     land_ownership_type: Optional[LandOwnershipTypeEnum] = None
     certificate_storage_id: Optional[str] = None
-    land_size: Optional[float] = None
+    land_size: Optional[Decimal] = None
     unit: Optional[LandSizeUnitEnum] = None
     soil_fertility: Optional[SoilFertilityEnum] = None
     current_land_use: Optional[CurrentLandUseEnum] = None

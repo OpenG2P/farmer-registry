@@ -50,18 +50,11 @@ VALUES
         40
     ),
     (
-        '2ah56w89-3323-45ae-r301-234567890123',
-        'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
-        'farmer_socio_economic_and_health_tab',
-        'farmer_farmer_socio_economic_and_health_section',
-        1
-    ),
-    (
         'b7e4c2a1-9d30-4f58-a6c1-0e8d5f3a71b2',
         'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
-        'farmer_socio_economic_and_health_tab',
+        'farmer_health_tab',
         'farmer_disability_section',
-        10
+        1
     ),
     (
         'a163b218-32d6-49a7-99b6-05d4aeb31f0d',
@@ -165,7 +158,7 @@ VALUES
         'a92a052c-d439-4809-9f30-df1465f667e4',
         '9055ab43-c85d-4833-bd00-ca657bb72644',
         'household_farmer_tab',
-        'household_farmer_socio_economic_and_health_section',
+        'household_farmer_health_section',
         30
     ),
     (

@@ -51,7 +51,6 @@ FARMER_STATUS_SECTION = "farmer_household_registration_status_section"
 FARMER_LOOKUP_SECTION = "farmer_household_lookup_section"
 FARMER_PERSONAL_SECTION = "farmer_farmer_personal_identification_section"
 FARMER_NATIONAL_ID_SECTION = "farmer_national_id_section"
-FARMER_SOCIO_SECTION = "farmer_farmer_socio_economic_and_health_section"
 FARMER_DISABILITY_SECTION = "farmer_disability_section"
 FARMER_LOCATION_SECTION = "farmer_farmer_location_section"
 FARMER_LAND_SECTION = "farmer_land_details_section"
@@ -1171,20 +1170,19 @@ def national_id_payload(index: int, source_id: str | None = None) -> dict:
 
 
 def farmer_extra(index: int) -> dict:
-    disabled = index % 4 == 0
+    """Source of income now lives on the personal section."""
     income = (
         "SOI_CROP_PRODUCTION",
         "SOI_LIVESTOCK_PRODUCTION",
         "SOI_GOVERNMENT_NGO_SUPPORT",
         "SOI_OTHERS",
     )[index % 4]
-    return {
-        "has_personal_phone": True,
-        "disabled": disabled,
-        "source_of_income": income,
-        "source_of_income_other": "Seasonal work" if income == "SOI_OTHERS" else None,
-        "language_spoken": ("ENGLISH", "HINDI", "FRENCH", "SPANISH")[index % 4],
-    }
+    return {"source_of_income": income}
+
+
+def disability_row_count(index: int) -> int:
+    """Every fourth farmer gets two disability rows. Status is derived from the table."""
+    return 2 if index % 4 == 0 else 0
 
 
 def land_payload(hh: dict, farmer_id: str, index: int) -> dict:
@@ -1385,14 +1383,7 @@ def submit_farmer(
         section_register_id=FARMER_REGISTER_ID,
         records=[{**identity, "internal_record_id": farmer_id}],
     )
-    _save_farmer_section(
-        client,
-        submission_id=submission_id,
-        section_id=FARMER_SOCIO_SECTION,
-        section_register_id=FARMER_REGISTER_ID,
-        records=[farmer_row],
-    )
-    if extra.get("disabled"):
+    if disability_row_count(index):
         _save_farmer_section(
             client,
             submission_id=submission_id,
@@ -1537,7 +1528,7 @@ def _seed_registered_farmer(
         fr_id,
         approve_timeout,
         ingest_timeout,
-        disability_count=2 if (index + 1000) % 4 == 0 else 0,
+        disability_count=disability_row_count(index + 1000),
     )
     log(f"  farmer ingested id={fr_id} household id={hh_id}")
 
@@ -1577,7 +1568,7 @@ def _seed_not_required_farmer(
         fr_id,
         approve_timeout,
         ingest_timeout,
-        disability_count=2 if (index + 2000) % 4 == 0 else 0,
+        disability_count=disability_row_count(index + 2000),
     )
     log(f"  farmer ingested id={fr_id}")
 
@@ -1682,7 +1673,7 @@ def main() -> None:
                 fr_id,
                 approve_timeout,
                 ingest_timeout,
-                disability_count=2 if index % 4 == 0 else 0,
+                disability_count=disability_row_count(index),
             )
             log(f"  farmer ingested id={fr_id}")
             seeded_statuses.add(status)

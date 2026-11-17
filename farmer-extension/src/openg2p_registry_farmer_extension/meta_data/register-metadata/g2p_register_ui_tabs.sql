@@ -36,9 +36,9 @@ VALUES
         'TRUE'
     ),
     (
-        'farmer_socio_economic_and_health_tab',
+        'farmer_health_tab',
         'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
-        'farmer_socio_economic_and_health_tab',
+        'farmer_health_tab',
         20,
         'TRUE'
     ),
