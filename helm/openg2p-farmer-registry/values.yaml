@@ -26,7 +26,7 @@ registry:
   staffUi:
     image:
       repository: openg2p/openg2p-farmer-registry-staff-ui
-      tag: 0.0.0-develop
+      tag: 1.2.2
 
   # Farmer-built images (each FROM the matching openg2p-registry base image).
   # CI rewrites these tags to the freshly built farmer version (lockstep); the
@@ -34,19 +34,19 @@ registry:
   staffApi:
     image:
       repository: openg2p/openg2p-farmer-registry-staff-api
-      tag: 0.0.0-develop
+      tag: 1.2.2
   partnerApi:
     image:
       repository: openg2p/openg2p-farmer-registry-partner-api
-      tag: 0.0.0-develop
+      tag: 1.2.2
   celeryWorker:
     image:
       repository: openg2p/openg2p-farmer-registry-celery
-      tag: 0.0.0-develop
+      tag: 1.2.2
   celeryBeat:
     image:
       repository: openg2p/openg2p-farmer-registry-celery
-      tag: 0.0.0-develop
+      tag: 1.2.2
     envVars:
       # TEMPORARY OVERRIDE of the platform chart default, pending the upstream fix.
       # -Q celery is required, not cosmetic. This pod runs the scheduler AND the worker
@@ -63,7 +63,7 @@ registry:
   dbSeed:
     image:
       repository: openg2p/openg2p-farmer-registry-db-seed
-      tag: 0.0.0-develop
+      tag: 1.2.2
     # The subchart defaults these OFF (minimal reference registry). Farmer ships
     # demo records/geo/images, so turn the db-seed loaders on. NB these are
     # `dbSeed.*`, not `global.*` — the db-seed Job reads .Values.dbSeed.load*
@@ -119,7 +119,7 @@ registry:
     enabled: true
     image:
       repository: openg2p/openg2p-farmer-registry-sanity-tests
-      tag: 0.0.0-develop
+      tag: 1.2.2
     regType: Farmer
     regRecordType: 'spdci-extensions-dci:Farmer'
     # farmer functional_record_id of the injected sanity record (see
