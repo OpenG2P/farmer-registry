@@ -36,7 +36,7 @@ pip install locust requests
 ## Configure (env vars)
 
 ```bash
-export STAFF_API_BASE=https://staff-farmer-registry.perftest.openg2p.org
+export STAFF_API_BASE=https://farmer-registry-staff-api.perftest.openg2p.org
 export KEYCLOAK_BASE=https://keycloak.perftest.openg2p.org
 export KEYCLOAK_REALM=staff
 export OIDC_CLIENT_ID=farmer-registry-staff-portal

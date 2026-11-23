@@ -5,8 +5,8 @@ import sys
 # Target API base URLs. For in-cluster runs use the ClusterIP service DNS, e.g.
 #   http://<release>-staff-portal-api  /  http://<release>-partner-api
 # For end-to-end runs use the public hostnames behind Istio/RP.
-STAFF_API_BASE = os.environ.get("STAFF_API_BASE", "https://staff-farmer-registry.perftest.openg2p.org")
-PARTNER_API_BASE = os.environ.get("PARTNER_API_BASE", "https://partner-farmer-registry.perftest.openg2p.org")
+STAFF_API_BASE = os.environ.get("STAFF_API_BASE", "https://farmer-registry-staff-api.perftest.openg2p.org")
+PARTNER_API_BASE = os.environ.get("PARTNER_API_BASE", "https://farmer-registry-partner-api.perftest.openg2p.org")
 
 # Keycloak / OIDC
 KEYCLOAK_BASE = os.environ.get("KEYCLOAK_BASE", "https://keycloak.perftest.openg2p.org")
