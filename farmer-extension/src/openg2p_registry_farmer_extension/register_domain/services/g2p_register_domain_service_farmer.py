@@ -11,7 +11,6 @@ from .domain_validation_utils import (
     as_bool,
     as_int,
     fallback_record_name,
-    is_blank,
     parse_date,
     validate_enum_values,
     validation_error,
@@ -34,7 +33,6 @@ def _enum_fields() -> dict:
     from ..models.enums import (
         EducationalLevelEnum,
         HouseholdRegistrationStatusEnum,
-        RidStatusEnum,
         SourceOfIncomeEnum,
     )
 
@@ -42,7 +40,6 @@ def _enum_fields() -> dict:
         "source_of_income": SourceOfIncomeEnum,
         "education_level": EducationalLevelEnum,
         "household_registration_status": HouseholdRegistrationStatusEnum,
-        "rid_status": RidStatusEnum,
     }
 
 
@@ -207,7 +204,6 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
             "language_spoken",
             "source_of_income",
             "national_id_masked",
-            "rid",
             "latitude",
             "longitude",
             "altitude",
@@ -247,27 +243,15 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
 
     @staticmethod
     def _apply_national_id_choice(record: dict) -> bool:
-        """Drop the identifier the yes/no answer hides. Returns True when the row changed."""
+        """Clear foundational_id when has_national_id is no. Returns True when changed."""
         if "has_national_id" not in record:
             return False
-        from ..models.enums import RidStatusEnum
-
-        changed = False
         if as_bool(record.get("has_national_id")) is True:
-            if record.get("rid") is not None:
-                record["rid"] = None
-                changed = True
-            if record.get("rid_status") is not None:
-                record["rid_status"] = None
-                changed = True
-            return changed
+            return False
         if record.get("foundational_id") is not None:
             record["foundational_id"] = None
-            changed = True
-        if not is_blank(record.get("rid")) and is_blank(record.get("rid_status")):
-            record["rid_status"] = RidStatusEnum.PENDING.value
-            changed = True
-        return changed
+            return True
+        return False
 
     async def _clear_national_id_fields_before_approve(
         self, change_request: G2PRegisterChangeRequest, session: AsyncSession

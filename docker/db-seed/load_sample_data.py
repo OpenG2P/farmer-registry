@@ -1114,10 +1114,8 @@ def member_payload(member: dict) -> dict:
         "is_disabled": False,
         "relationship_to_the_head": relationship,
     }
-    # National ID and RID belong on the farmer only.
+    # National ID belongs on the farmer only.
     payload.pop("foundational_id", None)
-    payload.pop("rid", None)
-    payload.pop("rid_status", None)
     payload.pop("has_national_id", None)
     return payload
 
@@ -1143,29 +1141,16 @@ def _twelve_digit_national_id(source: str | None, index: int) -> str:
     return f"{(number % 900_000_000_000) + 100_000_000_000:012d}"
 
 
-def _sample_rid(index: int) -> str:
-    """29-digit RID. Filled across the width so it is not a zero-padded counter."""
-    digest = hashlib.sha256(f"farmer-sample-rid-{index}".encode()).digest()
-    number = int.from_bytes(digest, "big")
-    lead = (number % 9) + 1
-    body = number % (10**28)
-    return f"{lead}{body:028d}"
-
-
 def national_id_payload(index: int, source_id: str | None = None) -> dict:
-    """National ID or RID, never both. Even indexes get a 12-digit national id."""
+    """National ID section payload. Even indexes get a 12-digit national id."""
     if index % 2 == 0:
         return {
             "has_national_id": True,
             "foundational_id": _twelve_digit_national_id(source_id, index),
-            "rid": None,
-            "rid_status": None,
         }
     return {
         "has_national_id": False,
         "foundational_id": None,
-        "rid": _sample_rid(index),
-        "rid_status": "PENDING",
     }
 
 
@@ -1311,7 +1296,7 @@ def submit_farmer(
 
     farmer = person or hh["head"]
     # Identity lives only on the national-id section. Other sections must not
-    # write the 10-digit demography id back onto a farmer who already has an RID.
+    # write the demography id back onto the farmer personal payload.
     identity = national_id_payload(index, farmer.get("foundational_id"))
     extra = farmer_extra(index)
     if identity["has_national_id"]:

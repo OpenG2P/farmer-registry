@@ -92,8 +92,6 @@ def farmer_body() -> dict:
             "estimated_age": None,
             "foundational_id": foundational_id,
             "has_national_id": True,
-            "rid": None,
-            "rid_status": None,
             "education_level": "BASIC",
             "has_personal_phone": True,
             "disabled": False,
