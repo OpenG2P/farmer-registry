@@ -2,13 +2,20 @@
 """Load sample data into the Farmer Registry Postgres.
 
 Reads:
-- /openg2p-data/demography/{individuals,households}.csv (shared core + geo)
-- /seed/seed-data/*.json (farmer sub-tables, shipped in the db-seed image)
+- Master Data's sample people and households, and its geography (through its
+  API, at install). These are the country's: commons-services loads them with
+  Load Sample People (masterData.geoSeed.load.samples).
+- /seed/seed-data/*.json (farmer sub-tables, shipped in the db-seed image),
+  attached to the people Master Data returns.
+
+There is no fallback. Without Master Data, its geography or its sample people
+the loader stops with the reason: sample data that is not the country's (other
+people, places Master Data does not know) is worse than none.
 
 Mapping:
-- every individual -> g2p_register_farmers (reuses the individual UUID)
-- every individual with a household_id -> g2p_register_household_members
-- households.csv -> g2p_register_households (farmer column set)
+- every sample person -> g2p_register_farmers
+- every person with a household -> g2p_register_household_members
+- every sample household -> g2p_register_households (farmer column set)
 - lands/livestocks/farm_inputs/membership_details -> respective tables
 - every farmer gets 1-3 declared main crops (Master Data CROP_COMMODITY codes),
   derived from their sequence number -- see main_crops_for()
@@ -16,7 +23,6 @@ Mapping:
 - completion-score computation queue seeded for Farmer + Household registers
 """
 
-import csv
 import json
 import os
 import sys
@@ -33,8 +39,7 @@ def _import_mds_client():
 
     In the db-seed image it sits next to this script. Run from a checkout, it is
     taken from a sibling registry-platform checkout when there is one. None when
-    neither is present — only an error if MDS is actually configured (see
-    mds_client_from_env).
+    neither is present, which mds_client_from_env reports as an error.
     """
     try:
         import mds_client  # noqa: PLC0415
@@ -74,95 +79,41 @@ def to_json(value):
 SEEDER = "seeder"
 CREATED_AT = "2026-04-01 00:00:00"
 
-OPENG2P_DATA_DIR = Path(os.environ.get("OPENG2P_DATA_DIR", "/openg2p-data"))
-DEMO_DIR = OPENG2P_DATA_DIR / "demography"
 FARMER_DATA_DIR = Path(os.environ.get("FARMER_SEED_DATA_DIR", "/seed/seed-data"))
 
-JSON_COLUMNS_INDIVIDUAL = {"phone_numbers"}
-JSON_COLUMNS_HOUSEHOLD = set()
-
-# Geo is carried in the seed files as plain names (country..village); the id the
-# registry stores has to be derived from them.
-#
-# It is RESOLVED against master-data rather than computed, because only
-# master-data knows what its own ids are. Seeded from a country pack — now the
-# default — a unit's id is its P-code, so master-data holds "XK01010101" while
-# the slug-path this used to compute, "kamuntu/jasiri/baraka/umani/bimaka",
-# matches nothing. Nothing errors either: the names in geo_code_hierarchy_json
-# still read correctly, so reports that unpack geo positionally look right, and
-# the only symptom is that these records never appear on a map.
-#
-# Resolution walks the name chain through parent links rather than matching
-# names globally, since a village name repeats under different wards.
-#
-# The slug-path remains as the fallback for when master-data is unreachable or
-# holds no geography. So this never does worse than before; whichever path was
-# taken is reported at the end.
-#
-# Master Data is read through its API (mds_client: /catalogue with a Keycloak
-# client-credentials token as the registry's own client), never its database.
-GEO_LEVELS = ["country", "region", "district", "ward", "village"]
+class SampleDataError(Exception):
+    """Sample data cannot be loaded as the country's: db-seed stops with the reason."""
 
 
-def _slug(name: str) -> str:
-    return name.strip().lower().replace(" ", "_")
-
-
-# (parent unit id or "", lowercased name) -> unit id, read once from
-# master-data. Empty when master-data is unreachable or unseeded, which is what
-# puts every lookup on the slug-path fallback.
-_GEO_INDEX: dict = {}
-_GEO_STATS = {"resolved": 0, "fallback": 0, "unresolved_examples": []}
+NO_SAMPLES_HINT = (
+    "install commons-services with Load Sample People "
+    "(masterData.geoSeed.load.samples), or turn Load Sample Data off"
+)
 
 
 def mds_client_from_env():
-    """An MdsClient from MDS_* env, or None when MDS_API_URL is not set.
-
-    Configured but the client module missing is a broken image (a registry
-    platform older than mds_client.py), reported clearly; this loader is still
-    best effort, so it falls back rather than stopping.
-    """
+    """An MdsClient from MDS_* env. Sample people and places come only from Master Data."""
     if not os.environ.get("MDS_API_URL", "").strip():
-        print("[load-sample-data] MDS_API_URL not set — geo ids fall back to slug-paths, "
-              "people to the demography CSV.")
-        return None
+        raise SampleDataError("MDS_API_URL is not set: the sample farmers are Master Data's "
+                              "sample people, so Master Data is needed")
     if _mds is None:
-        print("[load-sample-data] ERROR: MDS_API_URL is set but mds_client.py is not "
-              "importable (it ships in the registry-platform db-seed image at "
-              "/seed/mds_client.py). Master Data is not read; falling back.",
-              file=sys.stderr)
-        return None
+        raise SampleDataError("mds_client.py is not importable (it ships in the registry-platform "
+                              "db-seed image at /seed/mds_client.py)")
     return _mds.MdsClient.from_env()
 
 
 def read_geography(client) -> tuple:
-    """(levels, units) of the published geography, from master-data's API.
-
-    Best effort on purpose. No client, an unreachable MDS or no geography all
-    mean the same thing here — no ids to resolve against — and none of them
-    should stop sample data loading, which worked without any of this before.
-    """
-    if client is None:
-        return [], []
+    """(levels, units) of the published geography, from master-data's API."""
     try:
         levels = client.geo_levels()
         units = client.all_geo_units() if levels else []
-    except Exception as exc:  # noqa: BLE001 — best effort, as before
-        print(f"[load-sample-data] could not read master-data geography ({exc}) — "
-              "geo ids fall back to slug-paths.")
-        return [], []
+    except Exception as exc:  # noqa: BLE001 — reported as the reason
+        raise SampleDataError(f"Master Data's geography could not be read ({exc})") from None
+    if not units:
+        raise SampleDataError("Master Data has no published geography: load the country pack "
+                              "in commons-services")
+    print(f"[load-sample-data] master-data geo: {len(units)} units.")
     return levels, units
-
-
-def load_geo_index(units: list) -> dict:
-    """Index master-data's units by (parent id, name) so a name chain resolves."""
-    index = {
-        (u.get("parent_unit_id") or "", (u.get("name") or "").strip().lower()): u["unit_id"]
-        for u in units
-    }
-    if index:
-        print(f"[load-sample-data] master-data geo: {len(index)} units available for resolution.")
-    return index
 
 
 def load_geo_chain_by_id(levels: list, units: list) -> dict:
@@ -188,6 +139,8 @@ _GEO_BY_ID: dict = {}
 
 def hierarchy_from_pcode(pcode: str) -> dict:
     """Walk a unit's ancestry in master-data, root first."""
+    if pcode not in _GEO_BY_ID:
+        raise SampleDataError(f"area {pcode!r} is not in Master Data's geography")
     chain = []
     seen, cur = set(), pcode
     while cur and cur in _GEO_BY_ID and cur not in seen:
@@ -200,64 +153,29 @@ def hierarchy_from_pcode(pcode: str) -> dict:
     return {"hierarchy": chain}
 
 
-def resolve_geo_chain(rec: dict) -> list:
-    """Resolve country..village names to master-data's own ids, or [] if any
-    link is missing. Partial resolution is deliberately not returned: half a
-    chain produces a hierarchy whose upper levels join and whose lower ones do
-    not, which is harder to notice than none of it joining."""
-    if not _GEO_INDEX:
-        return []
-    ids, parent = [], ""
-    for level in GEO_LEVELS:
-        name = str(rec.get(level) or "").strip().lower()
-        found = _GEO_INDEX.get((parent, name))
-        if not found:
-            return []
-        ids.append(found)
-        parent = found
-    return ids
-
-
-def geo_ids(rec: dict) -> list:
-    """One id per level — master-data's where they resolve, slug-paths where not."""
-    resolved = resolve_geo_chain(rec)
-    if resolved:
-        _GEO_STATS["resolved"] += 1
-        return resolved
-    _GEO_STATS["fallback"] += 1
-    if len(_GEO_STATS["unresolved_examples"]) < 3:
-        _GEO_STATS["unresolved_examples"].append(
-            "/".join(str(rec.get(level) or "") for level in GEO_LEVELS)
-        )
-    return ["/".join(_slug(rec[GEO_LEVELS[i]]) for i in range(depth + 1))
-            for depth in range(len(GEO_LEVELS))]
+def _pcode(rec: dict) -> str:
+    """The Master Data unit the record sits in: a sample person's own, or (for
+    land) its owner's, set by number_sample_lands."""
+    pcode = rec.get("geo_pcode")
+    if not pcode:
+        raise SampleDataError(
+            f"record {rec.get('internal_record_id') or rec.get('functional_record_id')!r} "
+            "has no Master Data area")
+    return pcode
 
 
 def geo_lowest_id(rec: dict) -> str:
-    """The id of the record's lowest geo unit."""
-    # A record sourced from master-data already knows exactly where it is; only
-    # the CSV needs its names resolved.
-    if rec.get("geo_pcode"):
-        return rec["geo_pcode"]
-    return geo_ids(rec)[-1]
+    """The id of the record's lowest geo unit, checked against Master Data."""
+    pcode = _pcode(rec)
+    if pcode not in _GEO_BY_ID:
+        raise SampleDataError(f"area {pcode!r} is not in Master Data's geography")
+    return pcode
 
 
 def geo_hierarchy_dict(rec: dict) -> dict:
-    """Build geo_code_hierarchy_json from the name columns, matching the shape
-    registry-core's G2PGeoHierarchyService produces at runtime."""
-    if rec.get("geo_pcode"):
-        return hierarchy_from_pcode(rec["geo_pcode"])
-    ids = geo_ids(rec)
-    return {
-        "hierarchy": [
-            {
-                "level_mnemonic": level,
-                "level_value_mnemonic": rec[level],
-                "level_value_id": ids[depth],
-            }
-            for depth, level in enumerate(GEO_LEVELS)
-        ]
-    }
+    """geo_code_hierarchy_json, in the shape registry-core's
+    G2PGeoHierarchyService produces at runtime."""
+    return hierarchy_from_pcode(_pcode(rec))
 
 
 def geo_hierarchy(rec: dict):
@@ -280,25 +198,21 @@ def _address_line(parts) -> str:
 def load_people_from_mds(client) -> tuple:
     """The country's sample people, from master-data.
 
-    Returns (individuals, households) in the same dict shape the CSV produces,
-    so every insert below is unchanged — or ([], []) when master-data carries no
-    samples, which is its default.
+    Returns (individuals, households) in the dict shape the inserts below take.
+    Stops with the reason when Master Data has none (its default).
 
     These people belong to the country, not to this registry: master-data is
     where the country is declared, so its samples are the ones that match the
     geography and the code lists. What a registry adds on top is its own fields.
     """
-    if client is None:
-        return [], []
     try:
         inds = client.sample_individuals()
         hhs = client.sample_households() if inds else []
-    except Exception as exc:  # noqa: BLE001 — best effort, as before
-        print(f"[load-sample-data] could not read master-data samples ({exc}).")
-        return [], []
+    except Exception as exc:  # noqa: BLE001 — reported as the reason
+        raise SampleDataError(f"Master Data's sample people could not be read ({exc})") from None
 
     if not inds:
-        return [], []
+        raise SampleDataError(f"Master Data has no sample people: {NO_SAMPLES_HINT}")
 
     head_of = {h["household_id"]: h.get("head_individual_id") for h in hhs}
     by_hh = {}
@@ -384,9 +298,8 @@ def load_people_from_mds(client) -> tuple:
 # ── Attaching the registry's own sample rows to the loaded people ───────────
 #
 # The sub-table fixtures (land, livestock, housing, programmes, vulnerability) link
-# to the id space of the demography CSV — i0001, h001. Once people come from
-# master-data those ids are ETH-IND-0001 and ETH-HH-001, and every one of those
-# rows links to a record that does not exist. Nothing errors: the insert has no
+# to their own ids — i0001, h001. Master Data's people are ETH-IND-0001 and
+# ETH-HH-001, so every one of those rows would link to a record that does not exist. Nothing errors: the insert has no
 # foreign key to violate, so they land as orphans and the registry comes up with
 # farmers who own no land and households with no housing data.
 #
@@ -523,21 +436,6 @@ def report_link_remap() -> None:
         print(f"[load-sample-data]   {note}")
 
 
-def report_geo_resolution() -> None:
-    resolved, fallback = _GEO_STATS["resolved"], _GEO_STATS["fallback"]
-    if not (resolved or fallback):
-        return
-    print(f"[load-sample-data] geo ids: {resolved} resolved against master-data, "
-          f"{fallback} fell back to slug-paths.")
-    if fallback:
-        # Never silent: a fallback id joins to nothing when master-data was
-        # seeded from a pack, and the only symptom is an empty map.
-        print("[load-sample-data]   unresolved name chains, e.g. "
-              + "; ".join(_GEO_STATS["unresolved_examples"]))
-        print("[load-sample-data]   those records will not join to a boundary. "
-              "Check the sample data's place names match the loaded country pack.")
-
-
 def env(name: str) -> str:
     value = os.environ.get(name, "")
     if not value:
@@ -551,25 +449,6 @@ def load_json(path: Path):
         print(f"[load-sample-data] Missing file: {path}", file=sys.stderr)
         sys.exit(1)
     return json.loads(path.read_text())
-
-
-def _read_csv_rows(path: Path, json_columns: set) -> list:
-    if not path.is_file():
-        print(f"[load-sample-data] Missing file: {path}", file=sys.stderr)
-        sys.exit(1)
-    with path.open(newline="", encoding="utf-8") as f:
-        out = []
-        for row in csv.DictReader(f):
-            parsed = {}
-            for k, v in row.items():
-                if v == "":
-                    parsed[k] = None
-                elif k in json_columns:
-                    parsed[k] = json.loads(v)
-                else:
-                    parsed[k] = v
-            out.append(parsed)
-        return out
 
 
 # SOURCE_OF_INCOME is read live from Master Data, whose codes are SOI_-prefixed
@@ -1035,27 +914,18 @@ def enqueue_completion_scores(cur, register_id: str, record_ids: list) -> None:
 
 def main() -> None:
     print("[load-sample-data] Starting…")
-    print(f"[load-sample-data] OPENG2P_DATA_DIR = {OPENG2P_DATA_DIR}")
     print(f"[load-sample-data] FARMER_SEED_DATA_DIR = {FARMER_DATA_DIR}")
 
     # Before anything derives a geo id. Read once; every record resolves
     # against this rather than reopening master-data per row.
-    global _GEO_INDEX, _GEO_BY_ID
+    global _GEO_BY_ID
     mds = mds_client_from_env()
     levels, units = read_geography(mds)
-    _GEO_INDEX = load_geo_index(units)
     _GEO_BY_ID = load_geo_chain_by_id(levels, units)
 
-    # People come from master-data when it carries the country's samples. The
-    # CSV is the fallback, and it can only ever describe the one country whose
-    # five level names its columns happen to be — which is why it is no longer
-    # the primary source.
+    # The people are Master Data's sample people: the country's, on its
+    # geography and code lists.
     individuals, households = load_people_from_mds(mds)
-    if not individuals:
-        print("[load-sample-data] no samples in master-data — falling back to the "
-              "demography CSV. Enable geoSeed.load.samples for a pack-coherent set.")
-        individuals = _read_csv_rows(DEMO_DIR / "individuals.csv", JSON_COLUMNS_INDIVIDUAL)
-        households = _read_csv_rows(DEMO_DIR / "households.csv", JSON_COLUMNS_HOUSEHOLD)
     ind_by_id = {i["internal_record_id"]: i for i in individuals}
 
     farmer_extras = {f["internal_record_id"]: f for f in load_json(FARMER_DATA_DIR / "farmers.json")}
@@ -1092,8 +962,7 @@ def main() -> None:
             rows = remap_links(table, fixtures[fname], remap)
             if table == "g2p_register_lands":
                 rows = number_sample_lands(rows, ind_by_id)
-                # lands.json carries geo as plain names; derive the DB id + JSON
-                # (a sample person's land is already in their woreda).
+                # A sample person's land is in their area (number_sample_lands).
                 for r in rows:
                     r["geo_lowest_level_value_id"] = geo_lowest_id(r)
                     r["geo_code_hierarchy_json"] = geo_hierarchy_dict(r)
@@ -1112,7 +981,6 @@ def main() -> None:
 
         conn.commit()
         report_link_remap()
-        report_geo_resolution()
         print("[load-sample-data] Done.")
     except Exception as exc:
         conn.rollback()
@@ -1124,4 +992,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SampleDataError as exc:
+        print(f"[load-sample-data] ERROR: {exc}", file=sys.stderr)
+        sys.exit(1)
