@@ -43,8 +43,6 @@ def generate(household_row: dict, anchors: list[str]) -> dict:
         "language_spoken": random.choice(LANGUAGES_SPOKEN),
         "national_id_masked": fake.numerify("***###" + "####"),
         "has_national_id": True,
-        "rid": None,
-        "rid_status": None,
     })
 
     row["record_name"] = " ".join(

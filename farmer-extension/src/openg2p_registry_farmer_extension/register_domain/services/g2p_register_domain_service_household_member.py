@@ -9,7 +9,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
-from .domain_validation_utils import as_bool, as_int, fallback_record_name, is_blank, parse_date, validation_error
+from .domain_validation_utils import (
+    as_bool,
+    as_int,
+    duplicate_key,
+    fallback_record_name,
+    is_blank,
+    parse_date,
+    validation_error,
+)
 from .utils.household_roster import (
     CHANGED_PERSON_KIND_MEMBER,
     recompute_household_for_ingested_row,
@@ -40,6 +48,24 @@ class G2PRegisterDomainServiceHouseholdMember(G2PRegisterDomainService):
     async def validate_domain_attributes(self, records: list[dict]):
         # for record in records:
         _pending_member_batch.set(list(records))
+        self._validate_no_duplicate_household_members(records)
+
+    def _validate_no_duplicate_household_members(self, records: list[dict]) -> None:
+        seen: set[tuple] = set()
+        # Matches HouseholdMember deduplicate_schema identity fields.
+        fields = ("first_name", "last_name", "birth_date")
+        for record in records:
+            if str(record.get("edit_action") or "").upper() == "DELETE":
+                continue
+            normalized = duplicate_key(record, fields)
+            if normalized is None:
+                continue
+            if normalized in seen:
+                validation_error(
+                    "Duplicate household non-farming member entries are not allowed "
+                    "for the same first name, last name, and birth date"
+                )
+            seen.add(normalized)
 
     async def validate_intake_parent_link(
         self,

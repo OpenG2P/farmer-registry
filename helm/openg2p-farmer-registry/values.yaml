@@ -68,7 +68,7 @@ registry:
     # demo records/geo/images, so turn the db-seed loaders on. NB these are
     # `dbSeed.*`, not `global.*` — the db-seed Job reads .Values.dbSeed.load*
     # and there is no global fallback, so setting them under global is inert.
-    loadGeoData: true
+    loadGeoData: false
     loadSampleData: true
     loadImages: true
     loadTemplates: true

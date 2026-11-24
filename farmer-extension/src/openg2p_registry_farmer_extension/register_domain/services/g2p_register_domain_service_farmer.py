@@ -11,7 +11,6 @@ from .domain_validation_utils import (
     as_bool,
     as_int,
     fallback_record_name,
-    is_blank,
     parse_date,
     validate_enum_values,
     validation_error,
@@ -26,15 +25,12 @@ from .utils.household_roster import (
 _logger = logging.getLogger("g2p-register-domain-service")
 
 
-_AGE_FIELDS = ("birth_date", "estimated_age")
-
 def _enum_fields() -> dict:
     # Imported lazily: ..models imports these services at module level, so a
     # top-level import here would be circular whenever services load first.
     from ..models.enums import (
         EducationalLevelEnum,
         HouseholdRegistrationStatusEnum,
-        RidStatusEnum,
         SourceOfIncomeEnum,
     )
 
@@ -42,7 +38,6 @@ def _enum_fields() -> dict:
         "source_of_income": SourceOfIncomeEnum,
         "education_level": EducationalLevelEnum,
         "household_registration_status": HouseholdRegistrationStatusEnum,
-        "rid_status": RidStatusEnum,
     }
 
 
@@ -50,7 +45,6 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
     async def validate_domain_attributes(self, records: list[dict]):
         for record in records:
             validate_enum_values(record, _enum_fields())
-            self._validate_birth_date_or_estimated_age(record)
             if record.get("edit_action") != "DELETE":
                 self._apply_national_id_choice(record)
 
@@ -174,21 +168,6 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
         return found is not None
 
 
-    def _validate_birth_date_or_estimated_age(self, record: dict) -> None:
-        # Farmer sections that do not collect DOB/age send neither key, and an
-        # UPDATE change request only carries the keys it changes.
-        present = [field for field in _AGE_FIELDS if field in record]
-        if not present:
-            return
-        if record.get("edit_action") == "UPDATE" and len(present) < len(_AGE_FIELDS):
-            return
-        self._require_birth_date_or_estimated_age(record.get("birth_date"), record.get("estimated_age"))
-
-    @staticmethod
-    def _require_birth_date_or_estimated_age(birth_date, estimated_age) -> None:
-        if parse_date(birth_date) is None and as_int(estimated_age) is None:
-            validation_error("Either birth_date or estimated_age must be entered")
-
     def construct_search_text(self, payload: dict, extra: list[str] = None) -> str:
         _logger.info("Constructing search text for farmer")
 
@@ -207,7 +186,6 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
             "language_spoken",
             "source_of_income",
             "national_id_masked",
-            "rid",
             "latitude",
             "longitude",
             "altitude",
@@ -247,27 +225,15 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
 
     @staticmethod
     def _apply_national_id_choice(record: dict) -> bool:
-        """Drop the identifier the yes/no answer hides. Returns True when the row changed."""
+        """Clear foundational_id when has_national_id is no. Returns True when changed."""
         if "has_national_id" not in record:
             return False
-        from ..models.enums import RidStatusEnum
-
-        changed = False
         if as_bool(record.get("has_national_id")) is True:
-            if record.get("rid") is not None:
-                record["rid"] = None
-                changed = True
-            if record.get("rid_status") is not None:
-                record["rid_status"] = None
-                changed = True
-            return changed
+            return False
         if record.get("foundational_id") is not None:
             record["foundational_id"] = None
-            changed = True
-        if not is_blank(record.get("rid")) and is_blank(record.get("rid_status")):
-            record["rid_status"] = RidStatusEnum.PENDING.value
-            changed = True
-        return changed
+            return True
+        return False
 
     async def _clear_national_id_fields_before_approve(
         self, change_request: G2PRegisterChangeRequest, session: AsyncSession

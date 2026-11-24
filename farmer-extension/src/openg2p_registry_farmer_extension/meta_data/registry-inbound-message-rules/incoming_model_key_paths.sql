@@ -16,5 +16,15 @@ INSERT INTO "public"."incoming_model_key_paths" (
     '$.body[''header'',''message'']',
     'FALSE',
     ''
+),
+(
+    'f0a1b2c3-d4e5-4f67-8901-23456789abce',
+    'f0a1b2c3-d4e5-4f67-8901-23456789abcd',
+    '$.body.header.message_id',
+    '$.body.header.sender_id',
+    '$.body.header.signature',
+    '$.body.message',
+    'FALSE',
+    '$.body.message.payload'
 )
 ON CONFLICT ("key_path_id") DO UPDATE SET "data_model_id" = EXCLUDED."data_model_id", "key_path_for_message_id" = EXCLUDED."key_path_for_message_id", "key_path_for_sender" = EXCLUDED."key_path_for_sender", "key_path_for_signature" = EXCLUDED."key_path_for_signature", "key_path_for_signature_payload" = EXCLUDED."key_path_for_signature_payload", "is_list" = EXCLUDED."is_list", "key_path_for_list_elements" = EXCLUDED."key_path_for_list_elements";
