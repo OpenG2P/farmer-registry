@@ -25,8 +25,6 @@ from .utils.household_roster import (
 _logger = logging.getLogger("g2p-register-domain-service")
 
 
-_AGE_FIELDS = ("birth_date", "estimated_age")
-
 def _enum_fields() -> dict:
     # Imported lazily: ..models imports these services at module level, so a
     # top-level import here would be circular whenever services load first.
@@ -47,7 +45,6 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
     async def validate_domain_attributes(self, records: list[dict]):
         for record in records:
             validate_enum_values(record, _enum_fields())
-            self._validate_birth_date_or_estimated_age(record)
             if record.get("edit_action") != "DELETE":
                 self._apply_national_id_choice(record)
 
@@ -170,21 +167,6 @@ class G2PRegisterDomainServiceFarmer(G2PRegisterDomainService):
         ).scalar_one_or_none()
         return found is not None
 
-
-    def _validate_birth_date_or_estimated_age(self, record: dict) -> None:
-        # Farmer sections that do not collect DOB/age send neither key, and an
-        # UPDATE change request only carries the keys it changes.
-        present = [field for field in _AGE_FIELDS if field in record]
-        if not present:
-            return
-        if record.get("edit_action") == "UPDATE" and len(present) < len(_AGE_FIELDS):
-            return
-        self._require_birth_date_or_estimated_age(record.get("birth_date"), record.get("estimated_age"))
-
-    @staticmethod
-    def _require_birth_date_or_estimated_age(birth_date, estimated_age) -> None:
-        if parse_date(birth_date) is None and as_int(estimated_age) is None:
-            validation_error("Either birth_date or estimated_age must be entered")
 
     def construct_search_text(self, payload: dict, extra: list[str] = None) -> str:
         _logger.info("Constructing search text for farmer")
