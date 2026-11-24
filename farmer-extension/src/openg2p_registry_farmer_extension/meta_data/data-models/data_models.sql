@@ -1,5 +1,5 @@
 INSERT INTO "public"."data_models" ("data_model_id","data_model_mnemonic","pattern_for_data_model","response_template_document_id","is_active") VALUES
-('c331ba96-ac35-4014-9d13-4ef327f6b79b','DCI','*','1f0953d4-f0fb-4336-a126-4d0519a74ffc','TRUE')
+('c331ba96-ac35-4014-9d13-4ef327f6b79b','DCI','*','1f0953d4-f0fb-4336-a126-4d0519a74ffc','TRUE'),
+-- ODK Central farmer_registration_form (connector uppercases ?data_model=)
+('f0a1b2c3-d4e5-4f67-8901-23456789abcd','OPENG2P_ODK_TO_REGISTRY','$.body.header.message_id=>^.+$','1f0953d4-f0fb-4336-a126-4d0519a74ffc','TRUE')
 ON CONFLICT ("data_model_id") DO UPDATE SET "data_model_mnemonic" = EXCLUDED."data_model_mnemonic", "pattern_for_data_model" = EXCLUDED."pattern_for_data_model", "response_template_document_id" = EXCLUDED."response_template_document_id", "is_active" = EXCLUDED."is_active";
-
--- DCI response template: dci_commons_response.json.j2

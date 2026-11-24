@@ -1,0 +1,402 @@
+{# ODK farmer_registration_form (V1.1) -> farmer_ingestion_intake sections.
+   `expanded` is the business payload (ODK submission with resolve_nav_links).
+   Top-level keys MUST match g2p_register_sections.section_mnemonic values on
+   the farmer intake form. Single-record Farmer sections are 1-element lists;
+   child tables (disability, land, crop, livestock, farm_inputs, members,
+   membership) are 0..N lists. #}
+{%- set root = expanded if expanded is mapping else {} -%}
+{%- if root.get("body") and root.body is mapping and root.body.get("message") -%}
+  {%- set d = root.body.message.get("payload") or root -%}
+{%- else -%}
+  {%- set d = root -%}
+{%- endif -%}
+
+{%- set hh_reg = d.get("household_registration") if d.get("household_registration") is mapping else {} -%}
+{%- set hh_sec = d.get("household_section") if d.get("household_section") is mapping else {} -%}
+{%- set personal = d.get("personal_information") if d.get("personal_information") is mapping else {} -%}
+{%- set national = d.get("national_id_section") if d.get("national_id_section") is mapping else {} -%}
+{%- set location = d.get("location") if d.get("location") is mapping else {} -%}
+{%- set disability_group = d.get("disability_details") if d.get("disability_details") is mapping else {} -%}
+{%- set memberships = d.get("memberships") if d.get("memberships") is mapping else {} -%}
+
+{#- Prefer nested group paths; fall back to flat ODK keys. -#}
+{%- set hh_status_raw = (hh_reg.get("household_registration_status") or d.get("household_registration_status") or "")|string|trim|lower -%}
+{%- set hh_status_map = {
+  "already_registered": "ALREADY_REGISTERED",
+  "not_registered": "NOT_REGISTERED",
+  "not_required": "NOT_REQUIRED"
+} -%}
+{%- set hh_status = hh_status_map.get(hh_status_raw, (hh_status_raw|upper if hh_status_raw else none)) -%}
+{%- set household_ref = (hh_sec.get("household") or d.get("household") or "")|string|trim -%}
+
+{%- set prefix_map = {"mr": "Mr", "mrs": "Mrs", "miss": "Miss", "ms": "Ms"} -%}
+{%- set gender_map = {"male": "MALE", "female": "FEMALE", "other": "OTHERS", "others": "OTHERS", "unknown": "UNKNOWN"} -%}
+{%- set education_map = {
+  "illiterate": "ILLITERATE",
+  "can_read_and_write": "CAN_READ_AND_WRITE",
+  "can read and write": "CAN_READ_AND_WRITE",
+  "non-formal education": "NON_FORMAL",
+  "non formal education": "NON_FORMAL",
+  "non_formal": "NON_FORMAL",
+  "never attended": "NEVER_ATTEND",
+  "never_attended": "NEVER_ATTEND",
+  "basic": "BASIC",
+  "primary": "PRIMARY",
+  "intermediary": "INTERMEDIARY",
+  "secondary": "SECONDARY",
+  "tertiary": "TERTIARY",
+  "higher_education": "HIGHER_EDUCATION",
+  "higher education": "HIGHER_EDUCATION"
+} -%}
+{%- set income_map = {
+  "crop_production": "SOI_CROP_PRODUCTION",
+  "soi_crop_production": "SOI_CROP_PRODUCTION",
+  "livestock_production": "SOI_LIVESTOCK_PRODUCTION",
+  "soi_livestock_production": "SOI_LIVESTOCK_PRODUCTION",
+  "government_ngo_support": "SOI_GOVERNMENT_NGO_SUPPORT",
+  "soi_government_ngo_support": "SOI_GOVERNMENT_NGO_SUPPORT",
+  "others": "SOI_OTHERS",
+  "soi_others": "SOI_OTHERS"
+} -%}
+{%- set relationship_map = {
+  "self": "SELF",
+  "spouse": "SPOUSE",
+  "child": "CHILD",
+  "parent": "PARENT",
+  "sibling": "SIBLING",
+  "other_relative": "OTHER_RELATIVE",
+  "non_relative": "NON_RELATIVE"
+} -%}
+{%- set commodity_map = {
+  "wheat": "CROP_WHEAT", "teff": "CROP_TEFF", "maize": "CROP_MAIZE", "sesame": "CROP_SESAME",
+  "malt_barley": "CROP_MALT_BARLEY", "tomato": "CROP_TOMATO", "onion": "CROP_ONION",
+  "avocado": "CROP_AVOCADO", "banana": "CROP_BANANA", "mango": "CROP_MANGO",
+  "soybean": "CROP_SOYBEAN", "sorghum": "CROP_SORGHUM", "barley": "CROP_BARLEY",
+  "finger_millet": "CROP_FINGER_MILLET", "faba_bean": "CROP_FABA_BEAN",
+  "haricot_bean": "CROP_HARICOT_BEAN", "chickpea": "CROP_CHICKPEA", "coffee": "CROP_COFFEE",
+  "potato": "CROP_POTATO", "other": "CROP_OTHER"
+} -%}
+{%- set season_map = {
+  "meher": "SEASON_MEHER", "belg": "SEASON_BELG", "irrigation": "SEASON_IRRIGATION"
+} -%}
+{%- set end_use_map = {
+  "food_human_consumption": "FOOD_HUMAN_CONSUMPTION",
+  "animal_feed": "FEED_ANIMALS",
+  "feed_animals": "FEED_ANIMALS",
+  "biofuel_nonfood": "BIOFUELS_NONFOOD",
+  "biofuels_nonfood": "BIOFUELS_NONFOOD",
+  "other": "OTHER"
+} -%}
+{%- set livestock_type_map = {
+  "cattle": "LSTK_CATTLE", "camel": "LSTK_CAMEL", "sheep": "LSTK_SHEEP", "goat": "LSTK_GOAT",
+  "chicken": "LSTK_CHICKEN", "donkey": "LSTK_DONKEY", "horse": "LSTK_HORSE", "mule": "LSTK_MULE"
+} -%}
+{%- set breed_map = {
+  "improved": "BREED_IMPROVED", "local": "BREED_LOCAL", "hybrid": "BREED_HYBRID"
+} -%}
+{%- set livestock_system_map = {
+  "nomadic_pastoral": "NOMADIC_PASTORAL",
+  "semi_nomadic": "SEMI_NOMADIC",
+  "sedentary_pastoral": "SEDENTARY_PASTORAL",
+  "mixed": "MIXED",
+  "industrial": "INDUSTRIAL"
+} -%}
+{%- set water_source_map = {
+  "rainfed": "WS_RAINFED",
+  "ground_water_irrigation": "WS_IRRIGATION_GROUND",
+  "surface_water_irrigation": "WS_IRRIGATION_SURFACE",
+  "well_ground_water": "WS_WELL_GROUND",
+  "water_harvesting": "WS_WATER_HARVESTING",
+  "surface_water": "WS_SURFACE_WATER"
+} -%}
+{%- set means_map = {
+  "inheritance": "MOA_INHERITANCE",
+  "donation_gift": "MOA_DONATION_GIFT",
+  "expropiration": "MOA_EXPROPRIATION",
+  "expropriation": "MOA_EXPROPRIATION",
+  "renting_leasing": "MOA_RENTING_LEASING",
+  "reallocation": "MOA_REALLOCATION",
+  "divorce_settlement": "MOA_DIVORCE_SETTLEMENT"
+} -%}
+{%- set cluster_role_map = {
+  "lead": "LEAD", "deputy": "DEPUTY", "secretary": "SECRETARY",
+  "accountant": "ACCOUNTANT", "member": "MEMBER", "other": "MEMBER"
+} -%}
+
+{%- macro yn(val) -%}
+{%- set s = (val or "")|string|lower|trim -%}
+{%- if s == "yes" or s == "true" or s == "1" -%}true{%- elif s == "no" or s == "false" or s == "0" -%}false{%- else -%}null{%- endif -%}
+{%- endmacro -%}
+
+{%- set fn = (personal.get("first_name") or d.get("first_name") or "")|string|trim -%}
+{%- set mn = (personal.get("middle_name") or d.get("middle_name") or "")|string|trim -%}
+{%- set ln = (personal.get("last_name") or d.get("last_name") or "")|string|trim -%}
+{%- set full_name = ((fn ~ " " ~ mn ~ " " ~ ln)|replace("  ", " ")|trim) -%}
+{%- set prefix_raw = (personal.get("prefix") or d.get("prefix") or "")|string|trim|lower -%}
+{%- set prefix_norm = prefix_map.get(prefix_raw, none) -%}
+{%- set gender_raw = (personal.get("gender") or d.get("gender") or "")|string|trim|lower -%}
+{%- set gender_norm = gender_map.get(gender_raw, (gender_raw|upper if gender_raw else none)) -%}
+{%- set marital_raw = (personal.get("marital_status") or d.get("marital_status") or "")|string|trim|upper -%}
+{%- set education_raw = (personal.get("education") or personal.get("education ") or d.get("education") or "")|string|trim -%}
+{%- set education_key = education_raw|lower|replace("_", " ") -%}
+{%- set education_norm = education_map.get(education_raw|lower, education_map.get(education_key, (education_raw|upper|replace(" ", "_")|replace("-", "_") if education_raw else none))) -%}
+{%- set income_raw = (personal.get("source_of_income") or d.get("source_of_income") or "")|string|trim|lower -%}
+{%- set income_norm = income_map.get(income_raw, none) -%}
+{%- set dob_known = (personal.get("dob_known") or d.get("dob_known") or "")|string|trim|lower -%}
+{%- set birth_date = personal.get("birth_date") or d.get("birth_date") or none -%}
+{%- set estimated_age = personal.get("estimated_age") or d.get("estimated_age") or none -%}
+{%- if dob_known == "no" -%}
+  {%- set birth_date = none -%}
+{%- elif dob_known == "yes" -%}
+  {%- set estimated_age = none -%}
+{%- endif -%}
+
+{%- set has_nid_raw = national.get("has_national_id") or d.get("has_national_id") -%}
+{%- set nid = (national.get("national_id_number") or d.get("national_id_number") or "")|string|trim -%}
+{%- set has_nid_s = (has_nid_raw or "")|string|lower|trim -%}
+{%- if has_nid_s == "yes" or has_nid_s == "true" -%}
+  {%- set has_nid = true -%}
+{%- elif has_nid_s == "no" or has_nid_s == "false" -%}
+  {%- set has_nid = false -%}
+  {%- set nid = none -%}
+{%- else -%}
+  {%- set has_nid = (true if nid else none) -%}
+{%- endif -%}
+{%- set nid_masked = none -%}
+{%- if has_nid and nid and (nid|length) >= 4 -%}
+  {%- set nid_masked = ("XXXXXXXX" ~ nid[-4:]) -%}
+{%- endif -%}
+
+{%- set country_code = location.get("country") or location.get("country_code") or d.get("country") or none -%}
+{%- set region_code = location.get("region") or d.get("region") or none -%}
+{%- set district_code = location.get("district") or d.get("district") or none -%}
+{%- set ward_code = location.get("ward") or d.get("ward") or none -%}
+{%- set village_code = location.get("village") or d.get("village") or none -%}
+{%- set geo_lowest_id = village_code or ward_code or district_code or region_code or country_code or none -%}
+{%- set geo = namespace(hierarchy=[]) -%}
+{%- if country_code -%}
+  {%- set geo.hierarchy = geo.hierarchy + [{"level": "country", "level_id": "country", "level_mnemonic": "country", "level_value_mnemonic": country_code, "level_value_id": country_code}] -%}
+{%- endif -%}
+{%- if region_code -%}
+  {%- set geo.hierarchy = geo.hierarchy + [{"level": "region", "level_id": "region", "level_mnemonic": "region", "level_value_mnemonic": region_code, "level_value_id": region_code}] -%}
+{%- endif -%}
+{%- if district_code -%}
+  {%- set geo.hierarchy = geo.hierarchy + [{"level": "district", "level_id": "district", "level_mnemonic": "district", "level_value_mnemonic": district_code, "level_value_id": district_code}] -%}
+{%- endif -%}
+{%- if ward_code -%}
+  {%- set geo.hierarchy = geo.hierarchy + [{"level": "ward", "level_id": "ward", "level_mnemonic": "ward", "level_value_mnemonic": ward_code, "level_value_id": ward_code}] -%}
+{%- endif -%}
+{%- if village_code -%}
+  {%- set geo.hierarchy = geo.hierarchy + [{"level": "village", "level_id": "village", "level_mnemonic": "village", "level_value_mnemonic": village_code, "level_value_id": village_code}] -%}
+{%- endif -%}
+
+{%- set disability_rows = disability_group.get("disability_records") or d.get("disability_records") or [] -%}
+{%- if disability_rows is mapping -%}{%- set disability_rows = [disability_rows] -%}{%- endif -%}
+{%- set member_rows = d.get("household_members") or [] -%}
+{%- if member_rows is mapping -%}{%- set member_rows = [member_rows] -%}{%- endif -%}
+{%- set land_rows = d.get("land_") or d.get("land") or [] -%}
+{%- if land_rows is mapping -%}{%- set land_rows = [land_rows] -%}{%- endif -%}
+{%- set crop_rows = d.get("crop") or [] -%}
+{%- if crop_rows is mapping -%}{%- set crop_rows = [crop_rows] -%}{%- endif -%}
+{%- set farm_input_rows = d.get("farm_inputs") or [] -%}
+{%- if farm_input_rows is mapping -%}{%- set farm_input_rows = [farm_input_rows] -%}{%- endif -%}
+{%- set livestock_rows = d.get("livestock") or [] -%}
+{%- if livestock_rows is mapping -%}{%- set livestock_rows = [livestock_rows] -%}{%- endif -%}
+
+{%- set submission_key = (d.get("__id") or (d.get("meta") or {}).get("instanceID") or d.get("functional_record_id") or "odk")|string -%}
+{%- macro land_id_for(label) -%}
+{%- for land in land_rows -%}
+{%- if ((land.get("land_label") or "")|string) == (label|string) -%}{{ submission_key ~ "-land-" ~ loop.index }}{%- endif -%}
+{%- endfor -%}
+{%- endmacro -%}
+
+{
+  "fr_household_registration_status": [
+    {
+      "household_registration_status": {{ (hh_status or none)|tojson }}
+      {%- if hh_status == "ALREADY_REGISTERED" and household_ref -%}
+      ,
+      "link_foundational_id": {{ household_ref|tojson }},
+      "link_internal_record_id": {{ (household_ref if household_ref|length == 36 else none)|tojson }}
+      {%- endif %}
+    }
+  ]
+  {%- if hh_status == "ALREADY_REGISTERED" -%}
+  ,
+  "fr_farmer_household_lookup": [
+    {
+      "household_registration_status": {{ (hh_status or none)|tojson }},
+      "link_foundational_id": {{ (household_ref or none)|tojson }},
+      "link_internal_record_id": {{ (household_ref if household_ref and household_ref|length == 36 else none)|tojson }}
+    }
+  ]
+  {%- endif -%}
+  {%- if hh_status == "NOT_REGISTERED" -%}
+  ,
+  "hh_non_farming_members": [
+    {%- for row in member_rows %}
+    {%- set m_prefix_raw = (row.get("member_prefix") or "")|string|trim|lower -%}
+    {%- set m_fn = (row.get("member_first_name") or "")|string|trim -%}
+    {%- set m_mn = (row.get("member_middle_name") or "")|string|trim -%}
+    {%- set m_ln = (row.get("member_last_name") or "")|string|trim -%}
+    {%- set m_full = ((m_fn ~ " " ~ m_mn ~ " " ~ m_ln)|replace("  ", " ")|trim) -%}
+    {%- set m_gender_raw = (row.get("member_gender") or "")|string|trim|lower -%}
+    {%- set m_rel_raw = (row.get("member_relationship_to_head") or "")|string|trim|lower -%}
+    {
+      "prefix": {{ (prefix_map.get(m_prefix_raw, none))|tojson }},
+      "first_name": {{ (m_fn or none)|tojson }},
+      "middle_name": {{ (m_mn or none)|tojson }},
+      "last_name": {{ (m_ln or none)|tojson }},
+      "suffix": {{ (row.get("member_suffix") or none)|tojson }},
+      "given_name": {{ (m_fn or none)|tojson }},
+      "record_name": {{ (m_full or none)|tojson }},
+      "birth_date": {{ (row.get("member_birth_date") or none)|tojson }},
+      "gender": {{ (gender_map.get(m_gender_raw, m_gender_raw|upper if m_gender_raw else none))|tojson }},
+      "relationship_to_the_head": {{ (relationship_map.get(m_rel_raw, m_rel_raw|upper if m_rel_raw else none))|tojson }},
+      "is_disabled": false
+    }{{ "," if not loop.last else "" }}
+    {%- endfor %}
+  ]
+  {%- endif -%}
+  ,
+  "fr_farmer_personal_info": [
+    {
+      "prefix": {{ (prefix_norm or none)|tojson }},
+      "first_name": {{ (fn or none)|tojson }},
+      "middle_name": {{ (mn or none)|tojson }},
+      "last_name": {{ (ln or none)|tojson }},
+      "suffix": {{ (personal.get("suffix") or d.get("suffix") or none)|tojson }},
+      "given_name": {{ (fn or none)|tojson }},
+      "record_name": {{ (full_name or none)|tojson }},
+      "gender": {{ (gender_norm or none)|tojson }},
+      "birth_date": {{ (birth_date or none)|tojson }},
+      "estimated_age": {{ (estimated_age if estimated_age is not none and estimated_age != "" else none)|tojson }},
+      "marital_status": {{ (marital_raw if marital_raw else none)|tojson }},
+      "education_level": {{ (education_norm or none)|tojson }},
+      "source_of_income": {{ (income_norm or none)|tojson }},
+      "household_registration_status": {{ (hh_status or none)|tojson }},
+      "is_head": {{ "true" if hh_status == "NOT_REGISTERED" else "null" }},
+      "national_id_masked": {{ (nid_masked or none)|tojson }}
+    }
+  ],
+  "fr_farmer_national_id": [
+    {
+      "has_national_id": {{ "true" if has_nid == true else ("false" if has_nid == false else "null") }},
+      "foundational_id": {{ (nid if has_nid else none)|tojson }}
+    }
+  ],
+  "fr_farmer_location": [
+    {
+      "address_line_1": {{ (location.get("address_line_1") or d.get("address_line_1") or none)|tojson }},
+      "address_line_2": {{ (location.get("address_line_2") or d.get("address_line_2") or none)|tojson }},
+      "postal_code": {{ (location.get("postal_code") or d.get("postal_code") or none)|tojson }},
+      "country_code": {{ ((location.get("country_code") or country_code) or none)|tojson }},
+      "latitude": {{ (location.get("latitude") or d.get("latitude") or none)|tojson }},
+      "longitude": {{ (location.get("longitude") or d.get("longitude") or none)|tojson }},
+      "altitude": {{ (location.get("altitude") or d.get("altitude") or none)|tojson }},
+      "plus_code": {{ (location.get("plus_code") or d.get("plus_code") or none)|tojson }},
+      "geo_lowest_level_value_id": {{ (geo_lowest_id or none)|tojson }},
+      "geo_code_hierarchy_json": {
+        "hierarchy": {{ geo.hierarchy | tojson }},
+        "lowest_level_value_id": {{ (geo_lowest_id or none) | tojson }},
+        "country": {"id": {{ (country_code or none)|tojson }}, "name": {{ (country_code or none)|tojson }}},
+        "region": {"id": {{ (region_code or none)|tojson }}, "name": {{ (region_code or none)|tojson }}},
+        "district": {"id": {{ (district_code or none)|tojson }}, "name": {{ (district_code or none)|tojson }}},
+        "ward": {"id": {{ (ward_code or none)|tojson }}, "name": {{ (ward_code or none)|tojson }}},
+        "village": {"id": {{ (village_code or none)|tojson }}, "name": {{ (village_code or none)|tojson }}}
+      }
+    }
+  ],
+  "fr_farmer_disability": [
+    {%- for row in disability_rows %}
+    {%- set domain_raw = (row.get("disability_type") or row.get("disability_domains") or "")|string|trim|upper -%}
+    {%- set severity_raw = (row.get("disability_severity") or "")|string|trim|upper -%}
+    {
+      "disability_domains": {{ (domain_raw if domain_raw else none)|tojson }},
+      "disability_severity": {{ (severity_raw if severity_raw else none)|tojson }}
+    }{{ "," if not loop.last else "" }}
+    {%- endfor %}
+  ],
+  "fr_farmer_land": [
+    {%- for land in land_rows %}
+    {%- set lid = submission_key ~ "-land-" ~ loop.index -%}
+    {%- set soil_raw = (land.get("soil_fertility") or "")|string|trim|upper -%}
+    {
+      "internal_record_id": {{ lid|tojson }},
+      "land_ownership_type": {{ ((land.get("land_ownership_type") or "")|string|trim|upper or none)|tojson }},
+      "land_size": {{ (land.get("land_size") or none)|tojson }},
+      "unit": {{ ((land.get("unit") or "")|string|trim|upper or none)|tojson }},
+      "soil_fertility": {{ (soil_raw if soil_raw in ["HIGH", "MEDIUM", "LOW"] else none)|tojson }},
+      "current_land_use": {{ ((land.get("current_land_use") or "")|string|trim|upper or none)|tojson }},
+      "farming_type": {{ ((land.get("farming_type") or "")|string|trim|upper or none)|tojson }},
+      "year_of_acquisition": {{ (land.get("year_of_acquisition") or none)|tojson }},
+      "means_of_acquisition": {{ (means_map.get((land.get("means_of_acquisition") or "")|string|trim|lower, none))|tojson }}
+    }{{ "," if not loop.last else "" }}
+    {%- endfor %}
+  ],
+  "fr_intake_farmer_crops": [
+    {%- for row in crop_rows %}
+    {%- set parent_label = (row.get("crop_land") or "")|string -%}
+    {%- set parent_id = land_id_for(parent_label)|trim -%}
+    {%- set commodity_raw = (row.get("commodity") or "")|string|trim|lower -%}
+    {%- set season_raw = (row.get("season") or "")|string|trim|lower -%}
+    {%- set end_use_raw = (row.get("end_use") or "")|string|trim|lower -%}
+    {
+      {%- if parent_id -%}
+      "link_internal_record_id": {{ parent_id|tojson }},
+      {%- endif -%}
+      "commodity": {{ (commodity_map.get(commodity_raw, none))|tojson }},
+      "planted_date": {{ (row.get("planted_date") or none)|tojson }},
+      "season": {{ (season_map.get(season_raw, none))|tojson }},
+      "end_use": {{ (end_use_map.get(end_use_raw, none))|tojson }}
+    }{{ "," if not loop.last else "" }}
+    {%- endfor %}
+  ],
+  "fr_intake_farmer_farm_input": [
+    {%- for row in farm_input_rows %}
+    {%- set parent_label = (row.get("farm_inputs_land") or "")|string -%}
+    {%- set parent_id = land_id_for(parent_label)|trim -%}
+    {%- set ws_raw = (row.get("water_source") or "")|string|trim|lower -%}
+    {
+      {%- if parent_id -%}
+      "link_internal_record_id": {{ parent_id|tojson }},
+      {%- endif -%}
+      "fertilizer_use": {{ yn(row.get("fertilizer_use")) }},
+      "pesticide_use": {{ yn(row.get("pesticide_use")) }},
+      "insecticide_use": {{ yn(row.get("insecticide_use")) }},
+      "improved_seed_use": {{ yn(row.get("improved_seed_use")) }},
+      "water_source": {{ (water_source_map.get(ws_raw, none))|tojson }},
+      "access_to_machinery": {{ yn(row.get("access_to_machinery")) }},
+      "access_to_finance": {{ yn(row.get("access_to_finance")) }}
+    }{{ "," if not loop.last else "" }}
+    {%- endfor %}
+  ],
+  "fr_intake_farmer_livestocks": [
+    {%- for row in livestock_rows %}
+    {%- set parent_label = (row.get("livestock_land") or "")|string -%}
+    {%- set parent_id = land_id_for(parent_label)|trim -%}
+    {%- set lt_raw = (row.get("livestock_type") or "")|string|trim|lower -%}
+    {%- set breed_raw = (row.get("breed") or "")|string|trim|lower -%}
+    {%- set sys_raw = (row.get("livestock_system") or "")|string|trim|lower -%}
+    {
+      {%- if parent_id -%}
+      "link_internal_record_id": {{ parent_id|tojson }},
+      {%- endif -%}
+      "livestock_type": {{ (livestock_type_map.get(lt_raw, none))|tojson }},
+      "breed": {{ (breed_map.get(breed_raw, none))|tojson }},
+      "head_count": {{ (row.get("head_count") or none)|tojson }},
+      "livestock_system": {{ (livestock_system_map.get(sys_raw, sys_raw|upper if sys_raw else none))|tojson }}
+    }{{ "," if not loop.last else "" }}
+    {%- endfor %}
+  ],
+  "fr_farmer_membership": [
+    {
+      "is_primary_cooperative_member": {{ yn(memberships.get("is_primary_cooperative_member") or d.get("is_primary_cooperative_member")) }},
+      "primary_cooperative_name": {{ (memberships.get("primary_cooperative_name") or d.get("primary_cooperative_name") or none)|tojson }},
+      "is_cooperative_union_member": {{ yn(memberships.get("is_cooperative_union_member") or d.get("is_cooperative_union_member")) }},
+      "cooperative_union_name": {{ (memberships.get("cooperative_union_name") or d.get("cooperative_union_name") or none)|tojson }},
+      "is_farmer_cluster_member": {{ yn(memberships.get("is_farmer_cluster_member") or d.get("is_farmer_cluster_member")) }},
+      "farmer_cluster_role": {{ (cluster_role_map.get((memberships.get("farmer_cluster_role") or d.get("farmer_cluster_role") or "")|string|trim|lower, none))|tojson }}
+    }
+  ]
+}

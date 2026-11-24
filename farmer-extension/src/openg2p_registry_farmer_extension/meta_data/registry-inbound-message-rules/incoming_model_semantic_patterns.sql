@@ -16,5 +16,15 @@ INSERT INTO "public"."incoming_model_semantic_patterns" (
     '$.body.message.search_response[0].data.reg_record_type=>^Farmer$',
     '$.body.message.search_response[0].data.reg_records[0]',
     'G2PDciFarmerCreateEnricherService'
+),
+(
+    'f0a1b2c3-d4e5-4f67-8901-23456789abcf',
+    'f0a1b2c3-d4e5-4f67-8901-23456789abcd',
+    'a1a4d25a-1cd4-4356-abac-985a0b3c6bcd',
+    'a1a4d25a-1cd4-4356-abac-8782382649',
+    '$.body.header.sender_id=>^odk-farmer$',
+    '$.body.header.sender_id=>^odk-farmer$',
+    '$.body.message.payload',
+    'G2PSpdciFarmerCreateEnricherService'
 )
 ON CONFLICT ("semantic_pattern_id") DO UPDATE SET "data_model_id" = EXCLUDED."data_model_id", "register_id" = EXCLUDED."register_id", "intake_form_id" = EXCLUDED."intake_form_id", "pattern_for_register" = EXCLUDED."pattern_for_register", "pattern_for_intake_form" = EXCLUDED."pattern_for_intake_form", "key_path_for_business_payload" = EXCLUDED."key_path_for_business_payload", "raw_payload_enricher_class" = EXCLUDED."raw_payload_enricher_class";
