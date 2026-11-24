@@ -81,8 +81,9 @@ def test_dci_search_returns_the_consented_record(partner_client, cfg, priv, seed
     assert records, (
         f"no records returned for search_text '{cfg.search_text}'. The sanity record "
         f"{fixtures.RECORD_FUNCTIONAL_ID} should match. If the register is otherwise "
-        f"healthy, check that dbSeed.loadTemplates=true — without the DCI template in "
-        f"MinIO every record fails to render and the error surfaces as an empty 200."
+        f"healthy, check the db-seed log uploaded the templates — without the DCI "
+        f"template in the object store every record fails to render and the error "
+        f"surfaces as an empty 200."
     )
 
     # Consent asked for the demographic details scope (a section scope covering

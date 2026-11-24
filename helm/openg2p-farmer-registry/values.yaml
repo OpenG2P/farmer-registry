@@ -101,9 +101,8 @@ registry:
     # Geography is not seeded here: the master-data chart loads it
     # (geoSeed.countryPack there) and the registry reads it from Master Data's
     # API — the register geo widgets get their levels at runtime.
-    loadSampleData: false    # a few dozen demo farmers from the country pack
+    loadSampleData: false    # demo farmers, sample approval policies, demo staff users
     loadImages: false        # their profile photos; needs loadSampleData
-    loadTemplates: true
     # Code lists are NOT copied into this registry: dropdowns and the attribute
     # validator read them live from Master Data. The Farmer Registry needs the
     # pack's agriculture domain (e.g. SOURCE_OF_INCOME) loaded into MDS, which is
