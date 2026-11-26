@@ -12,7 +12,7 @@
 # WHY THE SAMPLE LOADERS LIVE HERE
 #   load_sample_data.py and upload_images.py are written against the FARMER
 #   schema — they INSERT into g2p_register_farmers/lands/livestocks/... and read
-#   farmers.json, lands.json, livestocks.json. Those tables are declared by
+#   farmers.json, lands.json, .... Those tables are declared by
 #   farmer-extension and those files ship in this image, so neither the platform
 #   nor any other variant can run them: NSR ships its own pair, and the platform
 #   installs with loadSampleData=false and no seed-data at all. They used to sit
@@ -28,6 +28,19 @@
 # reachable).
 ARG RP_VERSION=0.0.0-develop.856
 FROM openg2p/openg2p-registry-db-seed:${RP_VERSION}
+
+# The sample herds are the country pack's sample animals (openg2p-data
+# packs/<country>/samples/animals.json), the ones the Livestock Registry loads.
+# The base image carries openg2p-data from when it was built; it is fetched
+# again here so the samples are those of this build.
+ARG OPENG2P_DATA_REPO=https://github.com/openg2p/openg2p-data.git
+ARG OPENG2P_DATA_BRANCH=develop
+RUN rm -rf /openg2p-data && mkdir -p /openg2p-data && cd /openg2p-data \
+    && git init -q \
+    && git remote add origin ${OPENG2P_DATA_REPO} \
+    && git fetch -q --depth 1 origin ${OPENG2P_DATA_BRANCH} \
+    && git checkout -q FETCH_HEAD \
+    && rm -rf /openg2p-data/.git
 
 # The RP db-seed image ships the reference registry's seed; clear it so only
 # farmer's seed is applied.

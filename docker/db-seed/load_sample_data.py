@@ -7,6 +7,9 @@ Reads:
   Load Sample People (masterData.geoSeed.load.samples).
 - /seed/seed-data/*.json (farmer sub-tables, shipped in the db-seed image),
   attached to the people Master Data returns.
+- the country pack's samples/animals.json in openg2p-data (the image carries
+  openg2p-data at OPENG2P_DATA_DIR, /openg2p-data): the sample people's animals,
+  which the Livestock Registry loads one by one. Here they become herds.
 
 There is no fallback. Without Master Data, its geography or its sample people
 the loader stops with the reason: sample data that is not the country's (other
@@ -16,7 +19,10 @@ Mapping:
 - every sample person -> g2p_register_farmers
 - every person with a household -> g2p_register_household_members
 - every sample household -> g2p_register_households (farmer column set)
-- lands/livestocks/farm_inputs/membership_details -> respective tables
+- lands/farm_inputs/membership_details -> respective tables
+- each owner's sample animals -> g2p_register_livestocks, one herd per species,
+  breed and livestock system, with the animals' count, on the owner's first
+  land -- see sample_herds()
 - every farmer gets 1-3 declared main crops (Master Data CROP_COMMODITY codes),
   derived from their sequence number -- see main_crops_for()
 - scores.json -> g2p_register_scores
@@ -80,6 +86,7 @@ SEEDER = "seeder"
 CREATED_AT = "2026-04-01 00:00:00"
 
 FARMER_DATA_DIR = Path(os.environ.get("FARMER_SEED_DATA_DIR", "/seed/seed-data"))
+OPENG2P_DATA_DIR = Path(os.environ.get("OPENG2P_DATA_DIR", "/openg2p-data"))
 
 class SampleDataError(Exception):
     """Sample data cannot be loaded as the country's: db-seed stops with the reason."""
@@ -769,11 +776,6 @@ SUB_TABLES = [
         {"geo_code_hierarchy_json", "shape_coordinates_json"},
     ),
     (
-        "g2p_register_livestocks", "livestocks.json",
-        ["livestock_type", "breed", "head_count", "livestock_system"],
-        set(),
-    ),
-    (
         "g2p_register_farm_inputs", "farm_inputs.json",
         [
             "fertilizer_use", "pesticide_use", "insecticide_use",
@@ -792,6 +794,67 @@ SUB_TABLES = [
         set(),
     ),
 ]
+
+
+LIVESTOCK_COLUMNS = ["livestock_type", "breed", "head_count", "livestock_system"]
+
+
+def _label(code) -> str:
+    """LSTK_CATTLE -> Cattle, BREED_LOCAL -> Local: the herd's record name."""
+    return str(code).split("_", 1)[-1].replace("_", " ").title() if code else ""
+
+
+def sample_animals_file(individuals: list):
+    """The pack's samples/animals.json for these people, or None when the pack has none.
+
+    The pack is the one the people's IDs name (ETH-IND-0007 -> packs/ETH), the
+    country Master Data was installed with.
+    """
+    countries = {str(i["internal_record_id"]).split("-", 1)[0] for i in individuals}
+    if len(countries) != 1:
+        raise SampleDataError(f"Master Data's sample people are of more than one pack: {sorted(countries)}")
+    path = OPENG2P_DATA_DIR / "packs" / countries.pop() / "samples" / "animals.json"
+    return path if path.is_file() else None
+
+
+def sample_herds(animals: list, ind_by_id: dict, lands: list) -> list:
+    """Each owner's sample animals as herds: one per species, breed and livestock system.
+
+    The same animals the Livestock Registry loads one by one (samples/animals.json),
+    so the two registries agree on a farmer's livestock: farmer FR-0007's herds
+    count the animals the Livestock Registry holds for FR-0007. A herd is on the
+    owner's first land (LAND-0007-1), the Farmer Registry's place for livestock;
+    its codes are Master Data's LIVESTOCK_TYPE, LIVESTOCK_BREED and
+    LIVESTOCK_SYSTEM values. Herd IDs are fixed: LIVESTOCK-<n>-<k>.
+    """
+    first_land = {}
+    for land in lands:
+        owner = land.get("link_internal_record_id")
+        if owner in ind_by_id and land.get("functional_record_id", "").endswith("-1"):
+            first_land[owner] = land["internal_record_id"]
+    herds: dict = {}
+    for a in sorted(animals, key=lambda a: (a["owner_individual_id"], a["seq"])):
+        owner = a["owner_individual_id"]
+        if owner not in ind_by_id:
+            raise SampleDataError(f"sample animal {owner}/{a['seq']}: {owner} is not one of Master Data's "
+                                  "sample people (Master Data and this image hold different packs?)")
+        if owner not in first_land:
+            raise SampleDataError(f"sample animal {owner}/{a['seq']}: {owner} has no sample land to keep it on")
+        key = (owner, a["species"], a.get("breed"), a.get("livestock_system"))
+        herds[key] = herds.get(key, 0) + 1
+    rows, per_owner = [], {}
+    for (owner, species, breed, system), count in herds.items():
+        number = _fr_id(ind_by_id[owner]).rsplit("-", 1)[-1]
+        per_owner[owner] = per_owner.get(owner, 0) + 1
+        herd_id = f"LIVESTOCK-{number}-{per_owner[owner]}"
+        name = f"{_label(species)} {_label(breed)}".strip()
+        rows.append({
+            "internal_record_id": f"lvst-{number}-{per_owner[owner]}", "functional_record_id": herd_id,
+            "link_internal_record_id": first_land[owner], "record_name": name,
+            "search_text": " ".join(v for v in (herd_id, name.upper(), system) if v),
+            "livestock_type": species, "breed": breed, "head_count": count, "livestock_system": system,
+        })
+    return rows
 
 
 def insert_sub_table(cur, table: str, rows_json: list, extra_cols: list, json_cols: set) -> None:
@@ -927,6 +990,7 @@ def main() -> None:
     # geography and code lists.
     individuals, households = load_people_from_mds(mds)
     ind_by_id = {i["internal_record_id"]: i for i in individuals}
+    animals_path = sample_animals_file(individuals)
 
     farmer_extras = {f["internal_record_id"]: f for f in load_json(FARMER_DATA_DIR / "farmers.json")}
     members = load_json(FARMER_DATA_DIR / "household_members.json")
@@ -958,6 +1022,7 @@ def main() -> None:
             cur, remap_links("g2p_register_household_members", members, remap),
             ind_by_id, remap,
             {hh["internal_record_id"]: hh.get("head_individual_id") for hh in households})
+        lands = []
         for table, fname, extras, json_cols in SUB_TABLES:
             rows = remap_links(table, fixtures[fname], remap)
             if table == "g2p_register_lands":
@@ -966,7 +1031,14 @@ def main() -> None:
                 for r in rows:
                     r["geo_lowest_level_value_id"] = geo_lowest_id(r)
                     r["geo_code_hierarchy_json"] = geo_hierarchy_dict(r)
+                lands = rows
             insert_sub_table(cur, table, rows, extras, json_cols)
+        if animals_path is None:
+            print("[load-sample-data]   -> g2p_register_livestocks: 0 (the pack has no samples/animals.json)")
+        else:
+            herds = sample_herds(load_json(animals_path), ind_by_id, lands)
+            print(f"[load-sample-data] herds from {animals_path.relative_to(OPENG2P_DATA_DIR)}:")
+            insert_sub_table(cur, "g2p_register_livestocks", herds, LIVESTOCK_COLUMNS, set())
         insert_scores(cur, remap_links("g2p_register_scores", fixtures["scores.json"], remap))
 
         # Seed completion-score computation queue for Farmer + Household records.

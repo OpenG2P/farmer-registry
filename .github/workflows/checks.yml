@@ -1,8 +1,10 @@
 name: Checks
 
-# Fast, Docker-free checks that gate a change before the build. Currently: the
+# Fast, Docker-free checks that gate a change before the build: the
 # openg2p-registry pin must stay in lockstep across the Dockerfiles and the Helm
-# chart dependency (test/test_rp_pin_lockstep.py). Runs in parallel with
+# chart dependency (test/test_rp_pin_lockstep.py); the sample herds must count the
+# ETH pack's sample animals (openg2p-data develop), the ones the Livestock Registry
+# loads, with Master Data's codes (test/test_sample_herds.py). Runs in parallel with
 # build-publish.yml; a split pin shows red in seconds instead of surfacing as a
 # broken sanity image three deploys later.
 
@@ -16,9 +18,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: OpenG2P/openg2p-data
+          ref: develop
+          path: openg2p-data
+          sparse-checkout: |
+            packs/ETH
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install --quiet pytest
+      - run: pip install --quiet pytest psycopg2-binary
       - name: openg2p-registry pin lockstep
         run: python -m pytest test/test_rp_pin_lockstep.py -q
+      - name: Sample herds are the pack's sample animals
+        env:
+          OPENG2P_DATA_DIR: openg2p-data
+        run: python -m pytest test/test_sample_herds.py -q

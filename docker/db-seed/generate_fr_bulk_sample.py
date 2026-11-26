@@ -116,8 +116,11 @@ MAIN_CROPS = [("CROP_MAIZE", 0.22), ("CROP_TEFF", 0.18), ("CROP_BREAD_WHEAT", 0.
               ("CROP_HARICOT_BEAN", 0.06), ("CROP_FABA_BEAN", 0.05),
               ("CROP_SESAME", 0.04), ("CROP_CHICKPEA", 0.02),
               ("CROP_FINGER_MILLET", 0.02)]
-LIVESTOCK_TYPE = [("Cattle", 0.34), ("Goat", 0.24), ("Sheep", 0.20),
-                  ("Poultry", 0.14), ("Donkey", 0.05), ("Camel", 0.03)]
+# Livestock type and breed are read live from Master Data (LIVESTOCK_TYPE,
+# LIVESTOCK_BREED), the lists the Livestock Registry uses too: their codes, not labels.
+LIVESTOCK_TYPE = [("LSTK_CATTLE", 0.34), ("LSTK_GOAT", 0.24), ("LSTK_SHEEP", 0.20),
+                  ("LSTK_CHICKEN", 0.14), ("LSTK_DONKEY", 0.05), ("LSTK_CAMEL", 0.03)]
+LIVESTOCK_BREED = ["BREED_LOCAL", "BREED_HYBRID", "BREED_IMPROVED"]
 WATER_SOURCE = [("Rainfed", 0.66), ("River", 0.14), ("Borehole", 0.10),
                 ("Irrigation Canal", 0.07), ("Pond", 0.03)]
 SOIL = [("high", 0.24), ("medium", 0.51), ("low", 0.25)]
@@ -501,7 +504,7 @@ def main():
                     sid = rid(rng)
                     stock.add([sid, lid, _fid("LS"), "ACTIVE",
                                created.isoformat(sep=" "), SEEDER, created.isoformat(sep=" "), SEEDER, weighted(rng, LIVESTOCK_TYPE),
-                               rng.choice(["Local", "Crossbreed", "Improved"]),
+                               rng.choice(LIVESTOCK_BREED),
                                rng.randint(1, 60), weighted(rng, LIVESTOCK_SYSTEM)])
             if rng.random() < 0.72:
                 iid = rid(rng)
