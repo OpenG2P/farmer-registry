@@ -70,6 +70,14 @@ global:
 
 # ── openg2p-registry subchart overrides ───────────────────────────────────────
 registry:
+  # Staff and agent portal UIs built here (ui/staff-ui, ui/agent-ui): the
+  # platform's UI source cloned at deps.json's ref, with this registry's
+  # overrides/ copied on top. CI rewrites the tags with the other images.
+  staffUi:
+    image:
+      repository: openg2p/openg2p-farmer-registry-staff-ui
+      tag: 0.0.0-develop
+
   # Farmer-built images (each FROM the matching openg2p-registry base image).
   # CI rewrites these tags to the freshly built farmer version (lockstep); the
   # base image they extend is pinned by the openg2p-registry dependency version.
@@ -138,8 +146,8 @@ registry:
           household:
             idLength: 10
 
-  # staffUi and beneApi are consumed as-is from the openg2p-registry base images
-  # (subchart defaults already point at openg2p/openg2p-registry-*), so they are
+  # beneApi is consumed as-is from the openg2p-registry base image (the subchart
+  # default already points at openg2p/openg2p-registry-bene-api), so it is
   # intentionally not overridden.
 
   # ── Farmer e2e sanity suite (image built here; Set 2 field tests) ───────────
@@ -362,6 +370,10 @@ registry:
   # portal, so it follows the API rather than being opt-in separately.
   agentPortalUi:
     enabled: true
+    # Built here from ui/agent-ui (see staffUi above).
+    image:
+      repository: openg2p/openg2p-farmer-registry-agent-ui
+      tag: 0.0.0-develop
   # Superset dashboards: the platform chart's dashboards Job imports FR's bundle
   # (files/fr-dashboards.zip, shipped by templates/dashboard-bundle-configmap.yaml)
   # into the namespace's Superset. Each install gets its own copy: dashboards
