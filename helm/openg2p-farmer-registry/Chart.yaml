@@ -10,17 +10,16 @@ description: |
   deployment, service, ingress, keycloak/iam wiring and the db-seed machinery
   come from the openg2p-registry subchart.
 
-  It does own the ANALYTICS layer, in templates/ — because the reporting views
-  and dashboards are written against the farmer schema and the platform has no
-  concept of them:
+  It does own the ANALYTICS content, in templates/, because the reporting views
+  and dashboards are written against the farmer schema:
 
-    analytics-jobs.yaml                reporting-views + dashboard-import Jobs
+    analytics-jobs.yaml                bulk-sample + reporting-views Jobs
     reporting-views-refresh.yaml       CronJob refreshing the materialized views
-    dashboard-bundle-configmap.yaml    ships fr-dashboards.zip into the cluster
+    dashboard-bundle-configmap.yaml    ships fr-dashboards.zip to the platform's
+                                       dashboards Job (registry.dashboards)
     maps-content-configmap.yaml        maps content for G2P Insights
     _maps-content.tpl                  its name helper
     _mds-api-env.tpl                   Master Data API env (MDS_*) for the Jobs
-    superset-service-account-secret.yaml
 
   Hook weights order these above the sanity suite (25), so rebuilding the views
   cannot change what the sanity tests asserted against.

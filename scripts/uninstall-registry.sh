@@ -61,7 +61,7 @@
 #       [--keep-dashboards]           (do NOT remove this registry's Superset assets)
 #       [--superset-release <name>]   (default: commons-services)
 #       [--superset-namespace <ns>]   (default: same as --namespace)
-#       [--superset-db-name <name>]   (default: read from the release's values)
+#       [--superset-db-name <name>]   (default: the release name)
 #       [--keep-pvs]                  (delete PVCs but not PVs)
 #       [--dry-run]                   (print actions, change nothing)
 #       [--force]                     (run even while a Helm operation on the release is in progress)
@@ -94,8 +94,7 @@ FORCE=false
 SWEEP_CHECKS="${SWEEP_CHECKS:-3}"
 SWEEP_INTERVAL="${SWEEP_INTERVAL:-10}"
 # Superset is a SHARED release (commons-services), not part of this registry.
-# SUPERSET_DB_NAME is auto-read from the release's own values below; the flag is
-# only needed when the release is already gone.
+# SUPERSET_DB_NAME defaults to the release name (see below).
 SUPERSET_RELEASE="commons-services"
 SUPERSET_NAMESPACE=""
 SUPERSET_DB_NAME=""
@@ -375,27 +374,19 @@ else
   _green "  No Helm operation in progress for '$RELEASE'"
 fi
 
-# Superset connection name: read from the release's own values so the caller does
-# not have to know it. Only possible while the release still exists — hence the
-# dashboard step runs before `helm uninstall`. --superset-db-name overrides, and
-# is the escape hatch when the release is already gone.
+# Superset connection name. The platform's dashboards Job names the connection
+# after the release, so the release name is right even once the release is gone
+# (uninstalled from Rancher, or `helm uninstall` run first). A chart with its own
+# dashboards import (older registry charts) records the name in
+# analytics.dashboards.supersetDatabaseName, read while the release exists.
+# --superset-db-name overrides: e.g. FR's old fixed name "FR", for an install
+# whose dashboards were imported before per-release names and never upgraded.
 if [[ "$KEEP_DASHBOARDS" == false && -z "$SUPERSET_DB_NAME" && "$HELM_RELEASE_EXISTS" == true ]]; then
   SUPERSET_DB_NAME=$(helm -n "$NAMESPACE" get values "$RELEASE" -a -o json 2>/dev/null \
     | jq -r '.analytics.dashboards.supersetDatabaseName // empty' 2>/dev/null || true)
 fi
-
-# Fall back to this registry's own connection name when the release is already
-# gone — which is the COMMON case, not the exotic one: uninstalling from Rancher,
-# or running `helm uninstall` before this script, removes the release and with it
-# the only place the name was being read from. The step then skipped quietly and
-# left the dashboards, charts, datasets and the database connection behind in the
-# shared Superset, where the next install silently adopted them.
-#
-# This script belongs to ONE registry, so it knows its own name. --superset-db-name
-# still overrides, for a deployment that renamed the connection.
 if [[ "$KEEP_DASHBOARDS" == false && -z "$SUPERSET_DB_NAME" ]]; then
-  SUPERSET_DB_NAME="FR"
-  _yellow "  Superset connection: release gone, assuming '$SUPERSET_DB_NAME' (override with --superset-db-name)"
+  SUPERSET_DB_NAME="$RELEASE"
 fi
 
 # Locate the shared Superset pod. Its app context is already configured in-pod, so
@@ -578,11 +569,11 @@ fi
 # their charts and datasets, and the connection pointing at the registry DB we are
 # about to drop all survive, and the next install inherits stale, broken tiles.
 #
-# Scope is the Superset *database connection* this registry owns (analytics.
-# dashboards.supersetDatabaseName). Every asset the bundle imports hangs off it,
-# and each tenant in a shared Superset has its own, so nothing else is touched.
-# Runs BEFORE `helm uninstall` because the connection name is read from the
-# release's values — and there is nothing to gain from doing it later.
+# Scope is the Superset *database connection* this release owns (named after the
+# release). Every asset the bundle imports hangs off it, and each release in a
+# shared Superset has its own, so nothing else is touched. Runs BEFORE
+# `helm uninstall`, while an older chart's connection name can still be read from
+# the release's values.
 _blue "==> [1/8] Remove Superset dashboards"
 if [[ "$KEEP_DASHBOARDS" == true ]]; then
   _yellow "  (skipped — --keep-dashboards)"

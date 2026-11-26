@@ -362,6 +362,14 @@ registry:
   # portal, so it follows the API rather than being opt-in separately.
   agentPortalUi:
     enabled: true
+  # Superset dashboards: the platform chart's dashboards Job imports FR's bundle
+  # (files/fr-dashboards.zip, shipped by templates/dashboard-bundle-configmap.yaml)
+  # into the namespace's Superset. Each install gets its own copy: dashboards
+  # titled "<release> · <title>" on a connection named after the release, so
+  # several FRs can share one Superset. Its settings are the platform's
+  # (dashboards.* in openg2p-registry), set here under registry.dashboards.
+  dashboards:
+    enabled: true
 
 
 # ── Analytics: sample data, reporting views, dashboards ──────────────────────
@@ -449,97 +457,6 @@ analytics:
     # listed, so a view added to reporting_views.sql is picked up without anyone
     # remembering to add it here.
     matchPrefix: fr_rpt_
-
-  dashboards:
-    enabled: true
-    image:
-      repository: apachesuperset.docker.scarf.sh/apache/superset
-      tag: 4.0.1
-    # Service account that owns imported assets. On a Keycloak-only Superset no
-    # local user exists until someone logs in, so the Job creates this one if
-    # absent. It cannot log in through the UI — AUTH_OAUTH removes the local
-    # login form — but see the password below: it can still use the REST API.
-    supersetAdmin: svc-importer
-    # Password for that account, read from a Secret. Leave the secret name empty
-    # and the Job generates a random password and discards it, which is fine if
-    # the account only ever needs to own assets.
-    #
-    # Set it when anything has to call the Superset API as a machine, which is
-    # what G2P Insight's Dashboards tab does. Under AUTH_TYPE = AUTH_OAUTH this
-    # is the ONLY way in: POST /login/ is a browser redirect to Keycloak and
-    # returns 405 to a form post, and /api/v1/security/login authenticates
-    # against Superset's OWN user table — provider=db never consults Keycloak, so
-    # no Keycloak credential, however privileged, can authenticate a service.
-    #
-    # When set, the Job converges the account onto this password on every run,
-    # so rotating the Secret and upgrading is enough to rotate the credential.
-    supersetAdminPasswordSecret:
-      # Generated on first install and adopted thereafter, so nobody has to
-      # invent one. Whichever of FR and G2P Insights installs first creates it;
-      # the other adopts it, which is why both charts default to the same name
-      # and key. Set generate=false and create the Secret yourself if your
-      # pipeline renders manifests and applies them (helm template / --dry-run
-      # cannot read the cluster, so it would mint a new password every render).
-      generate: true
-      name: openg2p-insights-superset-svc
-      key: password
-    # database_name of the connection inside Superset, as recorded in the bundle
-    supersetDatabaseName: FR
-
-    # Superset's OWN configuration. This job runs Superset's CLI and ORM
-    # (`superset fab`, `create_app()`, `import-dashboards`), so it must be
-    # pointed at the SAME metadata database Superset itself uses.
-    #
-    # Without these it was pointed at nothing: Superset defaults
-    # SQLALCHEMY_DATABASE_URI to a SQLite file, so the job created its service
-    # account and imported all 8 dashboards into a throwaway database inside its
-    # own pod, exited 0, and left the real Superset empty. A successful install
-    # with no dashboards in it. The job now aborts rather than repeat that.
-    #
-    # Defaults match the commons-services Superset chart; override for a Superset
-    # deployed under another name.
-    superset:
-      # In-cluster base URL, used for the REST calls that enable embedding.
-      url: http://commons-services-superset:8088
-      # Superset is a different Helm release, so nothing orders it against this
-      # Job. Wait rather than fail: a Superset merely restarting would otherwise
-      # take the whole dashboard import down with it.
-      # Superset is a SEPARATE Helm release and analytics is optional, so an
-      # absent Superset SKIPS the dashboard import rather than failing the
-      # install: a registry must come up whether or not a reporting stack was
-      # deployed beside it. Set true where the dashboards are load-bearing and a
-      # silent skip would be worse than a failed deploy.
-      required: false
-      waitAttempts: 60
-      waitSeconds: 5
-      # Secret carrying Superset's DB_HOST/DB_NAME/DB_USER/DB_PASS.
-      envFromSecret: commons-services-superset-env
-      # ...except DB_PASS, which in that Secret is EMPTY. The Superset chart keeps
-      # the password in a Secret of its own and injects it as an explicit `env:`
-      # entry, which takes precedence over the same key coming from `envFrom`.
-      # Copying only the envFrom half therefore produced a URI with no password and
-      # the CLI died on `fe_sendauth: no password supplied` — after waiting for
-      # Superset, after installing authlib, so the log looked like it was working
-      # right up to the point it wasn't. Rendered as an explicit env var here for
-      # the same reason: it has to win over the blank one.
-      dbPasswordSecret:
-        name: superset-db-user
-        key: superset-db-user-password
-      # Secret carrying superset_config.py (AUTH_TYPE, SECRET_KEY, the DB URI).
-      configSecret: commons-services-superset-config
-      configKey: superset_config.py
-      # Sourced before the Superset CLI runs, exactly as the Superset deployment
-      # does before starting. It installs what the mounted config needs — authlib
-      # for AUTH_OAUTH — which the stock apache/superset image does not ship.
-      # Without it this Job died in create_app with ModuleNotFoundError, before
-      # importing a single dashboard. Set empty to skip.
-      bootstrapKey: superset_bootstrap.sh
-      # Enable embedding on the imported dashboards. Without this they exist and
-      # are published but carry no embedded UUID, so G2P Insights' Dashboards tab
-      # lists them and can render none of them.
-      enableEmbedding: true
-    # ConfigMap holding fr-dashboards.zip; defaults to <release>-nsr-dashboard-bundle
-    bundleConfigMap: ""
 
   resources:
     requests:
