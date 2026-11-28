@@ -26,7 +26,7 @@
 #
 # Build context = repo root (so farmer-extension/ and docker/db-seed/ are both
 # reachable).
-ARG RP_VERSION=0.0.0-develop.856
+ARG RP_VERSION=0.0.0-develop.858
 FROM openg2p/openg2p-registry-db-seed:${RP_VERSION}
 
 # The sample herds are the country pack's sample animals (openg2p-data
